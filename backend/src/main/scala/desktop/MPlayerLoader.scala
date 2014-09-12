@@ -1,0 +1,6 @@
+package scalatra
+
+
+class MPlayerLoader {
+
+}

@@ -1,8 +1,9 @@
-package avct2
+package scalatra
 
 import org.scalatra._
+import scala.slick.jdbc.JdbcBackend.Database
 
-class Avct2Servlet extends ScalatraServlet {
+class Avct2Servlet(db: Database) extends ScalatraServlet {
 
   get("/") {
     <html>

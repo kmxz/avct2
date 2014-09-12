@@ -1,6 +1,6 @@
-package avct2
+package scalatra
 
-import java.io.{IOException, File, FileNotFoundException, FileInputStream}
+import java.io._
 import java.util.Properties
 import javax.swing.{WindowConstants, UIManager}
 
@@ -10,27 +10,27 @@ import scala.swing.{Label, Dialog}
 
 object Avct2 {
 
+  final val configFileName = "avct2.properties"
   val properties = new Properties()
 
   def initConfig() = {
-    properties.load(new FileInputStream("avct2.properties")) // may throw FileNotFoundException
-    if (Config.valid(properties, true)) {
-      throw new FileNotFoundException
-    }
-  }
-
-  def configWindow() = {
-
-  }
-
-  def main(args: Array[String]) = {
-    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName)
     try {
-      initConfig()
+      properties.load(new FileInputStream(configFileName))
+      Config.valid(properties, true)
     } catch {
-      case _: IOException => if (!Config(properties)) { panic("No valid video directory specified.") }
+      case _: FileNotFoundException => false
     }
-    println("Life's hard")
+  }
+
+  def loadMain() = {
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName) // may fail under GTK
+    if (!initConfig()) {
+      if (!Config(properties)) {
+        panic("No valid video directory specified.")
+      }
+      properties.store(new FileOutputStream(configFileName), "Avct2 auto-generated config")
+    }
+    HintFrame()
   }
 
   def panic(info: String) = {

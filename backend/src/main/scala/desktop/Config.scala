@@ -1,6 +1,6 @@
-package avct2
+package scalatra
 
-import java.io.File
+import java.io.{IOException, File}
 import java.util.Properties
 import javax.swing.border.EmptyBorder
 import javax.swing.WindowConstants
@@ -17,14 +17,16 @@ object Config {
   }
 
   def valid (properties: Properties, full: Boolean) = {
-    new File(properties.getProperty("videoDirectory")).isDirectory && (!full || new File(properties.getProperty("mPlayer")).isFile)
+    val videoDirectory = properties.getProperty("videoDirectory")
+    val mPlayer = properties.getProperty("mPlayer")
+    (videoDirectory != null && new File(videoDirectory).isDirectory) && (!full || (mPlayer != null && new File(mPlayer).isFile))
   }
 
 }
 
 class Config (properties: Properties) {
 
-  lazy val ui = new GridBagPanel {
+  val ui = new GridBagPanel {
     val videoDirectoryTextField = new TextField(properties.getProperty("videoDirectory", ""))
     val mPlayerTextField = new TextField(properties.getProperty("mPlayer", ""))
 
@@ -70,7 +72,7 @@ class Config (properties: Properties) {
         }
       }) = location(2, 1)
 
-      layout(new Label("The configuration will be saved as avct2.properties")) = location(0, 2, Some(2))
+      layout(new Label("The configuration will be saved as " + Avct2.configFileName)) = location(0, 2, Some(2))
 
       layout(Button("OK") {
         properties.setProperty("videoDirectory", videoDirectoryTextField.text)
