@@ -1,7 +1,9 @@
-package scalatra
+package avct2.scalatra
 
 import org.scalatra._
-import scala.slick.jdbc.JdbcBackend.Database
+
+import scala.slick.driver.SQLiteDriver.simple.Database
+
 
 class Avct2Servlet(db: Database) extends ScalatraServlet {
 

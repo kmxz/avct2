@@ -1,11 +1,11 @@
-package scalatra
+package avct2.desktop
 
-import java.io.{IOException, File}
+import java.io.File
 import java.util.Properties
-import javax.swing.border.EmptyBorder
 import javax.swing.WindowConstants
-import scala.swing.GridBagPanel._
+import javax.swing.border.EmptyBorder
 import scala.swing.FileChooser._
+import scala.swing.GridBagPanel._
 import scala.swing._
 
 

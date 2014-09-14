@@ -1,11 +1,10 @@
-package scalatra
+package avct2.desktop
 
 import java.io._
 import java.util.Properties
-import javax.swing.{WindowConstants, UIManager}
-
+import javax.swing.UIManager
+import scala.swing.Dialog
 import scala.swing.Dialog.Message
-import scala.swing.{Label, Dialog}
 
 
 object Avct2 {

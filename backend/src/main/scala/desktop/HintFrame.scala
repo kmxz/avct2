@@ -1,9 +1,8 @@
-package scalatra
+package avct2.desktop
 
 import java.awt.Desktop
 import java.net.URI
-import javax.swing.border.EmptyBorder
-import scala.swing._
+import scala.swing.{Label, Button, FlowPanel, MainFrame}
 
 
 object HintFrame {
