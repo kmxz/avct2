@@ -8,7 +8,6 @@ import scala.swing.FileChooser._
 import scala.swing.GridBagPanel._
 import scala.swing._
 
-
 object Config {
 
   def apply (properties: Properties) = {

@@ -6,7 +6,6 @@ import javax.swing.UIManager
 import scala.swing.Dialog
 import scala.swing.Dialog.Message
 
-
 object Avct2 {
 
   final val configFileName = "avct2.properties"

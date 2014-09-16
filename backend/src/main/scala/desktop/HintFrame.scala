@@ -4,10 +4,9 @@ import java.awt.Desktop
 import java.net.URI
 import scala.swing.{Label, Button, FlowPanel, MainFrame}
 
-
 object HintFrame {
 
-  final val uri = "http://localhost:1024/gui"
+  final val uri = "http://localhost:1024/"
 
   lazy val ui = new FlowPanel() {
     contents += Button("Open web UI") {

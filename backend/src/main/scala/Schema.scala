@@ -4,7 +4,7 @@ import java.sql.Blob
 import scala.slick.driver.SQLiteDriver.simple._
 import scala.slick.lifted.{TableQuery, Tag => T}
 
-object Role {
+object Role { // I really should rewrite this section
   final val vanillaMask = 1 << 0;
   final val mSelfMask = 1 << 1;
   final val fSelfMask = 1 << 2;
@@ -15,6 +15,7 @@ object Role {
   def apply(i: Int) = {
     new Role((i & vanillaMask) != 0, (i & mSelfMask) != 0, (i & fSelfMask) != 0, (i & mMMask) != 0, (i & mFMask) != 0, (i & fMMask) != 0, (i & fFMask) != 0)
   }
+  val mct = MappedColumnType.base[Role, Int]({ r => r.toInt }, { i => Role(i) })
 }
 
 case class Role(vanilla: Boolean, mSelf: Boolean, fSelf: Boolean, mM: Boolean, mF: Boolean, fM: Boolean, fF: Boolean) {
@@ -29,6 +30,12 @@ case class Role(vanilla: Boolean, mSelf: Boolean, fSelf: Boolean, mM: Boolean, m
     if (fF) { i |= Role.fFMask }
     i
   }
+}
+
+object Race extends Enumeration {
+  type Race = Value
+  val Unknown, Chinese, Asian, Other = Value
+  val mct = MappedColumnType.base[Value, Int](_.id, this.apply)
 }
 
 class Tag(tag: T) extends Table[(Int, String, Boolean)](tag, "tag") {
@@ -52,15 +59,14 @@ class Studio(tag: T) extends Table[(Int, String)](tag, "studio") {
   def * = (studioId, name)
 }
 
-class Clip(tag: T) extends Table[(Int, String, Int, Int, Blob, Int, Role, Int, Int)](tag, "clip") {
-  implicit val _ = MappedColumnType.base[Role, Int]({ r => r.toInt }, { i => Role(i) })
+class Clip(tag: T) extends Table[(Int, String, Int, Race.Race, Blob, Int, Role, Int, Int)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
   def file = column[String]("file")
   def studioId = column[Int]("studio_id")
-  def race = column[Int]("race")
+  def race = column[Race.Race]("race")(Race.mct)
   def thumb = column[Blob]("thumb")
   def grade = column[Int]("grade")
-  def role = column[Role]("role")
+  def role = column[Role]("role")(Role.mct)
   def size = column[Int]("size")
   def length = column[Int]("length")
   index("index_file", file, unique = true)

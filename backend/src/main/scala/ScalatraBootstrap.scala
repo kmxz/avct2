@@ -15,7 +15,7 @@ class ScalatraBootstrap extends LifeCycle {
       implicit session =>
       if (MTable.getTables.list.isEmpty) {
         val ddl = Tables.tag.ddl ++ Tables.tagRelationship.ddl ++ Tables.studio.ddl ++ Tables.clip.ddl ++ Tables.clipTag.ddl ++ Tables.excludeFile.ddl ++ Tables.record.ddl
-        ddl.createStatements.foreach(println) // just print, don't create
+        ddl.create
       }
     }
     Avct2.loadMain()
