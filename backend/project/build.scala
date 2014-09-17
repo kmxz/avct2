@@ -1,8 +1,8 @@
-import sbt._
-import Keys._
-import org.scalatra.sbt._
 import com.earldouglas.xsbtwebplugin.PluginKeys._
 import com.earldouglas.xsbtwebplugin.WebPlugin._
+import org.scalatra.sbt._
+import sbt.Keys._
+import sbt._
 
 object Avct2Build extends Build {
 
@@ -30,7 +30,7 @@ object Avct2Build extends Build {
         "org.eclipse.jetty.orbit" % "javax.servlet" % "3.0.0.v201112011016" % "container;provided" artifacts (Artifact("javax.servlet", "jar", "jar")),
         // database
         "com.typesafe.slick" %% "slick" % "2.1.0",
-        "org.xerial" % "sqlite-jdbc" % "3.7.2"
+        "org.hsqldb" % "hsqldb" % "2.3.2"
       )
     )
   )

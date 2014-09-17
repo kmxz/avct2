@@ -1,17 +1,18 @@
 package avct2.schema
 
 import java.sql.Blob
-import scala.slick.driver.SQLiteDriver.simple._
+
+import scala.slick.driver.HsqldbDriver.simple._
 import scala.slick.lifted.{TableQuery, Tag => T}
 
 object Role { // I really should rewrite this section
-  final val vanillaMask = 1 << 0;
-  final val mSelfMask = 1 << 1;
-  final val fSelfMask = 1 << 2;
-  final val mMMask = 1 << 3;
-  final val mFMask = 1 << 4;
-  final val fMMask = 1 << 5;
-  final val fFMask = 1 << 6;
+  final val vanillaMask = 1 << 0
+  final val mSelfMask = 1 << 1
+  final val fSelfMask = 1 << 2
+  final val mMMask = 1 << 3
+  final val mFMask = 1 << 4
+  final val fMMask = 1 << 5
+  final val fFMask = 1 << 6
   def apply(i: Int) = {
     new Role((i & vanillaMask) != 0, (i & mSelfMask) != 0, (i & fSelfMask) != 0, (i & mMMask) != 0, (i & mFMask) != 0, (i & fMMask) != 0, (i & fFMask) != 0)
   }
@@ -19,7 +20,7 @@ object Role { // I really should rewrite this section
 }
 
 case class Role(vanilla: Boolean, mSelf: Boolean, fSelf: Boolean, mM: Boolean, mF: Boolean, fM: Boolean, fF: Boolean) {
-  def toInt() = {
+  def toInt = {
     var i = 0
     if (vanilla) { i |= Role.vanillaMask }
     if (mSelf) { i |= Role.mSelfMask }
@@ -85,7 +86,7 @@ class ClipTag(tag: T) extends Table[(Int, Int)](tag, "clip_tag") {
 
 class ExcludeFile(tag: T) extends Table[(String)](tag, "exclude_file") {
   def file = column[String]("file", O.PrimaryKey)
-  def * = (file)
+  def * = file
 }
 
 class Record(tag: T) extends Table[(Int, Int)](tag, "record") {
