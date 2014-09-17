@@ -3,5 +3,5 @@ target/
 .lib/
 project/project/
 project/target/
-.db
+.db.*
 .properties

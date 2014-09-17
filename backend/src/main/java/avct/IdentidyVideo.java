@@ -1,4 +1,5 @@
 // slightly-modified from original Java-written avct code. no time to rewrite it in Scala
+package avct;
 
 import java.io.BufferedReader;
 import java.io.File;

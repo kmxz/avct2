@@ -2,7 +2,8 @@ package avct2.desktop
 
 import java.awt.Desktop
 import java.net.URI
-import scala.swing.{Label, Button, FlowPanel, MainFrame}
+
+import scala.swing.{Button, FlowPanel, Label, MainFrame}
 
 object HintFrame {
 

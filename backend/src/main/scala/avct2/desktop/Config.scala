@@ -4,6 +4,7 @@ import java.io.File
 import java.util.Properties
 import javax.swing.WindowConstants
 import javax.swing.border.EmptyBorder
+
 import scala.swing.FileChooser._
 import scala.swing.GridBagPanel._
 import scala.swing._
