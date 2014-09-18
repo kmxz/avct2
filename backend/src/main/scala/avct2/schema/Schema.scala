@@ -9,12 +9,14 @@ class Tag(tag: T) extends Table[(Option[Int], String, Boolean)](tag, "tag") {
   def tagId = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
   def name = column[String]("name")
   def meta = column[Boolean]("meta")
+  index("index_name", name, unique = true)
   def * = (tagId.?, name, meta)
 }
 
 class TagRelationship(tag: T) extends Table[(Int, Int)](tag, "tag_relationship") {
   def parentTag = column[Int]("parent_tag") // ignore foreignKey
   def childTag = column[Int]("child_tag")
+  primaryKey("primary_key", (parentTag, childTag))
   foreignKey("foreign_key_parent_tag", parentTag, TableQuery[Tag])(_.tagId)
   foreignKey("foreign_key_child_tag", childTag, TableQuery[Tag])(_.tagId)
   def * = (parentTag, childTag)
@@ -23,10 +25,11 @@ class TagRelationship(tag: T) extends Table[(Int, Int)](tag, "tag_relationship")
 class Studio(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
   def studioId = column[Int]("studio_id", O.PrimaryKey, O.AutoInc)
   def name = column[String]("name")
+  index("index_name", name, unique = true)
   def * = (studioId.?, name)
 }
 
-class Clip(tag: T) extends Table[(Option[Int], String, Int, Race.Value, Option[Blob], Int, Role.ValueSet, Int, Int)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Int, Int)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
   def file = column[String]("file")
   def studioId = column[Int]("studio_id")
@@ -38,7 +41,7 @@ class Clip(tag: T) extends Table[(Option[Int], String, Int, Race.Value, Option[B
   def length = column[Int]("length")
   index("index_file", file, unique = true)
   foreignKey("foreign_key_studio_id", studioId, TableQuery[Studio])(_.studioId)
-  def * = (clipId.?, file, studioId, race, thumb.?, grade, role, size, length)
+  def * = (clipId.?, file, studioId.?, race, thumb.?, grade, role, size, length)
 }
 
 class ClipTag(tag: T) extends Table[(Int, Int)](tag, "clip_tag") {

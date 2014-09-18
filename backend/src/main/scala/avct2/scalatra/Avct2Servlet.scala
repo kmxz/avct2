@@ -8,7 +8,7 @@ import org.scalatra.json._
 
 import scala.slick.driver.HsqldbDriver.simple._
 
-class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport {
+class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport with RenderHelper {
 
   protected implicit val jsonFormats = DefaultFormats
 
@@ -19,16 +19,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
   get("/clip") {
     contentType = formats("json")
     db.withSession { implicit session =>
-      (for {
-        (c, s) <- Tables.clip leftJoin Tables.studio on (_.studioId === _.studioId)
-      } yield (c.clipId, c.file, c.race, c.grade, c.role, c.size, c.length, c.thumb.isNotNull, s.name.?)).
-      list.map(((clipId: Int, file: String, race: Race.Value, grade: Int, role: Role.ValueSet, size: Int, length: Int, thumbSet: Boolean, studio: Option[String]) => {
-        val tags = (for {
-          (ct, t) <- Tables.clipTag.filter(_.clipId === clipId) leftJoin Tables.tag on (_.tagId === _.tagId)
-        } yield t.name).list
-        val record = recordFormat({ val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp); (ts.length, ts.max).shaped.run }) // currently buggy due to https://github.com/slick/slick/issues/630
-        Map("id" -> clipId, "file" -> file, "studio" -> studio, "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "record" -> record, "thumbSet" -> thumbSet) // Enum-s must be toString-ed, otherwise json4s will fuck things up
-      }).tupled)
+      queryClip(identity).list.map(renderClip)
     }
   }
 
@@ -43,30 +34,65 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
 
   post("/clip/:id/edit") {
     val id = params("id").toInt
-    params("key") match {
-      case "studio" => { // auto-creation included
-        val studio = params("value")
-        db.withSession { implicit session =>
+    db.withSession { implicit session =>
+      params("key") match {
+        case "studio" => {
+          val studio = params("value")
           Tables.clip.filter(_.clipId === id).map(_.studioId).update(getStudioOrCreate(studio))
         }
+        case "race" => {
+          val race = Race.withName(params("race"))
+          Tables.clip.filter(_.clipId === id).map(_.race).update(race)
+        }
+        case "role" => {
+          val roles = multiParams("value")
+          val roleSet = Role.ValueSet(roles.map(Role.withName): _*)
+          Tables.clip.filter(_.clipId === id).map(_.role).update(roleSet)
+        }
+        case "grade" => {
+          val grade = params("value").toInt
+          Tables.clip.filter(_.clipId === id).map(_.grade).update(grade)
+        }
+        case "duration" => {
+          val length = params("value").toInt
+          Tables.clip.filter(_.clipId === id).map(_.length).update(length)
+        }
+        case "tags" => {
+          val tags = multiParams("value")
+          Tables.clipTag.filter(_.clipId === id).delete // remove older ones first
+          Tables.clipTag.insertAll(tags.map(tag => (id, tag.toInt)): _*)
+        }
       }
-      case "race" => {
-
-      }
-      case "role" => {
-
-      }
-      case "grade" => {
-
-      }
-      case "duration" => {
-
-      }
-      case "tags" => {
-
-      }
+      renderClip(queryClip(query => query.filter(_.clipId === id)).first)
     }
+  }
 
+  get("/tag") {
+    contentType = formats("json")
+    db.withSession { implicit session =>
+      Tables.tag.list
+    }
+  }
+
+  get("/tag/:id") {
+    contentType = formats("json")
+    // TODO
+  }
+
+  post("/tag/create") {
+    contentType = formats("json")
+    val name = params("name")
+    val meta = params("meta").toBoolean
+    db.withSession { implicit session =>
+      (Tables.tag returning Tables.tag) += (None, name, meta)
+    }
+  }
+
+  get("/studio") {
+    contentType = formats("json")
+    db.withSession { implicit session =>
+      Tables.studio.map(_.name).list
+    }
   }
   
 }

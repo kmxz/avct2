@@ -6,7 +6,7 @@ avct2.controller('MainWindow', function($scope, sources) {
     $scope.reload = function() { // load all three components
         $scope.reloading = true;
         // TODO: also fetch quickjerk, require both success to proceed
-        sources('test').success(function(i) {
+        sources('clip/list').success(function(i) {
             $scope.clips = i;
             $scope.reloading = false;
         });

@@ -18,7 +18,7 @@ avct2.directive('clipTr', function() {
 avct2.directive('thumbTd', function() {
     return {
         restrict: 'A',
-        template: '<img ng-src="{{clip.thumb}}" />'
+        template: '<img ng-if="clip.thumbSet" ng-src="/clip/{{clip.id}}/thumb" />'
     }
 });
 
@@ -81,9 +81,9 @@ avct2.directive('durationTd', function() {
     }
 });
 
-avct2.directive('historyTd', function() {
+avct2.directive('recordTd', function() {
     return {
         restrict: 'A',
-        template: '{{clip.history}}'
+        template: '{{clip.record}}'
     }
 });

@@ -13,16 +13,14 @@ avct2.factory('sources', function($http) {
         'clip/history': { method: 'get', url: 'clip/$/history' },
         // studio
         'studio/list': { method: 'get', url: 'studio' },
-        'studio/create': { method: 'post', url: 'studio/create' },
         // tag
         'tag/list': { method: 'get', url: 'tag' },
+        'tag/create': { method: 'post', url: 'tag/create' },
         'tag/info': { method: 'get', url: 'tag/$' },
         'tag/parents': { method: 'post', url: 'tag/$/parents', params: ['parents'] },
         'tag/edit': { method: 'post', url: 'tag/$/edit', params: ['name'] },
         // quickjerk
         'quickjerk': { method: 'get', url: 'quickjerk', params: [/* todo */] },
-        // test
-        'test': { method: 'get', url: 'src.js' }
     };
     return function(api, opt_params) {
         var config = actions[api];
