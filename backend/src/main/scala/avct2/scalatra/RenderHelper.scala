@@ -9,7 +9,7 @@ trait RenderHelper {
 
   // to be used with renderClip
   def queryClip(filter: TableQuery[Clip] => Query[Clip, _, Seq])(implicit session: Session) = { // actually I should fill the second type parameter of return type, instead of leaving _. but it's too long so I ignored that
-      filter(Tables.clip).map(row => (row.clipId, row.file, row.studioId.?, row.race, row.grade, row.role, row.size, row.length, row.thumb.isNotNull))
+      filter(Tables.clip).map(row => (row.clipId, row.file, row.studioId, row.race, row.grade, row.role, row.size, row.length, row.thumb.isNotNull))
   }
 
   // to be used with queryClip

@@ -27,8 +27,10 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
     contentType = "image/jpeg"
     val id = params("id").toInt
     db.withSession { implicit session =>
-      val is = Tables.clip.filter(_.clipId === id).map(_.thumb).first.getBinaryStream
-      org.scalatra.util.io.copy(is, response.getOutputStream)
+      Tables.clip.filter(_.clipId === id).map(_.thumb).first match {
+        case Some(thumb) => org.scalatra.util.io.copy(thumb.getBinaryStream, response.getOutputStream)
+        case None => status(404)
+      }
     }
   }
 
@@ -38,7 +40,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
       params("key") match {
         case "studio" => {
           val studio = params("value")
-          Tables.clip.filter(_.clipId === id).map(_.studioId).update(getStudioOrCreate(studio))
+          Tables.clip.filter(_.clipId === id).map(_.studioId).update(Some(getStudioOrCreate(studio)))
         }
         case "race" => {
           val race = Race.withName(params("race"))

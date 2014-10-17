@@ -32,16 +32,16 @@ class Studio(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
 class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Int, Int)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
   def file = column[String]("file")
-  def studioId = column[Int]("studio_id")
+  def studioId = column[Option[Int]]("studio_id")
   def race = column[Race.Value]("race")(Race.mct)
-  def thumb = column[Blob]("thumb")
+  def thumb = column[Option[Blob]]("thumb")
   def grade = column[Int]("grade")
   def role = column[Role.ValueSet]("role")(Role.mct)
   def size = column[Int]("size")
   def length = column[Int]("length")
   index("index_file", file, unique = true)
   foreignKey("foreign_key_studio_id", studioId, TableQuery[Studio])(_.studioId)
-  def * = (clipId.?, file, studioId.?, race, thumb.?, grade, role, size, length)
+  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length)
 }
 
 class ClipTag(tag: T) extends Table[(Int, Int)](tag, "clip_tag") {
