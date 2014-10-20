@@ -3,6 +3,7 @@ package avct2.scalatra
 import avct2.schema.Utilities._
 import avct2.schema._
 
+import java.io.File
 import scala.slick.driver.HsqldbDriver.simple._
 
 trait RenderHelper {
@@ -17,7 +18,7 @@ trait RenderHelper {
     case (clipId, file, studio, race, grade, role, size, length, thumbSet) =>
       val tags = Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list
       val record = recordFormat({ val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp); (ts.length, ts.max).shaped.run }) // currently buggy due to https://github.com/slick/slick/issues/630
-      Map("id" -> clipId, "file" -> file, "studio" -> getStudioName(studio), "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "record" -> record, "thumbSet" -> thumbSet) // Enum-s must be toString-ed, otherwise json4s will fuck things up
+      Map("id" -> clipId, "file" -> new File(file).getName, "studio" -> getStudioName(studio), "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "record" -> record, "thumbSet" -> thumbSet) // Enum-s must be toString-ed, otherwise json4s will fuck things up
   }
 
   val recordFormat = ((count: Int, latest: Option[Int]) => {
