@@ -1,11 +1,13 @@
 package avct2.scalatra
 
 import avct2.schema.Utilities._
-import avct2.schema.{Race, Role, Tables}
+import avct2.schema.{Role, Race, Tables}
 import org.json4s.DefaultFormats
 import org.scalatra._
 import org.scalatra.json._
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.slick.driver.HsqldbDriver.simple._
 
 class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport with RenderHelper {
@@ -13,7 +15,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
   protected implicit val jsonFormats = DefaultFormats
 
   get("/") {
-    redirect("/gui") // static files will be served
+    redirect("/webui") // static files will be served
   }
 
   get("/clip") {
@@ -29,7 +31,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
     db.withSession { implicit session =>
       Tables.clip.filter(_.clipId === id).map(_.thumb).first match {
         case Some(thumb) => org.scalatra.util.io.copy(thumb.getBinaryStream, response.getOutputStream)
-        case None => status(404)
+        case None => status_=(404)
       }
     }
   }
@@ -60,9 +62,13 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
           Tables.clip.filter(_.clipId === id).map(_.length).update(length)
         }
         case "tags" => {
-          val tags = multiParams("value")
+          def recParents(child: Int): Set[Int] = { // the client should do this, but let's make it more secure
+            val parents = Tables.tagRelationship.filter(_.childTag === child).map(_.parentTag).list
+            parents.foldLeft (Set(child)) { _ ++ recParents(_) }
+          }
+          val tags = multiParams("value").map(_.toInt)
           Tables.clipTag.filter(_.clipId === id).delete // remove older ones first
-          Tables.clipTag.insertAll(tags.map(tag => (id, tag.toInt)): _*)
+          Tables.clipTag.insertAll(tags.map(recParents).reduce(_ ++ _).toSeq.map(tag => (id, tag)): _*)
         }
       }
       renderClip(queryClip(query => query.filter(_.clipId === id)).first)
@@ -72,7 +78,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
   get("/tag") {
     contentType = formats("json")
     db.withSession { implicit session =>
-      Tables.tag.list
+      Tables.tag.map(tag => (tag.tagId, tag.name)).list.map(tag => (tag._1.toString, Map("name" -> tag._2, "parent" -> getParentTags(tag._1)))).toMap
     }
   }
 
@@ -84,9 +90,8 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
   post("/tag/create") {
     contentType = formats("json")
     val name = params("name")
-    val meta = params("meta").toBoolean
     db.withSession { implicit session =>
-      (Tables.tag returning Tables.tag) += (None, name, meta)
+      (Tables.tag returning Tables.tag) += (None, name)
     }
   }
 
@@ -96,5 +101,5 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
       Tables.studio.map(_.name).list
     }
   }
-  
+
 }

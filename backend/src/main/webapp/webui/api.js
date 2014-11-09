@@ -5,7 +5,7 @@ ijkl.module('sources', ['xhr2', 'promise'], function() {
         'boot/action': { method: 'post', url: 'boot/pending/action', params: ['file', 'action'] },
         'boot/disappeared': { method: 'get', url: 'boot/disappeared' },
         // clip
-        'clip/list': { method: 'get', url: 'clip.js' },
+        'clip/list': { method: 'get', url: 'clip' },
         'clip/delete': { method: 'post', url: 'clip/$/delete' },
         'clip/shot': { method: 'get', url: 'clip/$/shot' },
         'clip/edit': { method: 'post', url: 'clip/$/edit', params: ['key', 'value'] },

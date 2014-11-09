@@ -16,7 +16,7 @@ object Role extends Enumeration {
 object Race extends Enumeration {
   Value("Unknown")
   Value("Chinese")
-  Value("Other Asia")
+  Value("Other Asian")
   Value("Other races")
   val mct = MappedColumnType.base[Value, Int](_.id, apply)
 }
@@ -30,9 +30,7 @@ object Utilities {
     case _ =>
       Tables.studio.filter (_.name === name).map (_.studioId).firstOption match {
         case Some (id) => id
-        case None => {
-        (Tables.studio returning Tables.studio.map (_.studioId) ) += (None, name)
-        }
+        case None => (Tables.studio returning Tables.studio.map (_.studioId) ) += (None, name)
       }
   }
 
@@ -42,11 +40,15 @@ object Utilities {
     case Some(studio) => Tables.studio.filter(_.studioId === studio).map(_.name).first
   }
 
-  // this function is used to clean those orphan studios TODO: haven't decided where to call
+  // this function is used to clean those orphan studios // TODO: haven't decided where to call
   def orphanStudioCleanup(implicit session: Session) = {
     (for {
       studio <- Tables.studio if !Tables.clip.filter(_.studioId === studio.studioId).exists
     } yield studio).delete
+  }
+
+  def getParentTags(tagId: Int)(implicit session: Session) = {
+    Tables.tagRelationship.filter(_.parentTag === tagId).map(_.childTag).list
   }
 
 }
