@@ -21,7 +21,7 @@ class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
   def * = (studioId.?, name)
 }
 
-class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Int, Int)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Int, Int, String)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
   def file = column[String]("file")
   def studioId = column[Option[Int]]("studio_id")
@@ -31,10 +31,10 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
   def role = column[Role.ValueSet]("role")(Role.mct)
   def size = column[Int]("size")
   def length = column[Int]("length")
-  def sourceNode = column[String]("sourceNote")
+  def sourceNote = column[String]("SOURCE_NOTES") // FIXME change it back to lowercase after debugging
   index("index_file", file, unique = true)
   foreignKey("foreign_key_studio_id", studioId, Tables.studio)(_.studioId)
-  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length)
+  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote)
 }
 
 

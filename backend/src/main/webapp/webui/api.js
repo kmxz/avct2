@@ -50,8 +50,8 @@ ijkl.module('sources', ['xhr2', 'promise'], function() {
                 alert("HTTP error occurred.");
                 reject(error);
             }
-            request.responseType = 'json';
             request.open(config.method, url);
+            request.responseType = 'json';
             request.send(formData);
         });
     }
