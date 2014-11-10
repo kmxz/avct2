@@ -5,3 +5,5 @@ project/project/
 project/target/
 .db.*
 .properties
+sbt
+bootstrap/

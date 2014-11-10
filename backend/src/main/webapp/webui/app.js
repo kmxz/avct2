@@ -28,13 +28,12 @@ ijkl.module('app', ['promise', 'classList'], function() {
 			var ftt = ft(table);
 			root.appendChild(table);
 			results[0].forEach(function(clip) {
-				if (Math.random() > 0.03) { return; }
 				tbody.appendChild(ftt.add([
-					dom('td', { className: 'col-thumb' }, clip['thumbSet']),
+					dom('td', { className: 'col-thumb' }, renderers.renderThumb(clip['id'], clip['thumbSet'])),
 					dom('td', { className: 'col-file' }, clip['file']),
 					dom('td', { className: 'col-studio' }, renderers.renderStudio(clip['studio'], results[1])),
 					dom('td', { className: 'col-role' }, renderers.renderRole(clip['role'])),
-					dom('td', { className: 'col-grade' }, clip['grade']),
+					dom('td', { className: 'col-grade' }, renderers.renderGrade(clip['grade'])),
 					dom('td', { className: 'col-race' }, clip['race']),
 					dom('td', { className: 'col-tags' }, renderers.renderTags(clip['tags'], results[2])),
 					dom('td', { className: ['hidden', 'col-record'] }, clip['record']),

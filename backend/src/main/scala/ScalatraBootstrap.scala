@@ -7,12 +7,15 @@ import org.scalatra._
 
 import scala.slick.driver.HsqldbDriver.simple._
 import scala.slick.jdbc.meta.MTable
+import org.hsqldb.jdbc.JDBCPool
 
 class ScalatraBootstrap extends LifeCycle {
 
   override def init(context: ServletContext) {
     Avct2.loadMain()
-    val database = Database.forURL("jdbc:hsqldb:file:" + Avct2.properties.getProperty("videoDirectory") + "/Avct_v2/Avct_dbv2.db;shutdown=true;hsqldb.write_delay=false;default_schema=true", driver = "org.hsqldb.jdbcDriver", user = "SA", password="")
+    val dataSource = new JDBCPool()
+    dataSource.setDatabase("jdbc:hsqldb:file:" + Avct2.properties.getProperty("videoDirectory") + "/Avct_v2/Avct_dbv2.db;shutdown=true;hsqldb.write_delay=false;default_schema=true")
+    val database = Database.forDataSource(dataSource)
     database.withSession { implicit session =>
       val ddl = Tables.tag.ddl ++ Tables.tagRelationship.ddl ++ Tables.studio.ddl ++ Tables.clip.ddl ++ Tables.clipTag.ddl ++ Tables.excludeFile.ddl ++ Tables.record.ddl
       if (MTable.getTables.list.isEmpty) {
