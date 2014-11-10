@@ -3,21 +3,11 @@ ijkl.module('app', ['promise', 'classList'], function() {
 	var ft = ijkl('flextable');
 	var dom = ijkl('dom');
 	var func = ijkl('function');
+	var as = ijkl('actionselector');
 	var renderers = ijkl('renderers');
-
 	var pClips = api('clip/list');
 	var pStudios = api('studio/list');
 	var pTags = api('tag/list');
-
-	var showCol = function(className, show) {
-		func.toArray(document.getElementsByClassName('col-record')).forEach(function(el) {
-			if (show) {
-				el.classList.add(className);
-			} else {
-				el.classList.remove(className);
-			}
-		});
-	}
 	return function() {
 		var root = document.getElementById("root");
 		Promise.all([pClips, pStudios, pTags]).then(function(results) {
@@ -35,10 +25,11 @@ ijkl.module('app', ['promise', 'classList'], function() {
 				dom('th', { className: ['hidden', 'col-duration'] }, 'Duration'),
 				dom('th', { className: ['hidden', 'col-source-note'] }, 'Source note')
 			])), tbody]);
-			var fta = ft(table);
+			var ftt = ft(table);
 			root.appendChild(table);
 			results[0].forEach(function(clip) {
-				tbody.appendChild(fta([
+				if (Math.random() > 0.03) { return; }
+				tbody.appendChild(ftt.add([
 					dom('td', { className: 'col-thumb' }, clip['thumbSet']),
 					dom('td', { className: 'col-file' }, clip['file']),
 					dom('td', { className: 'col-studio' }, renderers.renderStudio(clip['studio'], results[1])),
@@ -52,6 +43,12 @@ ijkl.module('app', ['promise', 'classList'], function() {
 				]));
 			});
 			console.log("Clips layouting finished!");
+			document.querySelector(as('columns')).addEventListener('click', function() {
+				console.log('!');
+				ftt.columnSel();
+			});
 		});
 	};
+
+
 });

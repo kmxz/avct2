@@ -6,7 +6,7 @@ ijkl.module('renderers', [], function() {
         },
         renderRole: function(roles) {
             if (!roles.length) {
-                return dom('span', { className: ['alert', 'alert-warning'] }, 'No roles!');
+                return dom('span', { className: ['label', 'label-warning'] }, 'No roles!');
             }
             return roles.map(function(role) {
                 return dom('a', { className: 'tag' }, role);
@@ -14,7 +14,7 @@ ijkl.module('renderers', [], function() {
         },
         renderTags: function(tagIdList, tags) {
             if (!tagIdList.length) {
-                return dom('span', { className: ['alert', 'alert-warning'] }, 'No tags!')
+                return dom('span', { className: ['label', 'label-warning'] }, 'No tags!')
             }
             return tagIdList.map(function(tag) {
                 return dom('a', { className: 'tag' }, tags[tag]['name']);

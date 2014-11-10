@@ -16,3 +16,33 @@
 .hidden {
     display: none;
 }
+
+#root {
+    margin-top: 70px; // navbar
+}
+
+nav.navbar {
+    padding-right: 15px; // hack; we don't use container
+}
+
+.navbar-form .checkbox {
+    padding-top: 6px; // fix Bootstrap bug
+}
+
+.modal { // not using Bootstrap's fade
+    transition-duration: .5s;
+    display: block;
+    pointer-events: none;
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.3); // replace original drop
+    &.active {
+        pointer-events: auto;
+        opacity: 1;
+    }
+}
+
+@media (max-width: 1080px) { // not using Bootstrap's collapse
+    nav.navbar .btn-group {
+        display: none;
+    }
+}

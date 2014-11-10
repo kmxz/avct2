@@ -1,6 +1,28 @@
 ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'], function() {
 	var functionModule = ijkl('function');
 	var dom = ijkl('dom');
+	var modal = ijkl('modal');
+	var as = ijkl('actionselector');
+	var currentModalTable = null;
+	var modalEl = document.getElementById('column-selector');
+	var form = modalEl.querySelector('form');
+	modalEl.querySelector(as('cancel')).addEventListener('click', function() {
+		modal.close(modalEl);
+	});
+	modalEl.querySelector(as('save')).addEventListener('click', function() {
+		functionModule.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function(cb) {
+			console.log(cb.name);
+			functionModule.toArray(currentModalTable.getElementsByClassName(cb.name)).forEach(function(td) {
+				console.log('REA');
+				if (cb.checked) {
+					td.classList.remove('hidden');
+				} else {
+					td.classList.add('hidden');
+				}
+			});
+		});
+		modal.close(modalEl);
+	});
 	return function(table) {
 		var insertBefore = null;
 		var currentDrag = null;
@@ -27,6 +49,29 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 				el.classList.remove('shadow-doubled');
 			}
 		};
+		var columnSel = function() {
+			currentModalTable = table;
+			form.innerHTML = '';
+			var checkboxes = functionModule.toArray(table.querySelector('tr').querySelectorAll('th')).map(function(el) {
+				return {
+					name: functionModule.toArray(el.classList).filter(function(className) { return className.substring(0, 4) === 'col-'; })[0],
+					text: el.firstChild.textContent, // XXX: this is UGLY!
+					shown: !el.classList.contains('hidden')
+				}
+			}).map(function(item) {
+				var properties = { type: 'checkbox', name: item.name };
+				if (item.shown) { properties.checked = 'checked'; }
+				return dom('div', { className: 'col-sm-6' }, dom('div', { className: 'checkbox' }, dom('label', null, [
+					dom('input', properties),
+					item.text
+				])));
+			});
+			var i;
+			for (i = 0; i < checkboxes.length; i += 2) {
+				form.appendChild(dom('div', { className: 'form-group' }, (i + 1 < checkboxes.length) ? [checkboxes[i], checkboxes[i + 1]] : checkboxes[i]));
+			}
+			modal.show(modalEl);
+		};
 		var getResizeHandle = function() {
 			return dom('div', { className: 'resize-handle', draggable: true });
 		};
@@ -45,7 +90,8 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 			return tr;
 		};
 		var dragOverListener = function(ev) {
-			ev.preventDefault(); // i don;t know why but this line seems to be necessary
+			ev.preventDefault(); // i don't know why but this line seems to be necessary
+			ev.stopPropagation();
 			if (!currentDrag) { return; }
 			insertBefore = currentDrag.nextSibling;
 			removeClass(currentDragover);
@@ -77,7 +123,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 				}
 			}
 		};
-		var dragListener = function() {
+		var dragListener = function(ev) {
 			currentDrag = this;
 			insertBefore = currentDrag.nextSibling;
 		};
@@ -113,6 +159,6 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 			resizeHandle.addEventListener('dragend', resizeDragListener);
 			ths[i].appendChild(resizeHandle);
 		}
-		return addTr;
+		return { add: addTr, columnSel: columnSel };
 	};
 });

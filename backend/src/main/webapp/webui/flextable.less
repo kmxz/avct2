@@ -1,0 +1,41 @@
+table.flextable {
+  table-layout: fixed;
+  th {
+    cursor: move;
+    position: relative;
+    min-width: 16px;
+    &.shadow-left, &.shadow-right {
+      background-image: linear-gradient(black, black);
+      background-size: 1px 100%;
+      background-repeat: no-repeat;
+    }
+    &.shadow-left {
+      background-position: left;
+    }
+    &.shadow-right {
+      background-position: right;
+    }
+    &.shadow-doubled {
+      background-size: 2px 100%;
+    }
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 8px;
+      height: 100%;
+      background: black;
+      cursor: e-resize;
+      opacity: 0;
+      &:hover {
+        opacity: 0.4;
+      }
+      &:active {
+        opacity: 0.8;
+      }
+    }
+  }
+  td {
+    word-wrap: break-word;
+  }
+}
