@@ -1,8 +1,4 @@
-ijkl.module('actionselector', [], function() {
-    return function(action) {
-        return 'a[href="javascript:void(\'' + action + '\')"]';
-    }
-});
+"use strict";
 
 ijkl.module('modal', ['querySelector', 'classList'], function() {
     var as = ijkl('actionselector');

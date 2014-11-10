@@ -1,4 +1,6 @@
-// iota javascript library by kmxz
+// iota javascript kmxz-library
+
+"use strict";
 
 var ijkl = (function() {
 
@@ -9,7 +11,7 @@ var ijkl = (function() {
     };
 
     Module.prototype.getInstance = function() {
-        var req;
+        var req, i;
         if (!this.instance) {
             for (i = 0; i < this.featureRequirements.length; i++) {
                 req = this.featureRequirements[i];
@@ -64,7 +66,70 @@ var ijkl = (function() {
         }),
         querySelector: new Feature('queryselector', function() {
             return ('querySelector' in document) && ('querySelectorAll' in document);
+        }),
+        dataset: new Feature('data-* attributes', function() {
+            var n = document.createElement('div');
+            n.setAttribute('data-a-b', 'c');
+            return !!(n.dataset && n.dataset.aB === 'c');
         })
+    };
+
+    // For debug mode only, ugly
+    var debugLoadAll = function(firstModule, callback) {
+        var loadedScripts = {};
+
+        var checkIfProceed = function() {};
+
+        var loadScript = function(name) {
+            var js = document.createElement('script');
+            js.src = 'js/'+ name + '.js';
+            js.onerror = function() {
+                alert('Attempting to find ' + name + '.js failed.');
+            };
+            js.onload = function() {
+                console.log("Script " + name + " loaded successfully.")
+                loadedScripts[name] = true;
+                checkIfProceed();
+            };
+            document.getElementsByTagName('head')[0].appendChild(js);
+        };
+
+        var debugLoad = function(enterance) {
+            if (enterance in loadedScripts) {
+                return;
+            }
+            loadedScripts[enterance] = false;
+            loadScript(enterance);
+            var request = new XMLHttpRequest();
+            request.open('get', 'js/'+ enterance + '.js', false); // let's use synchronized request for simplicity
+            request.send(null);
+            var subModules = request.responseText.match(/ijkl\('[a-z]+'\)/g);
+            if (!subModules) { // no submodules: might be null
+                return;
+            }
+            var i;
+            for (i = 0; i < subModules.length; i++) {
+                debugLoad(subModules[i].match(/ijkl\('([a-z]+)'\)/)[1]);
+            }
+        };
+
+        var checkAllLoaded = function() {
+            var i;
+            for (i in loadedScripts) {
+                if (loadedScripts.hasOwnProperty(i)) {
+                    if (!loadedScripts[i]) {
+                        return false;
+                    }
+                }
+            }
+            callback();
+            return true;
+        };
+
+        debugLoad(firstModule);
+        if (!checkAllLoaded()) {
+            checkIfProceed = checkAllLoaded;
+        }
     };
 
     // Requiring a module
@@ -74,6 +139,13 @@ var ijkl = (function() {
         } else {
             alert("Module " + name + " is never defined.");
         }
+    };
+
+    // Debug mode load
+    require.load = function(name) {
+        debugLoadAll(name, function() {
+            require(name)();
+        })
     };
 
     // Defining a module

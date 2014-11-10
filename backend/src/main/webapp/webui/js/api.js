@@ -1,4 +1,6 @@
-ijkl.module('sources', ['xhr2', 'promise'], function() {
+"use strict";
+
+ijkl.module('api', ['xhr2', 'promise'], function() {
     var actions = {
         // boot
         'boot/pending': { method: 'get', url: 'boot/pending' },
@@ -9,7 +11,8 @@ ijkl.module('sources', ['xhr2', 'promise'], function() {
         'clip/delete': { method: 'post', url: 'clip/$/delete' },
         'clip/shot': { method: 'get', url: 'clip/$/shot' },
         'clip/edit': { method: 'post', url: 'clip/$/edit', params: ['key', 'value'] },
-        'clip/open': { method: 'get', url: 'clip/$/open' },
+        'clip/open': { method: 'post', url: 'clip/$/open' },
+        'clip/folder': { method: 'post', url: 'clip/$/folder' },
         'clip/history': { method: 'get', url: 'clip/$/history' },
         // studio
         'studio/list': { method: 'get', url: 'studio' },

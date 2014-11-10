@@ -1,3 +1,5 @@
+"use strict";
+
 ijkl.module('dom', ['es5Array'], function() {
 	var set = function(element, options) {
 		var i, j, v;
@@ -18,7 +20,8 @@ ijkl.module('dom', ['es5Array'], function() {
 			}
 		}
 	};
-	var create = function(tag, options, children) {
+
+	var append = function(element, children) {
 		var add = function(child) {
 			if (child instanceof HTMLElement) {
 				element.appendChild(child);
@@ -26,17 +29,23 @@ ijkl.module('dom', ['es5Array'], function() {
 				element.appendChild(document.createTextNode(child));
 			}
 		};
-		var element = document.createElement(tag);
-		if (options) {
-			set(element, options);
-		}
 		if (children instanceof Array) {
 			children.forEach(add);
 		} else {
 			add(children);
 		}
+	};
+
+	var create = function(tag, options, children) {
+		var element = document.createElement(tag);
+		if (options) {
+			set(element, options);
+		}
+		append(element, children);
 		return element;
 	};
+
+	create.append = append;
 	create.set = set;
 	return create;
 });

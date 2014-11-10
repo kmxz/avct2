@@ -1,3 +1,5 @@
+import java.lang
+import java.lang.System
 import javax.servlet.ServletContext
 
 import avct2.desktop.Avct2

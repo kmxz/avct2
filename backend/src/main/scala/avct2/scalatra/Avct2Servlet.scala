@@ -1,14 +1,13 @@
 package avct2.scalatra
 
-import avct2.schema.Utilities._
-import avct2.schema.{Role, Race, Tables}
 import org.json4s.DefaultFormats
 import org.scalatra._
 import org.scalatra.json._
-
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.slick.driver.HsqldbDriver.simple._
+
+import avct2.schema.Utilities._
+import avct2.schema.{Role, Race, Tables}
+import avct2.desktop.OpenFile._
 
 class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport with RenderHelper {
 
@@ -21,7 +20,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
   get("/clip") {
     contentType = formats("json")
     db.withSession { implicit session =>
-      queryClip(identity).list.map(renderClip)
+      queryClip(identity).list.map(renderClip).map(clip => (clip("id").toString, clip.-("id")))toMap
     }
   }
 
@@ -34,6 +33,16 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
         case None => status_=(404)
       }
     }
+  }
+
+  post("/clip/:id/open") {
+    val id = params("id").toInt
+    db.withSession { implicit session => openFile(id, false) }
+  }
+
+  post("/clip/:id/folder") {
+    val id = params("id").toInt
+    db.withSession { implicit session => openFile(id, true) }
   }
 
   post("/clip/:id/edit") {

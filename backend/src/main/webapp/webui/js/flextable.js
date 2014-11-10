@@ -1,3 +1,5 @@
+"use strict";
+
 ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'], function() {
 	var functionModule = ijkl('function');
 	var dom = ijkl('dom');
@@ -13,7 +15,6 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 		functionModule.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function(cb) {
 			console.log(cb.name);
 			functionModule.toArray(currentModalTable.getElementsByClassName(cb.name)).forEach(function(td) {
-				console.log('REA');
 				if (cb.checked) {
 					td.classList.remove('hidden');
 				} else {
@@ -30,7 +31,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 		var currentVisualAux = null;
 		var resizeHandle = null;
 		var order = [];
-		var currentResizegRelative = 0;
+		var currentResizeRelative = 0;
 		var currentResizeOriginal = 0;
 		var i, ths;
 		var draggable = { draggable: true };
