@@ -144,7 +144,6 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 		};
 		var resizeDragListener = function(ev) {
 			var nw = ev.clientX - currentResizeRelative + currentResizeOriginal;
-			console.log(nw);
 			this.parentNode.setAttribute('width', nw);
 		};
 		table.classList.add('flextable');

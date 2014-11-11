@@ -32,17 +32,18 @@ object Utilities {
     } yield studio).delete
   }
 
-  def getParentTags(tagId: Int, recursive: Boolean)(implicit session: Session) = {
-    val direct = Tables.tagRelationship.filter(_.parentTag === tagId).map(_.childTag).list
+  // fuck scala, i cannot use partial application and implcit paramteter together, so have to stick with 3 params
+  def getParentOrChildTags(from: Int, parent: Boolean, recursive: Boolean)(implicit session: Session): Set[Int] = {
+    val results = Tables.tagRelationship.filter(row => (if (parent) row.childTag else row.parentTag) === from).map(if (parent) _.parentTag else _.childTag).list
     if (recursive) {
-      def recParents(child: Int): Set[Int] = { // the client should do this, but let's make it more secure
-        val parents = Tables.tagRelationship.filter(_.childTag === child).map(_.parentTag).list
-          parents.foldLeft (Set(child)) { _ ++ recParents(_) }
-      }
-      direct.map(recParents).reduce(_ ++ _).toSeq
+      results.map(single => getParentOrChildTags(single, parent, true) + single).reduce(_ ++ _)
     } else {
-      direct
+      results.toSet
     }
+  }
+
+  def legalTagParent(self: Int, proposedParent: Int)(implicit session: Session) = {
+    !((self == proposedParent) || getParentOrChildTags(self, false, true).contains(proposedParent))
   }
 
 }

@@ -8,11 +8,11 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
     var app = ijkl('app'); // don't worry, singleton
     var fileOverlay = document.getElementById('file-overlay');
     var fileOverlaySpan = fileOverlay.querySelector('span');
-    fileOverlay.querySelector(as('open')).addEventListener(function() {
-        api('clip/open', { id: app.getParentTr(this).id });
+    fileOverlay.querySelector(as('open')).addEventListener('click', function() {
+        api('clip/open', { "id": app.getParentTr(this).id });
     });
-    fileOverlay.querySelector(as('folder')).addEventListener(function() {
-        api('clip/folder', { id: app.getParentTr(this).id });
+    fileOverlay.querySelector(as('folder')).addEventListener('click', function() {
+        api('clip/folder', { "id": app.getParentTr(this).id });
     });
     var Clip = function(id, json) {
         func.forEach(json, function(value, key) {
@@ -32,7 +32,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
             if (!this['thumbSet']) {
                 td.appendChild(empty('thumb'));
             } else {
-                td.appendChild(dom('img', {src: '/clip/' + this.id + '/thumb', className: 'clip-thumb'}));
+                //td.appendChild(dom('img', {src: '/clip/' + this.id + '/thumb', className: 'clip-thumb'}));
             }
         },
         renderName: function(td) {
@@ -59,7 +59,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
                 td.appendChild(empty('tags'));
             } else {
                 dom.append(td, this['tags'].map(function (tag) {
-                    return dom('a', {className: 'tag'}, tags[tag]['name']);
+                    return dom('a', {className: 'tag'}, tags[tag].name);
                 }));
             }
         },

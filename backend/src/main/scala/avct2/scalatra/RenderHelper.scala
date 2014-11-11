@@ -1,10 +1,10 @@
 package avct2.scalatra
 
+import java.io.File
+
 import avct2.desktop.OpenFile._
-import avct2.schema.Utilities._
 import avct2.schema._
 
-import java.io.File
 import scala.slick.driver.HsqldbDriver.simple._
 
 trait RenderHelper {
@@ -33,7 +33,24 @@ trait RenderHelper {
   }).tupled
 
   def openFile(id: Int, inFolder: Boolean)(implicit session: Session) = {
-    (if (inFolder) open else openInFolder)(new File(Tables.clip.filter(_.clipId === id).map(_.file).first))
+    Tables.clip.filter(_.clipId === id).map(_.file).firstOption match {
+      case Some(fileName) => {
+        val f = new File(fileName)
+        if (f.isFile) {
+          if ((if (inFolder) open else openInFolder)(f)) None else Some((501, "System cannot open the file."))
+        } else Some((503, "File does not exist."))
+      }
+      case None => Some((404, "Clip does not exist."))
+    }
+  }
+
+  def openFileHelper(db: Database, raiseError: ((Int, String)) => Unit, idString: String, inFolder: Boolean) = {
+    db.withSession { implicit session =>
+      openFile(idString.toInt, inFolder) match {
+        case Some(err) => raiseError(err)
+        case None =>
+      }
+    }
   }
 
 }

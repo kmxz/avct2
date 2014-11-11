@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" type="text/css" href="bootstrap/theme/bootstrap.css" />
-    <link rel="stylesheet/less" type="text/css" href="flextable.less" />
-    <link rel="stylesheet/less" type="text/css" href="avct.less" />
+    <link rel="stylesheet" type="text/css" href="bootstrap/theme/bootstrap.css"/>
+    <link rel="stylesheet/less" type="text/css" href="flextable.less"/>
+    <link rel="stylesheet/less" type="text/css" href="avct.less"/>
     <script>
         less = {
             env: "development"
         };
+
     </script>
     <script src="less.min.js"></script>
     <script type="text/javascript" language="javascript" src="base.js"></script>
 </head>
 <body onload="ijkl.load('app');">
-    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+
+<div id="wrap">
+
+    <nav class="navbar navbar-default navbar-static-top" role="navigation">
         <p class="navbar-text">1444 clips</p>
         <button type="button" class="btn btn-default navbar-btn navbar-left">Reload</button>
         <form class="navbar-form navbar-left">
@@ -28,14 +32,14 @@
         <form class="navbar-form navbar-left">
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" /> Void first
+                    <input type="checkbox"/> Void first
                 </label>
             </div>
         </form>
         <form class="navbar-form navbar-left">
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" /> Hide 0
+                    <input type="checkbox"/> Hide 0
                 </label>
             </div>
         </form>
@@ -47,47 +51,56 @@
 
     <div id="root"></div>
 
-    <div id="file-overlay" class="well">
-        <a href="javascript:void('open')" class="btn btn-primary btn-sm">Open</a>
-        <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
-        <span></span>
-    </div>
+</div>
 
-    <div class="modal" id="column-selector" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-body">
-                    <legend>Select visible columns</legend>
-                    <form></form>
-                </div>
-                <div class="modal-footer">
-                    <a href="javascript:void('cancel')" class="btn btn-default">Cancel</a>
-                    <a href="javascript:void('save')" class="btn btn-primary">Save</a>
-                </div>
+<div class="modal" id="modal-container" tabindex="-1">
+
+    <div class="modal-dialog" id="column-selector">
+        <div class="modal-content">
+            <div class="modal-body">
+                <legend>Select visible columns</legend> <!-- FIXME -->
+                <form></form>
+            </div>
+            <div class="modal-footer">
+                <a href="javascript:void('cancel')" class="btn btn-default">Cancel</a>
+                <a href="javascript:void('save')" class="btn btn-primary">Save</a>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="tag-manager" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close"><span>&times;</span></button>
-                    <h4 class="modal-title">Tag Manager</h4>
-                </div>
-                <div class="modal-body">
-                    <form></form>
-                </div>
+    <div class="modal-dialog" id="tag-manager">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close"><span>&times;</span></button>
+                <h4 class="modal-title">Tag Manager</h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-inline">
+                    <div class="form-group">
+                        <input type="text" class="form-control input-sm" placeholder="Name">
+                        <button type="button" class="btn btn-default btn-sm">Add tag</button>
+                    </div>
+                </form>
+                <table></table>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="record-viewer" tabindex="-1">
+</div>
 
-    </div>
+<div id="file-overlay" class="toolbox">
+    <a href="javascript:void('open')" class="btn btn-primary btn-sm">Open</a>
+    <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
+    <span></span>
+</div>
 
-    <div class="modal" id="quickjerk-debugger" tabindex="-1">
+<div id="inplace-edit" class="toolbox">
+    <form class="form-inline">
+        <input class="form-control input-sm" type="text" name="">
+        <a href="javascript:void('cancel')" class="btn btn-primary btn-sm">Cancel</a>
+        <a href="javascript:void('save')" class="btn btn-default btn-sm">Save</a>
+    </form>
+</div>
 
-    </div>
 </body>
 </html>

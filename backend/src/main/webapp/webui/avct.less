@@ -1,3 +1,18 @@
+// layout
+
+#wrap {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+#root {
+    height: calc(~"100% - 64px");
+    overflow-y: auto;
+}
+
+// table
+
 .tag, .tag:visited {
     display: inline-block;
     margin: 0 5px 5px 0;
@@ -17,28 +32,21 @@
     display: none;
 }
 
-#root {
-    margin-top: 70px; // navbar
+td.c-file {
+    position: relative;
+}
+
+.clip-thumb {
+    max-width: 100%;
 }
 
 nav.navbar {
     padding-right: 15px; // hack; we don't use container
+    margin-bottom: 0;
 }
 
 .navbar-form .checkbox {
     padding-top: 6px; // fix Bootstrap bug
-}
-
-.modal { // not using Bootstrap's fade
-    transition-duration: .5s;
-    display: block;
-    pointer-events: none;
-    opacity: 0;
-    background: rgba(0, 0, 0, 0.3); // replace original drop
-    &.active {
-        pointer-events: auto;
-        opacity: 1;
-    }
 }
 
 @media (max-width: 1080px) { // not using Bootstrap's collapse
@@ -47,11 +55,31 @@ nav.navbar {
     }
 }
 
-.clip-thumb {
-    max-width: 100%;
+// modal
+
+.modal {
+    // not using Bootstrap's fade
+    transition-duration: .5s;
+    display: block;
+    pointer-events: none;
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.3); // replace original drop
+    overflow-y: auto; // do not use Bootstrap's method, it's too magical
+    &.active {
+        pointer-events: auto;
+        opacity: 1;
+    }
 }
 
+// misc
+
 #file-overlay {
+    .btn {
+        margin-bottom: 4px;
+    }
+}
+
+.toolbox {
     width: 100%;
     height: 100%;
     padding: 8px;
@@ -59,16 +87,12 @@ nav.navbar {
     left: 0;
     top: 0;
     display: none;
-    background: #f5f5f5; // specified by Bootstrap theme. NOT graceful.
-    .btn {
-        margin-bottom: 4px;
-    }
     overflow-y: auto;
-}
-
-td.c-file {
-    position: relative;
-    #file-overlay {
+    tr & {
         display: block;
+        background: #FFF; // specified by Bootstrap theme. NOT graceful.
+    }
+    tr:hover & {
+        background: #f5f5f5; // specified by Bootstrap theme. NOT graceful.
     }
 }

@@ -1,30 +1,36 @@
 package avct2.desktop
 
-import java.io.File
 import java.awt.Desktop
-import sys.process._
+import java.io.{File, IOException}
+
+import scala.sys.process._
 
 object OpenFile {
+
+  val open = (file: File) => {
+    try {
+      Desktop.getDesktop.open(file)
+      true
+    } catch {
+      case _: UnsupportedOperationException | _: IOException => false
+    }
+  }
 
   val openInFolder = (file: File) => {
     val os: String = System.getProperty("os.name")
     if (os.startsWith("Windows")) {
-      Seq("explorer", "/select,", file.getCanonicalPath).!
+      Seq("explorer", "/select,", file.getCanonicalPath).! == 0
     } else if (os.startsWith("Linux")) {
       if (nautilusInstalled) {
-        Seq("nautilus", file.getCanonicalPath).!
+        Seq("nautilus", file.getCanonicalPath).! == 0
       } else {
-        Seq("xdg-open", file.getParent).!
+        Seq("xdg-open", file.getParent).! == 0
       }
     } else if (os.startsWith("Mac OS X")) { // though never actually needed
-      Seq("open", "-R", file.getCanonicalPath).!
+      Seq("open", "-R", file.getCanonicalPath).! == 0
     } else { // awt default
-      Desktop.getDesktop().open(file.getParentFile)
+      open(file.getParentFile)
     }
-  }
-
-  val open = (file: File) => {
-    Desktop.getDesktop().open(file)
   }
 
   private lazy val nautilusInstalled = {

@@ -6,7 +6,18 @@ ijkl.module('function', ['es5Array'], function() {
 		identity: identity,
 		doNothing: function() {},
 		toArray: function(obj) {
-			return Array.prototype.map.call(obj, identity);
+			var i, op;
+			if (obj.length && typeof obj.length === 'number') { // array-like object
+				return Array.prototype.map.call(obj, identity);
+			} else {
+				op = [];
+				for (i in obj) {
+					if (obj.hasOwnProperty(i)) {
+						op.push(obj[i]);
+					}
+				}
+				return op;
+			}
 		},
 		forEach: function(assoc, func) {
 			var i;
