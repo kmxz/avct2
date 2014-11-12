@@ -6,13 +6,22 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
     var func = ijkl('function');
     var api = ijkl('api');
     var dom = ijkl('dom');
+    var as = ijkl('actionselector');
     var ie = ijkl('inplaceediting');
     var el = document.getElementById('tag-manager');
     var tb = el.querySelector('table');
+    var add = el.querySelector(as('add'));
+    var ipt = el.querySelector('input[type=text]')
     var actualTags = null;
-    el.querySelector('button.close').addEventListener('click', function() {
-        modal.close(el);
-    });
+    /*var checkNameLocal = function(name, id) {
+        var ret = true;
+        func.forEach(function(tag) {
+            if (tag.id !== id && tag.name === name) {
+                ret = false;
+            }
+        });
+        return ret;
+    };*/
     var render = function() {
         var tbody = dom('tbody', null, dom('tr', null, [
             dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children')
@@ -26,13 +35,15 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
             tag.tr = tr;
             tbody.appendChild(tr);
         });
-        return dom('table', { className: ['table', 'table-condensed', 'table-hover'] }, tbody);
+        var table =  dom('table', { className: ['table', 'table-condensed', 'table-hover'] }, tbody);
+        tb.parentNode.replaceChild(table, tb);
+        tb = table;
     };
     var Tag = function(id, name) {
         this.id = id;
         this.name = name;
         this.children = [];
-        this.parent = null;
+        this.parent = [];
         this.tr = null;
     };
     Tag.prototype = {
@@ -40,15 +51,16 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
             var inEditing = false;
             dom.append(td, this.name);
             td.addEventListener('click', function() {
-                ie(this.name, function(newName) {
-                    api('tag/edit', { "id": this.id, "name": newName }).then(function(res) {
-                        if (res['error']) {
-                            alert(res['error']);
-                        } else {
-                            // reload
-                        }
+                ie(td, this.name, function(newName, onSuccess, onReject) {
+                    api('tag/edit', { "id": this.id, "name": newName }).then(function() {
+                        this.name = newName;
+                        onSuccess();
+                        render();
+                    }.bind(this), function(error) {
+                        api.ALERT(error);
+                        onReject();
                     }.bind(this));
-                });
+                }.bind(this));
             }.bind(this));
         },
         renderParent: function(td) {
@@ -62,11 +74,20 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
             }));
         }
     };
+    add.addEventListener('click', function() {
+        var name = ipt.value;
+        api('tag/create', { name: name }).then(function(newTagId) {
+            ipt.value = '';
+            actualTags[newTagId] = new Tag(newTagId, name);
+            render();
+        }, api.ALERT);
+    });
+    el.querySelector('button.close').addEventListener('click', function() {
+        modal.close(el);
+    });
     return {
         open: function() {
-            var table = render();
-            tb.parentNode.replaceChild(table, tb);
-            tb = table;
+            render();
             modal.show(el);
         },
         init: function(json) {

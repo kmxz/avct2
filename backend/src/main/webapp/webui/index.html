@@ -58,7 +58,8 @@
     <div class="modal-dialog" id="column-selector">
         <div class="modal-content">
             <div class="modal-body">
-                <legend>Select visible columns</legend> <!-- FIXME -->
+                <legend>Select visible columns</legend>
+                <!-- FIXME -->
                 <form></form>
             </div>
             <div class="modal-footer">
@@ -78,10 +79,21 @@
                 <form class="form-inline">
                     <div class="form-group">
                         <input type="text" class="form-control input-sm" placeholder="Name">
-                        <button type="button" class="btn btn-default btn-sm">Add tag</button>
+                        <a class="btn btn-default btn-sm" href="javascript:void('add')">Add tag</a>
                     </div>
                 </form>
                 <table></table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-dialog" id="loading">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Loading...</h4>
+            </div>
+            <div class="modal-body">
+                <p>Getting clips information and rendering...</p>
             </div>
         </div>
     </div>
@@ -94,12 +106,17 @@
     <span></span>
 </div>
 
-<div id="inplace-edit" class="toolbox">
-    <form class="form-inline">
-        <input class="form-control input-sm" type="text" name="">
-        <a href="javascript:void('cancel')" class="btn btn-primary btn-sm">Cancel</a>
-        <a href="javascript:void('save')" class="btn btn-default btn-sm">Save</a>
-    </form>
+<div class="toolbox popover right" id="inplace-edit">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Modify</h3>
+
+    <div class="popover-content">
+        <form class="form-inline">
+            <input class="form-control input-sm" type="text" name="">
+            <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>
+            <a href="javascript:void('save')" class="btn btn-primary btn-sm">Save</a>
+        </form>
+    </div>
 </div>
 
 </body>

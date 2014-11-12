@@ -5,12 +5,17 @@ import avct2.schema.{Race, Role, Tables}
 import org.json4s.DefaultFormats
 import org.scalatra._
 import org.scalatra.json._
+import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 
 import scala.slick.driver.HsqldbDriver.simple._
 
-class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport with RenderHelper {
+class Avct2Servlet(db: Database) extends ScalatraServlet with FileUploadSupport with NativeJsonSupport with RenderHelper {
+
+  configureMultipartHandling(MultipartConfig())
 
   protected implicit val jsonFormats = DefaultFormats
+
+  val JNull = "null" // XXX
 
   get("/") {
     redirect("/webui") // static files will be served
@@ -35,12 +40,21 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
     }
   }
 
+  def openFileHelper(inFolder: Boolean) = {
+    db.withSession { implicit session =>
+      openFile(params("id").toInt, inFolder) match {
+        case Some(err) => halt(err._1, err._2)
+        case None => JNull // nothing to return
+      }
+    }
+  }
+
   post("/clip/:id/open") {
-    openFileHelper(db, { err => halt(err._1, err._2)}, params("id"), false)
+    openFileHelper(false)
   }
 
   post("/clip/:id/folder") {
-    openFileHelper(db, { err => halt(err._1, err._2)}, params("id"), true)
+    openFileHelper(true)
   }
 
   post("/clip/:id/edit") {
@@ -94,7 +108,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
           Tables.clipTag.map(row => (row.tagId, row.clipId)).insertAll(tagsIncludingParents.map(tag => (id, tag)): _*)
         }
       }
-      renderClip(queryClip(query => query.filter(_.clipId === id)).first)
+      JNull // nothing to return
     }
   }
 
@@ -105,8 +119,7 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
     }
   }
 
-  get("/tag/:id/edit") {
-    contentType = formats("json")
+  post("/tag/:id/edit") {
     val id = params("id").toInt
     val name = params("name")
     db.withSession { implicit session =>
@@ -117,11 +130,11 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
         halt(409, "Tag name already exists.")
       }
       Tables.tag.filter(_.tagId === id).map(_.name).update(name)
+      JNull // nothing to return
     }
   }
 
-  get("/tag/:id/parent") {
-    contentType = formats("json")
+  post("/tag/:id/parent") {
     val id = params("id").toInt
     val parents = multiParams("parent").map(_.toInt).toSet // remove duplicates
     db.withSession { implicit session =>
@@ -132,21 +145,26 @@ class Avct2Servlet(db: Database) extends ScalatraServlet with NativeJsonSupport 
         halt(404, "Parent tag does not exist.")
       }
       if (!parents.map(tag => legalTagParent(id, tag)).reduce(_ && _)) {
-        halt(404, "Forming cycles are not allowed.")
+        halt(409, "Forming cycles are not allowed.")
       }
       Tables.tagRelationship.filter(_.childTag === id).delete
       Tables.tagRelationship.map(row => (row.parentTag, row.childTag)).insertAll(parents.toSeq.map(parent => (parent, id)): _*)
+      JNull // nothing to return
     }
   }
 
   post("/tag/create") {
+    // return inserted id
     contentType = formats("json")
     val name = params("name")
     db.withSession { implicit session =>
       if (Tables.tag.filter(_.name === name).exists.run) {
         halt(409, "Tag name already exists.")
       }
-      (Tables.tag returning Tables.tag) += (None, name)
+      ((Tables.tag returning Tables.tag) +=(None, name)) match {
+        case (Some(id), _) => id.toString
+        case _ => halt(500, "Insertion failed.")
+      }
     }
   }
 

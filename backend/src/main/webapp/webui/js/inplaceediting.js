@@ -1,17 +1,43 @@
-ijkl.module('inplaceediting', ['querySelector'], function() {
+ijkl.module('inplaceediting', ['querySelector', 'classList'], function() {
     var as = ijkl('actionselector');
     var editor = document.getElementById('inplace-edit');
     var it = editor.querySelector('input[type=text]');
+    var sb = editor.querySelector(as('save'));
+    var cb = editor.querySelector(as('cancel'));
     var currentOnSubmit;
     var hide = function() {
         document.body.appendChild(editor);
     };
-    editor.querySelector(as('save')).addEventListener('click', function() {
-        currentOnSubmit(it.value, hide);
+    var locked;
+    var lock = function() {
+        locked = true;
+        sb.classList.add('disabled');
+        cb.classList.add('disabled');
+    };
+    var unlock = function() {
+        locked = false;
+        sb.classList.remove('disabled');
+        cb.classList.remove('disabled');
+    };
+    sb.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (locked) { return; }
+        lock();
+        currentOnSubmit(it.value, function() {
+            unlock();
+            hide();
+        }, unlock);
     });
-    editor.querySelector(as('cancel')).addEventListener('click', hide);
-    return function(initialVal, onSubmit) {
+    cb.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (locked) { return; }
+        hide();
+    });
+    // onSubmit should be a function accpeting (newValue, onSuccess, onReject)
+    return function(anchor, initialVal, onSubmit) {
+        it.value = initialVal;
         currentOnSubmit = onSubmit;
-        return editor;
+        locked = false;
+        anchor.appendChild(editor);
     };
 });

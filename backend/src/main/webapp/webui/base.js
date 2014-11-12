@@ -18,7 +18,7 @@ var ijkl = (function() {
                 if (req in features) {
                     features[req].test();
                 } else {
-                    alert("Feature " + req + " is never defined.");
+                    window.alert("Feature " + req + " is never defined.");
                 }
             }
             this.instance = this.factory();
@@ -39,7 +39,7 @@ var ijkl = (function() {
         if (this.tested) { return this.support; }
         this.support = this.detector();
         if (!this.support) {
-            alert("Feature [" + this.name + "] is not supported by your browser. Some things will break up.");
+            window.alert("Feature [" + this.name + "] is not supported by your browser. Some things will break up.");
         }
     };
 
@@ -84,7 +84,7 @@ var ijkl = (function() {
             var js = document.createElement('script');
             js.src = 'js/'+ name + '.js';
             js.onerror = function() {
-                alert('Attempting to find ' + name + '.js failed.');
+                window.alert('Attempting to find ' + name + '.js failed.');
             };
             js.onload = function() {
                 console.log("Script " + name + " loaded successfully.")
@@ -137,7 +137,7 @@ var ijkl = (function() {
         if (name in modules) {
             return modules[name].getInstance();
         } else {
-            alert("Module " + name + " is never defined.");
+            window.alert("Module " + name + " is never defined.");
         }
     };
 

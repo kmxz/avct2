@@ -1,6 +1,6 @@
 "use strict";
 
-ijkl.module('app', ['promise', 'classList', 'dataset'], function() {
+ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], function() {
 	var api = ijkl('api');
 	var actualClips = null;
 	var actualStudios = null;
@@ -11,8 +11,8 @@ ijkl.module('app', ['promise', 'classList', 'dataset'], function() {
 		var ft = ijkl('flextable');
 		var func = ijkl('function');
 		var tm = ijkl('tagmanager');
+		var loaded = ijkl('loading');
 		Promise.all([api('clip/list'), api('studio/list'), api('tag/list')]).then(function(results) {
-			console.log("Clip information loading finished!");
 			actualClips = func.map(results[0], function(json, id) {
 				return new Clip(id, json);
 			});
@@ -54,12 +54,12 @@ ijkl.module('app', ['promise', 'classList', 'dataset'], function() {
 				tbody.appendChild(tr);
 			});
 			document.getElementById("root").appendChild(table);
-			console.log("Clips layouting finished!");
 			document.querySelector(as('columns')).addEventListener('click', function() {
 				ftt.columnSel();
 			});
 			document.querySelector(as('tags')).addEventListener('click', tm.open.bind(tm));
-		});
+			loaded();
+		}, api.FATAL);
 	};
 	init.getParentTr = function(el) {
 		var cur = el;

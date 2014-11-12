@@ -18,13 +18,13 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
         'studio/list': { method: 'get', url: 'studio' },
         // tag
         'tag/list': { method: 'get', url: 'tag' },
-        'tag/create': { method: 'post', url: 'tag/create' },
+        'tag/create': { method: 'post', url: 'tag/create', params: ['name'] },
         'tag/parents': { method: 'post', url: 'tag/$/parents', params: ['parents'] },
         'tag/edit': { method: 'post', url: 'tag/$/edit', params: ['name'] },
         // quickjerk
         'quickjerk': { method: 'get', url: 'quickjerk', params: [/* todo */] }
     };
-    return function(api, opt_params) {
+    var request = function(api, opt_params) {
         var config = actions[api];
         var url = '/' + config.url;;
         var formData = null;
@@ -36,7 +36,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
         }
         if (config.method === 'post') {
             formData = new FormData();
-            params.forEach(function(key) {
+            config.params.forEach(function(key) {
                 if (!(key in opt_params)) {
                     throw 'Parameter ' + key + ' not provided for ' + api + '.';
                 }
@@ -46,15 +46,32 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
         return new Promise(function(resolve, reject) {
             var request = new XMLHttpRequest();
             request.onload = function() {
-                resolve(request.response);
+                if (request.status == 200) {
+                    try {
+                        resolve(JSON.parse(request.responseText));
+                    } catch (_) {
+                        window.alert("Response parsing failed.");
+                    }
+                } else {
+                    console.log(request);
+                    reject(request.responseText);
+                }
             };
             request.onerror = function(error) {
-                alert("HTTP error occurred. It's highly recommended to reload the page.");
+                window.alert("Network error occurred. It's highly recommended to reload.");
                 reject(error);
             }
             request.open(config.method, url);
-            request.responseType = 'json';
             request.send(formData);
         });
-    }
+    };
+    request.FATAL = function() {
+        if (window.confirm("This seems to be a fatal server error. Restart the program?")) {
+            window.location.reload();
+        }
+    };
+    request.ALERT = function(reason) {
+        window.alert("The server rejected your request: " + reason);
+    };
+    return request;
 });
