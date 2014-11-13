@@ -1,5 +1,6 @@
 package avct2.scalatra
 
+import avct2.Avct2Conf
 import avct2.schema.Utilities._
 import avct2.schema.{Race, Role, Tables}
 import org.json4s.DefaultFormats
@@ -9,16 +10,28 @@ import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 
 import scala.slick.driver.HsqldbDriver.simple._
 
-class Avct2Servlet(db: Database) extends ScalatraServlet with FileUploadSupport with NativeJsonSupport with RenderHelper {
+class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJsonSupport with RenderHelper {
 
   configureMultipartHandling(MultipartConfig())
 
   protected implicit val jsonFormats = DefaultFormats
 
-  val JNull = "null" // XXX
+  val JNull = "null" // XXX: this is NOT elegant yet I don't know how to render a "null"
 
-  get("/") {
-    redirect("/webui") // static files will be served
+  def db() = {
+    Avct2Conf.dbConnection.get.database
+  }
+
+  before() {
+    Avct2Conf.dbConnection match {
+      case None => halt(403, "Establish a database connection first.")
+      case Some(conn) => {
+        val header = request.getHeader("X-Db-Connection-Id")
+        if (header != null && header != conn.id) {
+          halt(409, "Working DB connection changed.");
+        }
+      }
+    }
   }
 
   get("/clip") {

@@ -1,6 +1,12 @@
 "use strict";
 
 ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
+    var uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
+    var dbConnId = window.location.search.substring(1);
+    if (!uuidRegex.test(dbConnId)) {
+        alert("No UUID specified!");
+        window.location.href = '/';
+    }
     var actions = {
         // boot
         'boot/pending': { method: 'get', url: 'boot/pending' },
@@ -26,13 +32,13 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
     };
     var request = function(api, opt_params) {
         var config = actions[api];
-        var url = '/' + config.url;;
+        var url = config.url;
         var formData = null;
         if (config.url.indexOf('$') > -1) {
             if (!opt_params.id) {
                 throw 'ID not provided for ' + api + '.';
             }
-            url = '/' + config.url.replace('$', opt_params.id);
+            url = config.url.replace('$', opt_params.id);
         }
         if (config.method === 'post') {
             formData = new FormData();
@@ -53,7 +59,6 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
                         window.alert("Response parsing failed.");
                     }
                 } else {
-                    console.log(request);
                     reject(request.responseText);
                 }
             };
@@ -62,11 +67,12 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
                 reject(error);
             }
             request.open(config.method, url);
+            request.setRequestHeader('X-Db-Connection-Id', dbConnId);
             request.send(formData);
         });
     };
-    request.FATAL = function() {
-        if (window.confirm("This seems to be a fatal server error. Restart the program?")) {
+    request.FATAL = function(reason) {
+        if (window.confirm("This seems to be a fatal server error. Restart the program? Information: " + reason)) {
             window.location.reload();
         }
     };

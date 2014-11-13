@@ -6,16 +6,20 @@ import sbt._
 
 object Avct2Build extends Build {
 
-  lazy val project = Project (
+  lazy val project = Project(
     "avct2",
     file("."),
-    settings = ScalatraPlugin.scalatraSettings ++ Seq(
+    settings = ScalatraPlugin.scalatraSettings ++ wro4jSettings ++ Seq(
       organization := "kmxz",
       name := "avct2",
       version := "0.1.0",
       scalaVersion := "2.10.4",
       resolvers += Classpaths.typesafeReleases,
       port in container.Configuration := 1024,
+
+      // let container include the wro4j target folder
+      (webappResources in Compile) <+= (targetFolder in generateResources in Compile),
+
       libraryDependencies ++= Seq(
         // gui
         "org.scala-lang" % "scala-swing" % "2.10.4",

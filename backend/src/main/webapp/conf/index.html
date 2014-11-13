@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="/bootstrap/theme/bootstrap.css"/>
+    <script type="text/javascript" language="JavaScript">
+        var init = function() {
+            var currentTarget = null;
+            var locked = false;
+            var $ = function(id) { return document.getElementById(id); };
+            var r = function(method, url, formData, callback) {
+                var data = [];
+                var i;
+                for (i in formData) {
+                    if (formData.hasOwnProperty(i)) {
+                        data.push(i + '=' + encodeURIComponent(formData[i]));
+                    }
+                }
+                var req = new XMLHttpRequest();
+                req.open(method, url);
+                req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                req.onreadystatechange = function() {
+                    if (req.readyState == 4) {
+                        callback(req.responseText);
+                    }
+                }
+                req.send(data.join('&'));
+            };
+            var reDirect = function() {
+                window.location.href = '/';
+            };
+            var forEachField = function(callback) {
+                callback('videoDir');
+                callback('mPlayer');
+            };
+            var forEachMetaButton = function(callback) {
+                callback($('submit'));
+                callback($('cancel'));
+            }
+            var initExplorer = function(path) {
+                r('get', 'list?path=' + encodeURIComponent(path.length ? path : '.'), null, function(rr) {
+                    var res = JSON.parse(rr);
+                    var ss;
+                    if (res['error']) {
+                        alert(res['error']);
+                    } else {
+                        $('breadcrumb').innerHTML = '';
+                        res['path'].forEach(function(path) {
+                            var li = document.createElement('li');
+                            var a = document.createElement('a');
+                            if (path['name'].length) {
+                                a.appendChild(document.createTextNode(path['name']));
+                            } else {
+                                ss = document.createElement('span');
+                                ss.className = 'glyphicon glyphicon-home';
+                                a.appendChild(ss)
+                            }
+                            a.href = 'javascript:void(0)';
+                            a.addEventListener('click', function() {
+                                initExplorer(path['path']);
+                            });
+                            li.appendChild(a);
+                            $('breadcrumb').appendChild(li);
+                        });
+                        $('tbody').innerHTML = '';
+                        res['files'].forEach(function(file) {
+                            var el = document.createElement('tr');
+                            var span = document.createElement('span');
+                            var td = document.createElement('td');
+                            span.className = 'glyphicon glyphicon-' + (file['directory'] ? 'folder-close' : 'file');
+                            td.appendChild(span);
+                            el.appendChild(td);
+                            td = document.createElement('td');
+                            td.appendChild(document.createTextNode(file['name']));
+                            el.appendChild(td);
+                            el.addEventListener('click', function() {
+                                currentTarget.value = file['path'];
+                            });
+                            if (file['directory']) {
+                                el.addEventListener('dblclick', function() {
+                                    initExplorer(file['path']);
+                                })
+                            }
+                            $('tbody').appendChild(el);
+                        });
+                    }
+                });
+            };
+            r('get', 'current', null, function(json) {
+                var o = JSON.parse(json);
+                forEachField(function(k) {
+                    $(k).value = o[k];
+                    $(k).removeAttribute('disabled');
+                    $(k + 'Select').removeAttribute('disabled');
+                    $(k + 'Select').addEventListener('click', function() {
+                        currentTarget = $(k);
+                        initExplorer($(k).value);
+                    });
+                })
+                forEachMetaButton(function(b) {
+                    b.removeAttribute('disabled');
+                });
+                $('submit').addEventListener('click', function() {
+                    if (locked) { return; }
+                    locked = true;
+                    var data = {};
+                    forEachField(function(k) {
+                        data[k] = $(k).value;
+                    });
+                    forEachMetaButton(function(b) {
+                        b.setAttribute('disabled', 'disabled');
+                    });
+                    r('post', 'update', data, function(t) {
+                        switch(t) {
+                            case 'REDIRECT':
+                                if (window.confirm("Configuration saved successfully! Go back?")) {
+                                    reDirect();
+                                }
+                                break;
+                            case 'ILLEGAL':
+                            default:
+                                window.alert('Value is illegal!');
+                        }
+                        forEachMetaButton(function(b) {
+                            b.removeAttribute('disabled');
+                        });
+                        locked = false;
+                    })
+                });
+                $('cancel').addEventListener('click', reDirect);
+            });
+        };
+
+    </script>
+</head>
+<body onload="init()">
+<div class="container">
+    <div class="page-header">
+        <h4>Configurations</h4>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <form class="form-horizontal" role="form">
+                <div class="form-group">
+                    <label for="videoDir" class="col-sm-3 control-label">Video directory path</label>
+
+                    <div class="col-sm-7">
+                        <input type="text" class="form-control" id="videoDir" disabled>
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-default" id="videoDirSelect" disabled>Select</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="mPlayer" class="col-sm-3 control-label">MPlayer executable path</label>
+
+                    <div class="col-sm-7">
+                        <input type="text" class="form-control" id="mPlayer" disabled>
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-default" id="mPlayerSelect" disabled>Select</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-2 pull-right">
+                        <button type="button" class="btn btn-primary" id="submit" disabled>Update</button>
+                    </div>
+                    <div class="col-sm-2 pull-right">
+                        <button type="button" class="btn btn-default" id="cancel" disabled>Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <ol class="breadcrumb" id="breadcrumb">
+                <li>Please select a field to browse.</li>
+            </ol>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <table class="table table-condensed table-hover">
+                <tbody id="tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
