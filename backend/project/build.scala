@@ -1,3 +1,5 @@
+import com.bowlingx.sbt.plugins.Wro4jPlugin.Wro4jKeys._
+import com.bowlingx.sbt.plugins.Wro4jPlugin._
 import com.earldouglas.xsbtwebplugin.PluginKeys._
 import com.earldouglas.xsbtwebplugin.WebPlugin._
 import org.scalatra.sbt._

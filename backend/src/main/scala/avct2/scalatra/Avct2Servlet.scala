@@ -22,13 +22,18 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
     Avct2Conf.dbConnection.get.database
   }
 
+  // get json fields with this
+  def json[T](json: String)(implicit mf: scala.reflect.Manifest[T]): T = {
+    parse(json).extract[T]
+  }
+
   before() {
     Avct2Conf.dbConnection match {
-      case None => halt(403, "Establish a database connection first.")
+      case None => halt(412, "Establish a database connection first.")
       case Some(conn) => {
         val header = request.getHeader("X-Db-Connection-Id")
         if (header != null && header != conn.id) {
-          halt(409, "Working DB connection changed.");
+          halt(412, "Working DB connection changed.");
         }
       }
     }
@@ -37,7 +42,7 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
   get("/clip") {
     contentType = formats("json")
     db.withSession { implicit session =>
-      queryClip(identity).list.map(renderClip).map(clip => (clip("id").toString, clip.-("id"))).toMap
+      queryClip(identity).list.map(renderClip)
     }
   }
 
@@ -73,13 +78,14 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
   post("/clip/:id/edit") {
     contentType = formats("json")
     val id = params("id").toInt
+    val value = params("value")
     db.withSession { implicit session =>
       if (!Tables.clip.filter(_.clipId === id).exists.run) {
         halt(404, "Clip does not exist.")
       }
       params("key") match {
         case "studio" => {
-          val studio = params("value").toInt
+          val studio = value.toInt
           // check if studio exists
           if (!Tables.studio.filter(_.studioId === studio).exists.run) {
             halt(404, "Studio does not exist.")
@@ -88,14 +94,14 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
         }
         case "race" => {
           try {
-            val race = Race.withName(params("race"))
+            val race = Race.withName(value)
             Tables.clip.filter(_.clipId === id).map(_.race).update(race)
           } catch {
             case _: NoSuchElementException => halt(404, "Race does not exist.")
           }
         }
         case "role" => {
-          val roles = multiParams("value")
+          val roles = json[Seq[String]](value)
           try {
             val roleSet = Role.ValueSet(roles.map(Role.withName): _*)
             Tables.clip.filter(_.clipId === id).map(_.role).update(roleSet)
@@ -104,15 +110,15 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
           }
         }
         case "grade" => {
-          val grade = params("value").toInt
+          val grade = value.toInt
           Tables.clip.filter(_.clipId === id).map(_.grade).update(grade)
         }
         case "duration" => {
-          val length = params("value").toInt
+          val length = value.toInt
           Tables.clip.filter(_.clipId === id).map(_.length).update(length)
         }
         case "tags" => {
-          val tags = multiParams("value").map(_.toInt)
+          val tags = json[Seq[Int]](value)
           Tables.clipTag.filter(_.clipId === id).delete // remove older ones first
           if (!tags.map(tag => Tables.tag.filter(_.tagId === tag).exists.run).reduce(_ && _)) {
             halt(404, "Tag does not exist.")
@@ -128,13 +134,16 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
   get("/tag") {
     contentType = formats("json")
     db.withSession { implicit session =>
-      Tables.tag.map(tag => (tag.tagId, tag.name)).list.map(tag => (tag._1.toString, Map("name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false)))).toMap
+      Tables.tag.map(tag => (tag.tagId, tag.name)).list.map(tag => Map("id" -> tag._1, "name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false)))
     }
   }
 
   post("/tag/:id/edit") {
     val id = params("id").toInt
     val name = params("name")
+    if (name.length < 1) {
+      halt(400, "Name too short.")
+    }
     db.withSession { implicit session =>
       if (!Tables.tag.filter(_.tagId === id).exists.run) {
         halt(404, "Tag does not exist.")
@@ -149,15 +158,15 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
 
   post("/tag/:id/parent") {
     val id = params("id").toInt
-    val parents = multiParams("parent").map(_.toInt).toSet // remove duplicates
+    val parents = json[Seq[Int]](params("parent")).toSet // remove duplicates
     db.withSession { implicit session =>
       if (!Tables.tag.filter(_.tagId === id).exists.run) {
         halt(404, "Child tag does not exist.")
       }
-      if (!parents.map(tag => Tables.tag.filter(_.tagId === tag).exists.run).reduce(_ && _)) {
+      if (!parents.map(tag => Tables.tag.filter(_.tagId === tag).exists.run).fold(true)(_ && _)) {
         halt(404, "Parent tag does not exist.")
       }
-      if (!parents.map(tag => legalTagParent(id, tag)).reduce(_ && _)) {
+      if (!parents.map(tag => legalTagParent(id, tag)).fold(true)(_ && _)) {
         halt(409, "Forming cycles are not allowed.")
       }
       Tables.tagRelationship.filter(_.childTag === id).delete
@@ -170,12 +179,15 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
     // return inserted id
     contentType = formats("json")
     val name = params("name")
+    if (name.length < 1) {
+      halt(400, "Name too short.")
+    }
     db.withSession { implicit session =>
       if (Tables.tag.filter(_.name === name).exists.run) {
         halt(409, "Tag name already exists.")
       }
       ((Tables.tag returning Tables.tag) +=(None, name)) match {
-        case (Some(id), _) => id.toString
+        case (Some(id), _) => Map("id" -> id)
         case _ => halt(500, "Insertion failed.")
       }
     }

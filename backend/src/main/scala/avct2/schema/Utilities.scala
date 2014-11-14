@@ -32,11 +32,11 @@ object Utilities {
     } yield studio).delete
   }
 
-  // fuck scala, i cannot use partial application and implcit paramteter together, so have to stick with 3 params
+  // fuck scala, i cannot use partial application and implicit parameter together, so have to stick with 3 params
   def getParentOrChildTags(from: Int, parent: Boolean, recursive: Boolean)(implicit session: Session): Set[Int] = {
     val results = Tables.tagRelationship.filter(row => (if (parent) row.childTag else row.parentTag) === from).map(if (parent) _.parentTag else _.childTag).list
     if (recursive) {
-      results.map(single => getParentOrChildTags(single, parent, true) + single).reduce(_ ++ _)
+      results.map(single => getParentOrChildTags(single, parent, true) + single).fold(Set[Int]())(_ ++ _)
     } else {
       results.toSet
     }

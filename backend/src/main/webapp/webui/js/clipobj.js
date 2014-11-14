@@ -9,16 +9,15 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
     var fileOverlay = document.getElementById('file-overlay');
     var fileOverlaySpan = fileOverlay.querySelector('span');
     fileOverlay.querySelector(as('open')).addEventListener('click', function() {
-        api('clip/open', { "id": app.getParentTr(this).id });
+        api('clip/open', { "id": app.getParentTr(this)['id'] });
     });
     fileOverlay.querySelector(as('folder')).addEventListener('click', function() {
-        api('clip/folder', { "id": app.getParentTr(this).id });
+        api('clip/folder', { "id": app.getParentTr(this)['id'] });
     });
-    var Clip = function(id, json) {
+    var Clip = function(json) {
         func.forEach(json, function(value, key) {
             this[key] = value;
         }.bind(this));
-        this.id = id;
         this.tr = null;
     };
     var empty = function(field) {
@@ -32,7 +31,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
             if (!this['thumbSet']) {
                 td.appendChild(empty('thumb'));
             } else {
-                //td.appendChild(dom('img', {src: '/clip/' + this.id + '/thumb', className: 'clip-thumb'}));
+                //td.appendChild(dom('img', {src: '/clip/' + this['id'] + '/thumb', className: 'clip-thumb'}));
             }
         },
         renderName: function(td) {
@@ -76,7 +75,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
         },
         setTr: function(tr) {
             this.tr = tr;
-            tr.dataset.id = this.id;
+            tr.dataset.id = this['id'];
         }
     };
     return Clip;

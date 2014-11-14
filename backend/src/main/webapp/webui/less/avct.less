@@ -19,12 +19,15 @@
     color: inherit;
     background: #F0F0FF;
     padding: 0 5px;
-    tr:hover & {
+    .table-hover tr:hover & {
         background: #E0E0FF;
     }
     &:hover {
         text-decoration: none;
         color: inherit;
+    }
+    &.removable {
+        cursor: pointer;
     }
 }
 
@@ -85,9 +88,8 @@ nav.navbar {
 
 .toolbox {
     display: none;
-    position: absolute;
     #modal-container &, #wrap & {
-        display: block;
+        display: initial;
     }
 }
 
@@ -100,6 +102,7 @@ nav.navbar {
     padding: 8px;
     left: 0;
     top: 0;
+    position: absolute;
     overflow-y: auto;
     background: #FFF; // specified by Bootstrap theme. NOT graceful.
     tr:hover & {
@@ -107,8 +110,30 @@ nav.navbar {
     }
 }
 
-#inplace-edit {
+#inplace-edit, #auto-complete {
     left: 100%;
     height: 110px; // specified by Bootstrap theme. NOT graceful.
     top: calc(~"50% - 55px");
+    position: absolute;
+    input[type=text] {
+        width: 200px;
+    }
+}
+
+#select-tag {
+    position: relative;
+}
+
+#auto-complete {
+    .popover-content {
+        position: relative;
+        div.list-group {
+            position: absolute;
+            width: calc(~"100% - 28px"); // specified by Bootstrap theme. NOT graceful.
+            top: 39px;
+            a.list-group-item {
+                padding: 5px 10px;
+            }
+        }
+    }
 }

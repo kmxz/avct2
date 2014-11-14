@@ -4,7 +4,6 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
     var uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
     var dbConnId = window.location.search.substring(1);
     if (!uuidRegex.test(dbConnId)) {
-        alert("No UUID specified!");
         window.location.href = '/';
     }
     var actions = {
@@ -25,7 +24,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
         // tag
         'tag/list': { method: 'get', url: 'tag' },
         'tag/create': { method: 'post', url: 'tag/create', params: ['name'] },
-        'tag/parents': { method: 'post', url: 'tag/$/parents', params: ['parents'] },
+        'tag/parent': { method: 'post', url: 'tag/$/parent', params: ['parent'] },
         'tag/edit': { method: 'post', url: 'tag/$/edit', params: ['name'] },
         // quickjerk
         'quickjerk': { method: 'get', url: 'quickjerk', params: [/* todo */] }
@@ -35,10 +34,10 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
         var url = config.url;
         var formData = null;
         if (config.url.indexOf('$') > -1) {
-            if (!opt_params.id) {
+            if (!opt_params['id']) {
                 throw 'ID not provided for ' + api + '.';
             }
-            url = config.url.replace('$', opt_params.id);
+            url = config.url.replace('$', opt_params['id']);
         }
         if (config.method === 'post') {
             formData = new FormData();
@@ -46,7 +45,11 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
                 if (!(key in opt_params)) {
                     throw 'Parameter ' + key + ' not provided for ' + api + '.';
                 }
-                formData.append(key, opt_params[key]);
+                var value = opt_params[key];
+                if (value instanceof Array) {
+                    value = JSON.stringify(value); // to JSON only when it's an array
+                }
+                formData.append(key, value);
             });
         }
         return new Promise(function(resolve, reject) {
@@ -73,7 +76,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
     };
     request.FATAL = function(reason) {
         if (window.confirm("This seems to be a fatal server error. Restart the program? Information: " + reason)) {
-            window.location.reload();
+            window.location.href = "/";
         }
     };
     request.ALERT = function(reason) {

@@ -1,6 +1,6 @@
 "use strict";
 
-ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
+ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], function() {
     var app = ijkl('app');
     var modal = ijkl('modal');
     var func = ijkl('function');
@@ -8,20 +8,31 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
     var dom = ijkl('dom');
     var as = ijkl('actionselector');
     var ie = ijkl('inplaceediting');
+    var ac = ijkl('autocomplete');
     var el = document.getElementById('tag-manager');
+    var selectTag = document.getElementById('select-tag');
     var tb = el.querySelector('table');
-    var add = el.querySelector(as('add'));
-    var ipt = el.querySelector('input[type=text]')
     var actualTags = null;
-    /*var checkNameLocal = function(name, id) {
-        var ret = true;
-        func.forEach(function(tag) {
-            if (tag.id !== id && tag.name === name) {
-                ret = false;
+    var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
+    selectTag.addEventListener('click', function() {
+        ac(selectTag, function (newTagName, onSuccess, onReject) {
+            var proposedTag = actualTags.filter(function(tag) { return tag.name === newTagName; })[0];
+            if (!proposedTag) {
+                if (window.confirm("Such tag does not exist. Create one?")) {
+                    api('tag/create', { 'name': newTagName }).then(function (ret) {
+                        currentSelectTagCallback(ret['id'], onSuccess, onReject);
+                    }, function (error) {
+                        api.ALERT(error);
+                        onReject();
+                    });
+                } else {
+                    onReject();
+                }
+            } else {
+                currentSelectTagCallback(proposedTag.id, onSuccess, onReject);
             }
-        });
-        return ret;
-    };*/
+        }, actualTags.map(function(tag) { return tag.name; }));
+    });
     var render = function() {
         var tbody = dom('tbody', null, dom('tr', null, [
             dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children')
@@ -52,10 +63,10 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
             dom.append(td, this.name);
             td.addEventListener('click', function() {
                 ie(td, this.name, function(newName, onSuccess, onReject) {
-                    api('tag/edit', { "id": this.id, "name": newName }).then(function() {
+                    api('tag/edit', { 'id': this.id, 'name': newName }).then(function() {
                         this.name = newName;
                         onSuccess();
-                        render();
+                        render(); // this one does not require reload
                     }.bind(this), function(error) {
                         api.ALERT(error);
                         onReject();
@@ -64,9 +75,46 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
             }.bind(this));
         },
         renderParent: function(td) {
+            var child = this;
             dom.append(td, this.parent.map(function(tag) {
-                return dom('a', { className: 'tag' }, tag.name);
+                var tagEl = dom('a', { className: ['tag', 'removable'], title: "Click to remove" }, tag.name);
+                tagEl.addEventListener('click', function() {
+                    if (window.confirm('Remove this tag from parent tag list?')) {
+                        var proposed = child.parent.map(function(parent) { return parent.id; }).filter(function(parentId) { return parentId !== tag.id; });
+                        api('tag/parent', { 'parent': proposed, 'id': child.id }).then(function() {
+                            init().then(function() {
+                                render();
+                                onSuccess();
+                            }); // do thing on fail, as init() will take care of it
+                        }, api.ALERT)
+                    }
+                });
+                return tagEl;
             }));
+            td.addEventListener('mouseenter', function() {
+                if (ac.isOpen()) {
+                    return;
+                }
+                td.appendChild(selectTag);
+                currentSelectTagCallback = function(newParentId, onSuccess, onReject) {
+                    var proposed = child.parent.map(function(tag) { return tag.id; }).concat([newParentId]);
+                    api('tag/parent', { 'parent': proposed, 'id': child.id }).then(function() {
+                        init().then(function() {
+                            render();
+                            onSuccess();
+                        }); // do thing on fail, as init() will take care of it
+                    }, function(error) {
+                        api.ALERT(error);
+                        onReject();
+                    });
+                };
+            });
+            td.addEventListener('mouseleave', function() {
+                if (ac.isOpen()) {
+                    return;
+                }
+                document.body.appendChild(selectTag);
+            });
         },
         renderChildren: function(td) {
             dom.append(td, this.children.map(function(tag) {
@@ -74,14 +122,22 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
             }));
         }
     };
-    add.addEventListener('click', function() {
-        var name = ipt.value;
-        api('tag/create', { name: name }).then(function(newTagId) {
-            ipt.value = '';
-            actualTags[newTagId] = new Tag(newTagId, name);
-            render();
-        }, api.ALERT);
-    });
+    var init = function() {
+        return api('tag/list').then(function(json){
+            actualTags = [];
+            json.forEach(function(tag) {
+                actualTags[tag['id']] = new Tag(tag['id'], tag['name']);
+            })
+            json.forEach(function(tag) {
+                actualTags[tag['id']].parent = tag['parent'].map(function(tagId) {
+                    actualTags[tagId].children.push(actualTags[tag['id']]);
+                    return actualTags[tagId];
+                });
+            });
+        }, function(error) {
+            api.FATAL(error);
+        });
+    };
     el.querySelector('button.close').addEventListener('click', function() {
         modal.close(el);
     });
@@ -90,17 +146,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset'], function() {
             render();
             modal.show(el);
         },
-        init: function(json) {
-            actualTags = func.map(json, function(tag, id) {
-                return new Tag(id, tag['name']);
-            });
-            func.forEach(json, function(tag, id) {
-                actualTags[id].parent = tag['parent'].map(function(tagId) {
-                    actualTags[tagId].children.push(actualTags[id]);
-                    return actualTags[tagId];
-                });
-            });
-        },
+        init: init,
         getTags: function() { return actualTags; }
     };
 });

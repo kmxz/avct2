@@ -10,6 +10,7 @@
         };
 
 
+
     </script>
     <script type="text/javascript" language="javascript" src="base.js"></script>
 </head>
@@ -77,12 +78,6 @@
                 <h4 class="modal-title">Tag Manager</h4>
             </div>
             <div class="modal-body">
-                <form class="form-inline">
-                    <div class="form-group">
-                        <input type="text" class="form-control input-sm" placeholder="Name">
-                        <a class="btn btn-default btn-sm" href="javascript:void('add')">Add tag</a>
-                    </div>
-                </form>
                 <table></table>
             </div>
         </div>
@@ -113,9 +108,26 @@
 
     <div class="popover-content">
         <form class="form-inline">
-            <input class="form-control input-sm" type="text" name="">
+            <input class="form-control input-sm" type="text">
             <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>
             <a href="javascript:void('save')" class="btn btn-primary btn-sm">Save</a>
+        </form>
+    </div>
+</div>
+
+<span class="glyphicon glyphicon-plus toolbox" id="select-tag"></span>
+
+<div class="toolbox popover right" id="auto-complete">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Select <span></span></h3>
+
+    <div class="popover-content">
+        <form class="form-inline">
+            <input class="form-control input-sm" type="text">
+            <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>
+            <a href="javascript:void('save')" class="btn btn-primary btn-sm">Save</a>
+
+            <div class="list-group"></div>
         </form>
     </div>
 </div>

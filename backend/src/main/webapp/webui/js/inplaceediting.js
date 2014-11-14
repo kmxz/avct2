@@ -5,6 +5,9 @@ ijkl.module('inplaceediting', ['querySelector', 'classList'], function() {
     var sb = editor.querySelector(as('save'));
     var cb = editor.querySelector(as('cancel'));
     var currentOnSubmit;
+    editor.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
     var hide = function() {
         document.body.appendChild(editor);
     };
@@ -33,7 +36,7 @@ ijkl.module('inplaceediting', ['querySelector', 'classList'], function() {
         if (locked) { return; }
         hide();
     });
-    // onSubmit should be a function accpeting (newValue, onSuccess, onReject)
+    // onSubmit should be a function accepting (newValue, onSuccess, onReject)
     return function(anchor, initialVal, onSubmit) {
         it.value = initialVal;
         currentOnSubmit = onSubmit;

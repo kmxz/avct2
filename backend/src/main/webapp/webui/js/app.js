@@ -12,12 +12,12 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
 		var func = ijkl('function');
 		var tm = ijkl('tagmanager');
 		var loaded = ijkl('loading');
-		Promise.all([api('clip/list'), api('studio/list'), api('tag/list')]).then(function(results) {
-			actualClips = func.map(results[0], function(json, id) {
-				return new Clip(id, json);
+		Promise.all([api('clip/list'), api('studio/list'), tm.init()]).then(function(results) {
+			actualClips = [];
+			results[0].forEach(function(json) {
+				actualClips[json['id']] = new Clip(json);
 			});
 			actualStudios = results[1];
-			tm.init(results[2]);
 			var tbody = dom('tbody', null);
 			var table = dom('table', { className: ['table', 'table-hover'], 'width': '100%' }, [dom('thead', null, dom('tr', null, [
 				dom('th', { className: 'c-thumb' }, 'Thumb'),
