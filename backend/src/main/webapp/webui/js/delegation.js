@@ -1,10 +1,10 @@
 ijkl.module('delegation', [], function() {
     var isAncestor = function(child, parent) {
-        if (!child) { return false; }
+        if (!child) { return false; } // moving outside/inside the window
         var track = child;
         do {
             if (track === parent) { return true; }
-        } while (track = track.parentNode)
+        } while (track = track.parentNode);
         return false;
     };
     var oneOfAncestorsMatches = function(filter, element) {

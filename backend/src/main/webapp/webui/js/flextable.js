@@ -1,10 +1,12 @@
 "use strict";
 
 ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'], function() {
-	var functionModule = ijkl('function');
-	var dom = ijkl('dom');
-	var modal = ijkl('modal');
+
 	var as = ijkl('actionselector');
+	var dom = ijkl('dom');
+	var func = ijkl('function');
+	var modal = ijkl('modal');
+
 	var currentModalTable = null;
 	var modalEl = document.getElementById('column-selector');
 	var form = modalEl.querySelector('form');
@@ -12,38 +14,36 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 		modal.close(modalEl);
 		form.innerHTML = ''; // dirty method to free some resources
 	};
+	var show = function(table, className, shown) {
+		func.toArray(table.querySelectorAll('.' + className)).forEach(function(td) {
+			if (shown) {
+				td.classList.remove('hidden');
+			} else {
+				td.classList.add('hidden');
+			}
+		});
+	};
 	modalEl.querySelector(as('cancel')).addEventListener('click', close);
 	modalEl.querySelector(as('save')).addEventListener('click', function() {
-		functionModule.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function(cb) {
-			console.log(cb.name);
-			functionModule.toArray(currentModalTable.getElementsByClassName(cb.name)).forEach(function(td) {
-				if (cb.checked) {
-					td.classList.remove('hidden');
-				} else {
-					td.classList.add('hidden');
-				}
-			});
+		func.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function(cb) {
+			if (cb.checked) {
+				show(currentModalTable, cb.name, true);
+			} else {
+				show(currentModalTable, cb.name, false);
+			}
 		});
 		close();
 	});
-	return function(table) {
+	return function(table, columns) {
 		var insertBefore = null;
 		var currentDrag = null;
 		var currentDragover = null;
 		var currentVisualAux = null;
 		var resizeHandle = null;
-		var order = [];
 		var currentResizeRelative = 0;
 		var currentResizeOriginal = 0;
-		var i, ths;
-		var draggable = { draggable: true };
-		var getElementIndex = function(el) {
-			var cl, i;
-			if (el === null) { return -1; }
-			cl = el.parentNode.children;
-			for (i = 0; i < cl.length; i++) {
-				if (el == cl[i]) { return i; }
-			}
+		var getValidClassName = function(el) {
+			return columns.map(function(column) { return column.className; }).filter(function(className) { return el.classList.contains(className); })[0];
 		};
 		var removeClass = function(el) {
 			if (el) {
@@ -54,11 +54,11 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 		};
 		var columnSel = function() {
 			currentModalTable = table;
-			var checkboxes = functionModule.toArray(table.querySelector('tr').querySelectorAll('th')).map(function(el) {
+			var checkboxes = columns.map(function(info) {
 				return {
-					name: functionModule.toArray(el.classList).filter(function(className) { return className.substring(0, 4) === 'col-'; })[0],
-					text: el.firstChild.textContent, // XXX: this is UGLY!
-					shown: !el.classList.contains('hidden')
+					name: info.className,
+					text: info.text, // XXX: this is UGLY!
+					shown: !table.querySelector('.' + info.className).classList.contains('hidden')
 				}
 			}).map(function(item) {
 				var properties = { type: 'checkbox', name: item.name };
@@ -78,18 +78,9 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 			return dom('div', { className: 'resize-handle', draggable: true });
 		};
 		var fastMoveCurrentItems = function(source, target) {
-			if (target < 0) { target = order.length; }
-			order.splice(target, 0, order.splice(source, 1));
-			functionModule.toArray(table.querySelectorAll('tr')).forEach(function(tr) {
-				tr.insertBefore(tr.children[source], tr.children[target]);
+			func.toArray(table.querySelectorAll('tr')).forEach(function(tr) {
+				tr.insertBefore(tr.querySelector('.' + source), target ? tr.querySelector('.' + target) : null);
 			});
-		};
-		var addTr = function(content) {
-			var tr = document.createElement('tr');
-			order.forEach(function(index) {
-				tr.appendChild(content[index]);
-			});
-			return tr;
 		};
 		var dragOverListener = function(ev) {
 			ev.preventDefault(); // i don't know why but this line seems to be necessary
@@ -134,7 +125,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 			removeClass(currentDragover);
 			removeClass(currentVisualAux);
 			if (currentDrag.nextSibling !== insertBefore) {
-				fastMoveCurrentItems(getElementIndex(currentDrag), getElementIndex(insertBefore));
+				fastMoveCurrentItems(getValidClassName(currentDrag), insertBefore ? getValidClassName(insertBefore) : null);
 			}
 			currentDrag = null;
 		};
@@ -148,18 +139,29 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 			this.parentNode.setAttribute('width', nw);
 		};
 		table.classList.add('flextable');
-		ths = table.querySelector('tr').querySelectorAll('th');
-		for (i = 0; i < ths.length; i++) {
-			order.push(i);
-			dom.set(ths[i], draggable);
-			ths[i].addEventListener('dragover', dragOverListener);
-			ths[i].addEventListener('dragstart', dragListener);
-			ths[i].addEventListener('drop', dropListener);
-			resizeHandle = getResizeHandle();
-			resizeHandle.addEventListener('dragstart', resizeDragStartListener);
-			resizeHandle.addEventListener('dragend', resizeDragListener);
-			ths[i].appendChild(resizeHandle);
-		}
-		return { add: addTr, columnSel: columnSel };
+		return {
+			columnSel: columnSel,
+			showColumn: function(className, shown) {
+				show(table, className, shown);
+			},
+			yieldThs: function() {
+				return dom('tr', null, columns.map(function(info) {
+					var th = dom('th', { className: info.className, draggable: true }, info.text);
+					th.addEventListener('dragover', dragOverListener);
+					th.addEventListener('dragstart', dragListener);
+					th.addEventListener('drop', dropListener);
+					var resizeHandle = getResizeHandle();
+					resizeHandle.addEventListener('dragstart', resizeDragStartListener);
+					resizeHandle.addEventListener('dragend', resizeDragListener);
+					th.appendChild(resizeHandle);
+					return th;
+				}))
+			},
+			yieldTds: function() {
+				return dom('tr', null, columns.map(function(info) {
+					return dom('td', { className: info.className });
+				}));
+			}
+		};
 	};
 });

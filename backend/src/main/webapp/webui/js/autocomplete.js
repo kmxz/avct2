@@ -1,6 +1,8 @@
 ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
+
     var as = ijkl('actionselector');
     var dom = ijkl('dom');
+
     var editor = document.getElementById('auto-complete');
     var it = editor.querySelector('input[type=text]');
     var sb = editor.querySelector(as('save'));

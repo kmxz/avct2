@@ -47,5 +47,18 @@ ijkl.module('dom', ['es5Array'], function() {
 
 	create.append = append;
 	create.set = set;
+	create.match = function(selector) {
+		return function(el) { return (el instanceof HTMLElement) && el.matches(selector); }
+	};
+	create.getParent = function(node, filter) {
+		var cur = node;
+		while (cur) {
+			cur = cur.parentNode;
+			if (filter(cur)) {
+				return cur;
+			}
+		}
+		return null;
+	};
 	return create;
 });

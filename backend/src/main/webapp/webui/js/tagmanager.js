@@ -1,12 +1,13 @@
 "use strict";
 
 ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], function() {
-    var app = ijkl('app');
-    var modal = ijkl('modal');
-    var func = ijkl('function');
+
+    var ac = ijkl('autocomplete');
     var api = ijkl('api');
     var dom = ijkl('dom');
-    var ac = ijkl('autocomplete');
+    var func = ijkl('function');
+    var modal = ijkl('modal');
+
     var el = document.getElementById('tag-manager');
     var selectTag = document.getElementById('select-tag');
     var tb = el.querySelector('table');

@@ -1,58 +1,33 @@
 "use strict";
 
 ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], function() {
+
 	var api = ijkl('api');
-	var actualClips = null;
-	var actualStudios = null;
-	var init = function() {
-		var as = ijkl('actionselector');
-		var Clip = ijkl('clipobj'); // lazy load to avoid circular dependency
-		var dom = ijkl('dom');
-		var ft = ijkl('flextable');
-		var func = ijkl('function');
-		var tm = ijkl('tagmanager');
-		var loaded = ijkl('loading');
-		Promise.all([api('clip/list'), api('studio/list'), tm.init()]).then(function(results) {
-			actualClips = [];
-			results[0].forEach(function(json) {
-				actualClips[json['id']] = new Clip(json);
-			});
-			actualStudios = results[1];
-			var tbody = dom('tbody', null);
-			var table = dom('table', { className: ['table', 'table-hover'], 'width': '100%' }, [dom('thead', null, dom('tr', null, [
-				dom('th', { className: 'c-thumb' }, 'Thumb'),
-				dom('th', { className: 'c-file' }, 'Name'),
-				dom('th', { className: 'c-studio' }, 'Studio'),
-				dom('th', { className: 'c-role' }, 'Role'),
-				dom('th', { className: 'c-grade' }, 'Grade'),
-				dom('th', { className: 'c-race' }, 'Race'),
-				dom('th', { className: 'c-tags' }, 'Tags'),
-				dom('th', { className: ['c-record', 'hidden'] }, 'Record'),
-				dom('th', { className: ['c-duration', 'hidden'] }, 'Duration'),
-				dom('th', { className: ['c-source-note', 'hidden'] }, 'Source note')
-			])), tbody]);
-			var ftt = ft(table);
-			func.forEach(actualClips, function(clip) {
-				var render = function(className, postProcess) {
-					var td = dom('td', { className: className });
-					postProcess(td);
-					return td;
-				};
-				var tr = ftt.add([
-					render('c-thumb', clip.renderThumb.bind(clip)),
-					render('c-file', clip.renderName.bind(clip)),
-					render('c-studio', function(td) { clip.renderStudio(td, actualStudios); }),
-					render('c-role', clip.renderRole.bind(clip)),
-					render('c-grade', clip.renderGrade.bind(clip)),
-					render('c-race', function(td) { td.innerHTML = clip['race']; }),
-					render('c-tags', function(td) { clip.renderTags(td, tm.getTags()); }),
-					render(['c-record', 'hidden'], function(td) { td.innerHTML = clip['record']; }),
-					render(['c-duration', 'hidden'], function(td) { td.innerHTML = clip['duration']; }),
-					render(['c-source-note', 'hidden'], function(td) { td.innerHTML = clip['sourceNote']; })
-				]);
-				clip.setTr(tr);
+	var as = ijkl('actionselector');
+	var cd = ijkl('columndef');
+	var clip = ijkl('clipobj');
+	var dom = ijkl('dom');
+	var ft = ijkl('flextable');
+	var func = ijkl('function');
+	var loaded = ijkl('loading');
+	var sm = ijkl('studiomanager');
+	var tm = ijkl('tagmanager');
+
+	return function() {
+		Promise.all([api('clip/list'), sm.init(), tm.init()]).then(function(results) {
+			clip.init(results[0]);
+			var thead = dom('thead')
+			var tbody = dom('tbody');
+			var table = dom('table', { className: ['table', 'table-hover'], 'width': '100%' }, [thead, tbody]);
+			var ftt = ft(table, func.toArray(cd));
+			thead.appendChild(ftt.yieldThs());
+			func.forEach(clip.getClips(), function(clip) {
+				var tr = ftt.yieldTds();
+				clip.setTrAndRenderAll(tr);
 				tbody.appendChild(tr);
 			});
+			ftt.showColumn(cd.duration.className, false);
+			ftt.showColumn(cd.size.className, false);
 			document.getElementById("root").appendChild(table);
 			document.querySelector(as('columns')).addEventListener('click', function() {
 				ftt.columnSel();
@@ -61,16 +36,4 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
 			loaded();
 		}, api.FATAL);
 	};
-	init.getParentTr = function(el) {
-		var cur = el;
-		while (cur && cur.tagName !== 'TR') {
-			cur = cur.parentNode;
-		}
-		if (cur) {
-			return actualClips[cur.dataset.id];
-		} else {
-			return null;
-		}
-	};
-	return init;
 });

@@ -1,8 +1,10 @@
 "use strict";
 
 ijkl.module('modal', ['querySelector', 'classList'], function() {
+
     var as = ijkl('actionselector');
     var func = ijkl('function');
+
     var mel = document.getElementById('modal-container');
     return {
         show: function(el) {

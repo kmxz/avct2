@@ -17,27 +17,15 @@ trait RenderHelper {
 
   // to be used with queryClip
   def renderClip(tuple: (Int, String, Option[Int], Race.Value, Int, Role.ValueSet, Int, Int, Boolean, String))(implicit session: Session) = tuple match {
-    case (clipId, file, studio, race, grade, role, size, length, thumbSet, sourceNote) =>
+    case (clipId, file, studio, race, grade, role, size, length, thumbSet, sourceNote) => {
       val tags = Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list
-      val record = recordFormat({
-        val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp); (ts.length, ts.max).shaped.run
-      }) // currently buggy due to https://github.com/slick/slick/issues/630
-    val f = new File(file)
-      Map("id" -> clipId, "path" -> f.getPath, "file" -> f.getName, "studio" -> studio, "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "record" -> record, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote) // Enum-s must be toString-ed, otherwise json4s will fuck things up
+      val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp);
+      val record = (ts.length, ts.max).shaped.run
+      val f = new File(file)
+      // caution: lastPlay may be void
+      Map("id" -> clipId, "path" -> f.getPath, "file" -> f.getName, "studio" -> studio, "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote) // Enum-s must be toString-ed, otherwise json4s will fuck things up
+    }
   }
-
-  val recordFormat = ((count: Int, latest: Option[Int]) => {
-    if (count == 0) "never"
-    else (
-      count.toString + ", last played " + {
-        val days = (System.currentTimeMillis / 1000 - latest.get) / (24 * 60 * 60)
-        if (days < 1) "today"
-        else {
-          days.toString + " days ago"
-        }
-      }
-      )
-  }).tupled
 
   def openFile(id: Int, inFolder: Boolean)(implicit session: Session) = {
     Tables.clip.filter(_.clipId === id).map(_.file).firstOption match {

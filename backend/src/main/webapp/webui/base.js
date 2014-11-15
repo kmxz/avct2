@@ -92,28 +92,31 @@ var ijkl = (function() {
             };
             js.onload = function() {
                 console.log("Script " + name + " loaded successfully.")
-                loadedScripts[name] = true;
+                loadedScripts[name].loaded = true;
                 checkIfProceed();
             };
             document.getElementsByTagName('head')[0].appendChild(js);
         };
 
-        var debugLoad = function(enterance) {
-            if (enterance in loadedScripts) {
+        var debugLoad = function(enterance, loadStack) {
+            if (loadStack.indexOf(enterance) >= 0) {
+                alert("Circular dependency detected: " + loadStack.join(' -> ') + ' -> ' + enterance);
                 return;
             }
-            loadedScripts[enterance] = false;
-            loadScript(enterance);
-            var request = new XMLHttpRequest();
-            request.open('get', 'js/'+ enterance + '.js', false); // let's use synchronized request for simplicity
-            request.send(null);
-            var subModules = request.responseText.match(/ijkl\('[a-z]+'\)/g);
+            if (!(enterance in loadedScripts)) {
+                var request = new XMLHttpRequest();
+                request.open('get', 'js/' + enterance + '.js', false); // let's use synchronized request for simplicity
+                request.send(null);
+                loadedScripts[enterance] = { loaded: false, text: request.responseText };
+                loadScript(enterance);
+            }
+            var subModules = loadedScripts[enterance].text.match(/ijkl\('[a-z]+'\)/g);
             if (!subModules) { // no submodules: might be null
                 return;
             }
             var i;
             for (i = 0; i < subModules.length; i++) {
-                debugLoad(subModules[i].match(/ijkl\('([a-z]+)'\)/)[1]);
+                debugLoad(subModules[i].match(/ijkl\('([a-z]+)'\)/)[1], loadStack.concat([enterance]));
             }
         };
 
@@ -121,7 +124,7 @@ var ijkl = (function() {
             var i;
             for (i in loadedScripts) {
                 if (loadedScripts.hasOwnProperty(i)) {
-                    if (!loadedScripts[i]) {
+                    if (!loadedScripts[i].loaded) {
                         return false;
                     }
                 }
@@ -130,7 +133,7 @@ var ijkl = (function() {
             return true;
         };
 
-        debugLoad(firstModule);
+        debugLoad(firstModule, []);
         if (!checkAllLoaded()) {
             checkIfProceed = checkAllLoaded;
         }
