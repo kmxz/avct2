@@ -89,7 +89,7 @@ nav.navbar {
 .toolbox {
     display: none;
     #modal-container &, #wrap & {
-        display: initial;
+        display: inline-block;
     }
 }
 
@@ -110,21 +110,21 @@ nav.navbar {
     }
 }
 
-#inplace-edit, #auto-complete {
-    left: 100%;
+#auto-complete {
+    &.right {
+        left: 100%;
+        right: auto;
+    }
+    &.left {
+        right: 100%;
+        left: auto;
+    }
     height: 110px; // specified by Bootstrap theme. NOT graceful.
     top: calc(~"50% - 55px");
     position: absolute;
     input[type=text] {
         width: 200px;
     }
-}
-
-#select-tag {
-    position: relative;
-}
-
-#auto-complete {
     .popover-content {
         position: relative;
         div.list-group {
@@ -136,4 +136,8 @@ nav.navbar {
             }
         }
     }
+}
+
+#select-tag {
+    position: relative;
 }

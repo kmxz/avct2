@@ -1,4 +1,3 @@
-// most of the code is directly copied from inplaceediting.js. maybe we can do in a better way?
 ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
     var as = ijkl('actionselector');
     var dom = ijkl('dom');
@@ -97,11 +96,15 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
     it.addEventListener('keyup', updateAc);
     // onSubmit should be a function accepting (newValue, onSuccess, onReject)
     // suggestions would be an array of text
-    var start = function(anchor, onSubmit, suggestions) {
-        it.value = '';
+    var start = function(anchor, initialValue, onSubmit, suggestions) {
+        it.value = initialValue;
         currentOnSubmit = onSubmit;
         locked = false;
         suggestionArray = suggestions;
+        var bcr = anchor.getBoundingClientRect()
+        var toLeft = (bcr.left + bcr.right) / 2 > window.innerWidth / 2
+        editor.classList.remove(toLeft ? 'right' : 'left')
+        editor.classList.add(toLeft ? 'left' : 'right')
         anchor.appendChild(editor);
     };
     start.isOpen = function() {

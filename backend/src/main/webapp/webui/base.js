@@ -71,6 +71,10 @@ var ijkl = (function() {
             var n = document.createElement('div');
             n.setAttribute('data-a-b', 'c');
             return !!(n.dataset && n.dataset.aB === 'c');
+        }),
+        matches: new Feature("matchesSelector", function() {
+            var div = document.createElement('div');
+            return ('matches' in div);
         })
     };
 

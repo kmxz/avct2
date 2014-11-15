@@ -6,16 +6,27 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
     var func = ijkl('function');
     var api = ijkl('api');
     var dom = ijkl('dom');
-    var as = ijkl('actionselector');
-    var ie = ijkl('inplaceediting');
     var ac = ijkl('autocomplete');
     var el = document.getElementById('tag-manager');
     var selectTag = document.getElementById('select-tag');
     var tb = el.querySelector('table');
     var actualTags = null;
     var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
+    var selectTagOpen = function(td, callback) {
+        if (ac.isOpen()) {
+            return;
+        }
+        td.appendChild(selectTag);
+        currentSelectTagCallback = callback;
+    };
+    var selectTagClose = function() {
+        if (ac.isOpen()) {
+            return;
+        }
+        document.body.appendChild(selectTag);
+    };
     selectTag.addEventListener('click', function() {
-        ac(selectTag, function (newTagName, onSuccess, onReject) {
+        ac(selectTag, '', function (newTagName, onSuccess, onReject) {
             var proposedTag = actualTags.filter(function(tag) { return tag.name === newTagName; })[0];
             if (!proposedTag) {
                 if (window.confirm("Such tag does not exist. Create one?")) {
@@ -62,7 +73,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             var inEditing = false;
             dom.append(td, this.name);
             td.addEventListener('click', function() {
-                ie(td, this.name, function(newName, onSuccess, onReject) {
+                ac(td, this.name, function(newName, onSuccess, onReject) {
                     api('tag/edit', { 'id': this.id, 'name': newName }).then(function() {
                         this.name = newName;
                         onSuccess();
@@ -71,7 +82,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
                         api.ALERT(error);
                         onReject();
                     }.bind(this));
-                }.bind(this));
+                }.bind(this), []);
             }.bind(this));
         },
         renderParent: function(td) {
@@ -92,11 +103,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
                 return tagEl;
             }));
             td.addEventListener('mouseenter', function() {
-                if (ac.isOpen()) {
-                    return;
-                }
-                td.appendChild(selectTag);
-                currentSelectTagCallback = function(newParentId, onSuccess, onReject) {
+                selectTagOpen(td, function(newParentId, onSuccess, onReject) {
                     var proposed = child.parent.map(function(tag) { return tag.id; }).concat([newParentId]);
                     api('tag/parent', { 'parent': proposed, 'id': child.id }).then(function() {
                         init().then(function() {
@@ -107,13 +114,10 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
                         api.ALERT(error);
                         onReject();
                     });
-                };
+                });
             });
             td.addEventListener('mouseleave', function() {
-                if (ac.isOpen()) {
-                    return;
-                }
-                document.body.appendChild(selectTag);
+                selectTagClose();
             });
         },
         renderChildren: function(td) {
@@ -140,6 +144,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
     };
     el.querySelector('button.close').addEventListener('click', function() {
         modal.close(el);
+        tb.innerHTML = ''; // dirty method to free some resources
     });
     return {
         open: function() {
@@ -147,6 +152,8 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             modal.show(el);
         },
         init: init,
-        getTags: function() { return actualTags; }
+        getTags: function() { return actualTags; },
+        selectTagClose: selectTagClose,
+        selectTagOpen: selectTagOpen
     };
 });

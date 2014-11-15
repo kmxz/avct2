@@ -8,9 +8,11 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 	var currentModalTable = null;
 	var modalEl = document.getElementById('column-selector');
 	var form = modalEl.querySelector('form');
-	modalEl.querySelector(as('cancel')).addEventListener('click', function() {
+	var close = function() {
 		modal.close(modalEl);
-	});
+		form.innerHTML = ''; // dirty method to free some resources
+	};
+	modalEl.querySelector(as('cancel')).addEventListener('click', close);
 	modalEl.querySelector(as('save')).addEventListener('click', function() {
 		functionModule.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function(cb) {
 			console.log(cb.name);
@@ -22,7 +24,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 				}
 			});
 		});
-		modal.close(modalEl);
+		close();
 	});
 	return function(table) {
 		var insertBefore = null;
@@ -52,7 +54,6 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 		};
 		var columnSel = function() {
 			currentModalTable = table;
-			form.innerHTML = '';
 			var checkboxes = functionModule.toArray(table.querySelector('tr').querySelectorAll('th')).map(function(el) {
 				return {
 					name: functionModule.toArray(el.classList).filter(function(className) { return className.substring(0, 4) === 'col-'; })[0],
