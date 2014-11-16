@@ -124,10 +124,11 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
             halt(404, "Tag does not exist.")
           }
           val tagsIncludingParents = tags.map(tag => getParentOrChildTags(tag, true, true) + tag).reduce(_ ++ _).toSeq // duplicates removed
-          Tables.clipTag.map(row => (row.tagId, row.clipId)).insertAll(tagsIncludingParents.map(tag => (id, tag)): _*)
+          Tables.clipTag.map(row => (row.clipId, row.tagId)).insertAll(tagsIncludingParents.map(tag => (id, tag)): _*)
         }
       }
-      JNull // nothing to return
+      // render the new clip
+      renderClip(queryClip(query => query.filter(_.clipId === id)).first)
     }
   }
 

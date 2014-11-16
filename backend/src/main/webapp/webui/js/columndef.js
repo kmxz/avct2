@@ -1,4 +1,4 @@
-ijkl.module('columndef', [], function() {
+ijkl.module('columndef', ['dataset'], function() {
 
     var dom = ijkl('dom');
     var sm = ijkl('studiomanager');
@@ -19,6 +19,25 @@ ijkl.module('columndef', [], function() {
     var empty = function(field) {
         return dom('span', { className: ['label', 'label-warning'] }, 'No ' + field + '!');
     };
+    var daysFromNow = function(ts) {
+        var diffSecs = new Date().getTime() / 1000 - ts;
+        return diffSecs / (24 * 3600);
+    };
+    var humanReadableSize = function(size) {
+        var units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        var out = size;
+        var index = 0;
+        while (out >= 1000) {
+            out /= 1000;
+            index++;
+        }
+        return out.toPrecision(3) + units[index];
+    };
+    var humanReadableDuration = function(duration) {
+        var min = (duration % 60);
+        if (min < 10) { min = '0' + min; }
+        return Math.floor(duration / 60) + ':' + min;
+    };
     return {
         thumb: new Column('c-thumb', 'Thumb', function (td) {
             if (!this.thumbSet) {
@@ -38,7 +57,7 @@ ijkl.module('columndef', [], function() {
                 td.appendChild(empty('roles'));
             } else {
                 dom.append(td, this.role.map(function (role) {
-                    return dom('a', {className: 'tag'}, role);
+                    return dom('a', { className: 'tag' }, role);
                 }));
             }
         }),
@@ -47,8 +66,11 @@ ijkl.module('columndef', [], function() {
                 td.appendChild(empty('grade'));
             } else {
                 var list = [];
-                for (var i = 1; i <= 5; i++) {
-                    list.push(dom('span', {className: ['glyphicon', i <= this.grade ? 'glyphicon-star' : 'glyphicon-star-empty']}));
+                var i, current;
+                for (i = 1; i <= 5; i++) {
+                    current = dom('span', { className: ['grade-star', 'glyphicon', i <= this.grade ? 'glyphicon-star' : 'glyphicon-star-empty'] });
+                    current.dataset.grade = i;
+                    list.push(current);
                 }
                 dom.append(td, list);
             }
@@ -70,16 +92,20 @@ ijkl.module('columndef', [], function() {
             }
         }),
         record: new Column('c-record', 'Record', function (td) {
-            // TODO
+            if (!this.lastPlay || !this.totalPlay) {
+                dom.append(td, 'Never');
+            } else {
+                dom.append(td, this.totalPlay + ' times (last:' + daysFromNow(this.lastPlay) + ' days ago)');
+            }
         }),
         sourceNote: new Column('c-source-note', 'Source note', function (td) {
             dom.append(td, this.sourceNote);
         }),
         duration: new Column('c-duration', 'Duration', function (td) {
-            dom.append(td, this.duration);
+            dom.append(td, humanReadableDuration(this.duration));
         }),
         size: new Column('c-size', 'Size', function (td) {
-            dom.append(td, this.size);
+            dom.append(td, humanReadableSize(this.size));
         })
     }
 });

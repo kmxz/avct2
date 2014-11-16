@@ -38,6 +38,7 @@ var ijkl = (function() {
     Feature.prototype.test = function() {
         if (this.tested) { return this.support; }
         this.support = this.detector();
+        this.tested = true;
         if (!this.support) {
             window.alert("Feature [" + this.name + "] is not supported by your browser. Some things will break up.");
         }
@@ -45,34 +46,34 @@ var ijkl = (function() {
 
     // Available browser feature detections
     var features = {
-        xhr2: new Feature('XMLHttpRequest 2', function() { // https://gist.github.com/paulirish/1431660#file_xhr2.js
+        'xhr2': new Feature('XMLHttpRequest 2', function() { // https://gist.github.com/paulirish/1431660#file_xhr2.js
             var progEv = !!(window.ProgressEvent);
             var fdata = !!(window.FormData);
             var wCreds = window.XMLHttpRequest && "withCredentials" in new XMLHttpRequest;
             return progEv && fdata && wCreds;
         }),
-        promise: new Feature('Promise', function() {
+        'promise': new Feature('Promise', function() {
             return !!(window.Promise);
         }),
-        classList: new Feature('classList', function() {
+        'classList': new Feature('classList', function() {
             return ('classList' in document.documentElement);
         }),
-        es5Array: new Feature('ECMAScript 5 array features', function () {
+        'es5Array': new Feature('ECMAScript 5 array features', function () {
             return !!(Array.prototype && Array.prototype.every && Array.prototype.filter && Array.prototype.forEach && Array.prototype.indexOf && Array.prototype.lastIndexOf && Array.prototype.map && Array.prototype.some && Array.prototype.reduce && Array.prototype.reduceRight && Array.isArray);
         }),
-        dragEvents: new Feature('drag and drop events', function() {
+        'dragEvents': new Feature('drag and drop events', function() {
             var div = document.createElement('div');
             return ('draggable' in div) || ('ondragstart' in div && 'ondrop' in div);
         }),
-        querySelector: new Feature('queryselector', function() {
+        'querySelector': new Feature('queryselector', function() {
             return ('querySelector' in document) && ('querySelectorAll' in document);
         }),
-        dataset: new Feature('data-* attributes', function() {
+        'dataset': new Feature('data-* attributes', function() {
             var n = document.createElement('div');
             n.setAttribute('data-a-b', 'c');
             return !!(n.dataset && n.dataset.aB === 'c');
         }),
-        matches: new Feature("matchesSelector", function() {
+        'matches': new Feature("matchesSelector", function() {
             var div = document.createElement('div');
             return ('matches' in div);
         })

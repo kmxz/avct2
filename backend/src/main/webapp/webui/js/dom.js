@@ -1,6 +1,6 @@
 "use strict";
 
-ijkl.module('dom', ['es5Array'], function() {
+ijkl.module('dom', ['es5Array', 'matches'], function() {
 	var set = function(element, options) {
 		var i, j, v;
 		for (i in options) {

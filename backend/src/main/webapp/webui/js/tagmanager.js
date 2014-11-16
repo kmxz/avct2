@@ -76,8 +76,8 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             td.addEventListener('click', function() {
                 ac(td, this.name, function(newName, onSuccess, onReject) {
                     api('tag/edit', { 'id': this.id, 'name': newName }).then(function() {
-                        this.name = newName;
                         onSuccess();
+                        this.name = newName;
                         render(); // this one does not require reload
                     }.bind(this), function(error) {
                         api.ALERT(error);
@@ -95,8 +95,8 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
                         var proposed = child.parent.map(function(parent) { return parent.id; }).filter(function(parentId) { return parentId !== tag.id; });
                         api('tag/parent', { 'parent': proposed, 'id': child.id }).then(function() {
                             init().then(function() {
-                                render();
                                 onSuccess();
+                                render();
                             }); // do thing on fail, as init() will take care of it
                         }, api.ALERT)
                     }
@@ -108,8 +108,8 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
                     var proposed = child.parent.map(function(tag) { return tag.id; }).concat([newParentId]);
                     api('tag/parent', { 'parent': proposed, 'id': child.id }).then(function() {
                         init().then(function() {
-                            render();
                             onSuccess();
+                            render();
                         }); // do thing on fail, as init() will take care of it
                     }, function(error) {
                         api.ALERT(error);
