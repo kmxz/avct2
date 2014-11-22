@@ -1,3 +1,5 @@
+"use strict";
+
 ijkl.module('studiomanager', [], function() {
 
     var api = ijkl('api');

@@ -22,8 +22,8 @@ object Avct2Conf {
 
   def getPlayers:Seq[String] = {
     properties.getProperty("videoPlayers") match {
-      case null => Seq[String]()
-      case text => text.split(";")
+      case text: String if (text.length > 0) => text.split(";")
+      case _ => Seq[String]()
     }
   }
 

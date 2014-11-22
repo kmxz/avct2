@@ -10,11 +10,12 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
 	var ft = ijkl('flextable');
 	var func = ijkl('function');
 	var loaded = ijkl('loading');
+	var pl = ijkl('players');
 	var sm = ijkl('studiomanager');
 	var tm = ijkl('tagmanager');
 
 	return function() {
-		Promise.all([api('clip/list'), sm.init(), tm.init()]).then(function(results) {
+		Promise.all([api('clip/list'), pl.init(), sm.init(), tm.init()]).then(function(results) {
 			clip.init(results[0]);
 			var thead = dom('thead')
 			var tbody = dom('tbody');

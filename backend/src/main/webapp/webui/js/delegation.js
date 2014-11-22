@@ -1,3 +1,5 @@
+"use strict";
+
 ijkl.module('delegation', [], function() {
     var isAncestor = function(child, parent) {
         if (!child) { return false; } // moving outside/inside the window

@@ -11,6 +11,8 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
         'boot/pending': { method: 'get', url: 'boot/pending' },
         'boot/action': { method: 'post', url: 'boot/pending/action', params: ['file', 'action'] },
         'boot/disappeared': { method: 'get', url: 'boot/disappeared' },
+        // info
+        'players': { method: 'get', url: 'players' },
         // clip
         'clip/list': { method: 'get', url: 'clip' },
         'clip/delete': { method: 'post', url: 'clip/$/delete' },

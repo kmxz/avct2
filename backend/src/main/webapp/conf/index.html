@@ -6,7 +6,8 @@
         var init = function() {
             var currentTarget = null;
             var locked = false;
-            var $ = function(id) { return document.getElementById(id); };
+            var $ = function(id, parent) { parent = parent || document; return parent.getElementById(id); };
+            var $$ = function(className, parent) { parent = parent || document; return Array.prototype.slice.call(parent.getElementsByClassName(className)); }
             var r = function(method, url, formData, callback) {
                 var data = [];
                 var i;
@@ -35,7 +36,24 @@
             var forEachMetaButton = function(callback) {
                 callback($('submit'));
                 callback($('cancel'));
-            }
+                callback($('add'));
+            };
+            var add = function () {
+                var tmp = $('template');
+                var dup = tmp.cloneNode(true);
+                dup.removeAttribute('id');
+                var elm = $$('videoPlayer', dup)[0];
+                elm.value = '';
+                $$('videoPlayerSelect', dup)[0].addEventListener('click', function(){
+                    currentTarget = elm;
+                    initExplorer(elm.value);
+                });
+                $$('videoPlayerRemove', dup)[0].addEventListener('click', function(){
+                    dup.parentNode.removeChild(dup);
+                });
+                tmp.parentNode.insertBefore(dup, tmp);
+                return dup;
+            };
             var initExplorer = function(path) {
                 r('get', 'list?path=' + encodeURIComponent(path.length ? path : '.'), null, function(rr) {
                     var res = JSON.parse(rr);
@@ -96,6 +114,9 @@
                         initExplorer($(k).value);
                     });
                 })
+                o['players'].forEach(function(path, index) {
+                    $$('videoPlayer', add())[0].value = path;
+                });
                 forEachMetaButton(function(b) {
                     b.removeAttribute('disabled');
                 });
@@ -106,6 +127,7 @@
                     forEachField(function(k) {
                         data[k] = $(k).value;
                     });
+                    data['players'] = JSON.stringify($$('videoPlayer').map(function(entry) { return entry.value; }).filter(function(str) { return str.length; }));
                     forEachMetaButton(function(b) {
                         b.setAttribute('disabled', 'disabled');
                     });
@@ -127,10 +149,15 @@
                     })
                 });
                 $('cancel').addEventListener('click', reDirect);
+                $('add').addEventListener('click', add);
             });
         };
-
     </script>
+    <style type="text/css">
+        #template {
+            display: none;
+        }
+    </style>
 </head>
 <body onload="init()">
 <div class="container">
@@ -144,28 +171,43 @@
                     <label for="videoDir" class="col-sm-3 control-label">Video directory path</label>
 
                     <div class="col-sm-7">
-                        <input type="text" class="form-control" id="videoDir" disabled>
+                        <input type="text" class="form-control" id="videoDir" disabled/ >
                     </div>
                     <div class="col-sm-2">
-                        <button type="button" class="btn btn-default" id="videoDirSelect" disabled>Select</button>
+                        <button type="button" class="btn btn-default pull-right" id="videoDirSelect" disabled>Select</button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="mPlayer" class="col-sm-3 control-label">MPlayer executable path</label>
 
                     <div class="col-sm-7">
-                        <input type="text" class="form-control" id="mPlayer" disabled>
+                        <input type="text" class="form-control" id="mPlayer" disabled />
                     </div>
                     <div class="col-sm-2">
-                        <button type="button" class="btn btn-default" id="mPlayerSelect" disabled>Select</button>
+                        <button type="button" class="btn btn-default pull-right" id="mPlayerSelect" disabled>Select</button>
+                    </div>
+                </div>
+                <div class="form-group" id="template">
+                    <div class="col-sm-3">
+                        <button type="button" class="btn btn-default pull-right videoPlayerRemove">Remove</button>
+                    </div>
+
+                    <div class="col-sm-7">
+                        <input type="text" class="form-control videoPlayer" />
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="button" class="btn btn-default pull-right videoPlayerSelect">Select</button>
                     </div>
                 </div>
                 <div class="form-group">
                     <div class="col-sm-2 pull-right">
-                        <button type="button" class="btn btn-primary" id="submit" disabled>Update</button>
+                        <button type="button" class="btn btn-primary pull-right" id="submit" disabled>Update</button>
                     </div>
                     <div class="col-sm-2 pull-right">
-                        <button type="button" class="btn btn-default" id="cancel" disabled>Cancel</button>
+                        <button type="button" class="btn btn-default pull-right" id="cancel" disabled>Cancel</button>
+                    </div>
+                    <div class="col-sm-2 pull-right">
+                        <button type="button" class="btn btn-primary pull-right" id="add" disabled>Add player</button>
                     </div>
                 </div>
             </form>

@@ -153,7 +153,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
             }
         });
         re(el, function(onSuccess, onReject) {
-            post('role', allRoleInputs.filter(function(single) {
+            post('role', allInputs.filter(function(single) {
                 return single.element.checked;
             }).map(function(single) {
                 return single.value;
@@ -167,14 +167,14 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
     });
     ed.container(root, 'click', dom.match(cd.race.selector()), updateHelper(function(el, clip, post) {
         allRaceInputs.forEach(function(single) {
-            if (clip.race !== single.value) {
+            if (clip.role.indexOf(single.value) < 0) {
                 single.element.checked = false;
             } else {
                 single.element.checked = true;
             }
         });
         rs(el, function(onSuccess, onReject) {
-            post('race', allRaceInputs.filter(function(single) {
+            post('race', allInputs.filter(function(single) {
                 return single.element.checked;
             })[0].value, onSuccess, onReject);
         });

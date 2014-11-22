@@ -1,3 +1,5 @@
+"use strict";
+
 ijkl.module('popover', ['querySelector', 'classList'], function() {
 
     var as = ijkl('actionselector');

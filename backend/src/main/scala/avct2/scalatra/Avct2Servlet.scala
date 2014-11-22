@@ -35,7 +35,7 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with JsonSuppo
   }
 
   get("/players") { // available players
-    Avct2Conf.getPlayers.map({ player => new File(player).getName; })
+    Avct2Conf.getPlayers
   }
 
   get("/clip") {

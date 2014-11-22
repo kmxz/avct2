@@ -1,3 +1,5 @@
+"use strict";
+
 ijkl.module('columndef', ['dataset'], function() {
 
     var dom = ijkl('dom');
