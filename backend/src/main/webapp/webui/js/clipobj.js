@@ -9,6 +9,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
     var dom = ijkl('dom');
     var ed = ijkl('delegation');
     var func = ijkl('function');
+    var po = ijkl('popover');
     var tm = ijkl('tagmanager');
 
     var root = document.getElementById("root");
@@ -138,6 +139,46 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function() {
     ed.target(root, "mouseout", dom.match(cd.grade.selector()), function(el) {
         cd.grade.render(el, getParentTr(el)); // clear golden stars
     });
+    var reEl = document.getElementById('role-editor');
+    var re = po(reEl);
+    var allRoleInputs = func.toArray(reEl.querySelectorAll('input[type=checkbox]')).map(function(single) {
+        return { value: single.nextSibling.textContent, element: single };
+    });
+    ed.container(root, 'click', dom.match(cd.role.selector()), updateHelper(function(el, clip, post) {
+        allRoleInputs.forEach(function(single) {
+            if (clip.role.indexOf(single.value) < 0) {
+                single.element.checked = false;
+            } else {
+                single.element.checked = true;
+            }
+        });
+        re(el, function(onSuccess, onReject) {
+            post('role', allRoleInputs.filter(function(single) {
+                return single.element.checked;
+            }).map(function(single) {
+                return single.value;
+            }), onSuccess, onReject);
+        });
+    }));
+    var rsEl = document.getElementById('race-select');
+    var rs = po(rsEl);
+    var allRaceInputs = func.toArray(rsEl.querySelectorAll('input[type=radio]')).map(function(single) {
+        return { value: single.nextSibling.textContent, element: single };
+    });
+    ed.container(root, 'click', dom.match(cd.race.selector()), updateHelper(function(el, clip, post) {
+        allRaceInputs.forEach(function(single) {
+            if (clip.race !== single.value) {
+                single.element.checked = false;
+            } else {
+                single.element.checked = true;
+            }
+        });
+        rs(el, function(onSuccess, onReject) {
+            post('race', allRaceInputs.filter(function(single) {
+                return single.element.checked;
+            })[0].value, onSuccess, onReject);
+        });
+    }));
     return {
         Clip: Clip,
         init: function(json) {

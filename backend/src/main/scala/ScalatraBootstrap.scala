@@ -17,7 +17,7 @@ class ScalatraBootstrap extends LifeCycle {
       }
     }, "/")
     context.mount(new PreConfServlet(), "/conf/*")
-    context.mount(new Avct2Servlet(), "/webui/*")
+    context.mount(new Avct2Servlet(), "/serv/*")
     Avct2Conf()
   }
 

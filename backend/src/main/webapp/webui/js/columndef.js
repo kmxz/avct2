@@ -95,7 +95,7 @@ ijkl.module('columndef', ['dataset'], function() {
             if (!this.lastPlay || !this.totalPlay) {
                 dom.append(td, 'Never');
             } else {
-                dom.append(td, this.totalPlay + ' times (last:' + daysFromNow(this.lastPlay) + ' days ago)');
+                dom.append(td, this.totalPlay + ' times (last: ' + daysFromNow(this.lastPlay) + ' days ago)');
             }
         }),
         sourceNote: new Column('c-source-note', 'Source note', function (td) {

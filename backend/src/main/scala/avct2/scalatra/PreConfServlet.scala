@@ -10,13 +10,11 @@ import org.scalatra.ScalatraServlet
 import org.scalatra.json.NativeJsonSupport
 import org.scalatra.servlet.FileUploadSupport
 
-class PreConfServlet extends ScalatraServlet with FileUploadSupport with NativeJsonSupport {
-
-  protected implicit val jsonFormats = DefaultFormats
+class PreConfServlet extends ScalatraServlet with FileUploadSupport with JsonSupport {
 
   get("/current") {
     contentType = formats("json")
-    Map("videoDir" -> getVideoDir, "mPlayer" -> getMPlayer)
+    Map("videoDir" -> getVideoDir, "mPlayer" -> getMPlayer, "players" -> getPlayers)
   }
 
   get("/list") {
@@ -33,6 +31,7 @@ class PreConfServlet extends ScalatraServlet with FileUploadSupport with NativeJ
   post("/update") {
     val videoDir = params("videoDir")
     val mPlayer = params("mPlayer")
+    val players = json[Seq[String]](params("players"))
     var legal = false
     if (validVideoDir(videoDir)) {
       setVideoDir(videoDir)
@@ -40,6 +39,9 @@ class PreConfServlet extends ScalatraServlet with FileUploadSupport with NativeJ
     }
     if (validMPlayer(mPlayer)) {
       setMPlayer(mPlayer)
+    }
+    if (validPlayers(players)) {
+      setPlayers(players);
     }
     if (legal) {
       save()

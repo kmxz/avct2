@@ -39,7 +39,6 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
 		var currentDrag = null;
 		var currentDragover = null;
 		var currentVisualAux = null;
-		var resizeHandle = null;
 		var currentResizeRelative = 0;
 		var currentResizeOriginal = 0;
 		var getValidClassName = function(el) {

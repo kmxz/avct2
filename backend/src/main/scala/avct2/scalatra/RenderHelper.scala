@@ -4,8 +4,25 @@ import java.io.File
 
 import avct2.desktop.OpenFile._
 import avct2.schema._
+import org.json4s.DefaultFormats
+import org.json4s.JsonAST.JNull
+import org.scalatra.RenderPipeline
+import org.scalatra.json.NativeJsonSupport
 
 import scala.slick.driver.HsqldbDriver.simple._
+
+trait JsonSupport extends NativeJsonSupport {
+  protected implicit val jsonFormats = DefaultFormats
+
+  def renderJNull: RenderPipeline = { case JNull => writeJson(JNull, response.writer) }
+
+  override def renderPipeline = renderJNull orElse super.renderPipeline
+
+  // get json fields with this
+  def json[T](json: String)(implicit mf: scala.reflect.Manifest[T]): T = {
+    parse(json).extract[T]
+  }
+}
 
 trait RenderHelper {
 

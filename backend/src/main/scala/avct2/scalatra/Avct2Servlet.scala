@@ -1,33 +1,28 @@
 package avct2.scalatra
 
+import java.io.File
+
 import avct2.Avct2Conf
 import avct2.schema.Utilities._
 import avct2.schema.{Race, Role, Tables}
 import org.json4s.DefaultFormats
+import org.json4s.JsonAST.JNull
 import org.scalatra._
 import org.scalatra.json._
 import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 
 import scala.slick.driver.HsqldbDriver.simple._
 
-class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJsonSupport with RenderHelper {
+class Avct2Servlet extends ScalatraServlet with FileUploadSupport with JsonSupport with RenderHelper {
 
   configureMultipartHandling(MultipartConfig())
-
-  protected implicit val jsonFormats = DefaultFormats
-
-  val JNull = "null" // XXX: this is NOT elegant yet I don't know how to render a "null"
 
   def db() = {
     Avct2Conf.dbConnection.get.database
   }
 
-  // get json fields with this
-  def json[T](json: String)(implicit mf: scala.reflect.Manifest[T]): T = {
-    parse(json).extract[T]
-  }
-
   before() {
+    contentType = formats("json")
     Avct2Conf.dbConnection match {
       case None => halt(412, "Establish a database connection first.")
       case Some(conn) => {
@@ -39,15 +34,18 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
     }
   }
 
+  get("/players") { // available players
+    Avct2Conf.getPlayers.map({ player => new File(player).getName; })
+  }
+
   get("/clip") {
-    contentType = formats("json")
     db.withSession { implicit session =>
       queryClip(identity).list.map(renderClip)
     }
   }
 
   get("/clip/:id/thumb") {
-    contentType = "image/jpeg"
+    contentType = "image/jpeg" // override
     val id = params("id").toInt
     db.withSession { implicit session =>
       Tables.clip.filter(_.clipId === id).map(_.thumb).firstOption match {
@@ -76,7 +74,6 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
   }
 
   post("/clip/:id/edit") {
-    contentType = formats("json")
     val id = params("id").toInt
     val value = params("value")
     db.withSession { implicit session =>
@@ -133,7 +130,6 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
   }
 
   get("/tag") {
-    contentType = formats("json")
     db.withSession { implicit session =>
       Tables.tag.map(tag => (tag.tagId, tag.name)).list.map(tag => Map("id" -> tag._1, "name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false)))
     }
@@ -178,7 +174,6 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
 
   post("/tag/create") {
     // return inserted id
-    contentType = formats("json")
     val name = params("name")
     if (name.length < 1) {
       halt(400, "Name too short.")
@@ -195,7 +190,6 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with NativeJso
   }
 
   get("/studio") {
-    contentType = formats("json")
     db.withSession { implicit session =>
       Tables.studio.map(studio => (studio.studioId, studio.name)).list.map(studio => (studio._1.toString, studio._2)).toMap
     }

@@ -93,7 +93,7 @@
 
 </div>
 
-<div id="file-overlay" class="toolbox">
+<div id="file-overlay" class="toolbox overlay">
     <a href="javascript:void('open')" class="btn btn-primary btn-sm">Open</a>
     <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
     <span></span>
@@ -112,6 +112,51 @@
             <a href="javascript:void('save')" class="btn btn-primary btn-sm">Save</a>
 
             <div class="list-group"></div>
+        </form>
+    </div>
+</div>
+
+<div class="toolbox popover" id="race-select">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Race <span></span></h3>
+
+    <div class="popover-content">
+        <form>
+            <div class="half">
+                <div class="radio"><label><input type="radio" name="race" />Chinese</label></div>
+                <div class="radio"><label><input type="radio" name="race" />Other Asian</label></div>
+            </div>
+            <div class="half">
+                <div class="radio"><label><input type="radio" name="race" />Other races</label></div>
+            </div>
+            <div class="clearfix"></div>
+            <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>
+            <a href="javascript:void('save')" class="btn btn-primary btn-sm">Save</a>
+        </form>
+    </div>
+</div>
+
+
+<div class="toolbox popover" id="role-editor">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Roles <span></span></h3>
+
+    <div class="popover-content">
+        <form>
+            <div class="half">
+                <div class="checkbox"><label><input type="checkbox" name="role" />Vanilla</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" />M self</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" />F self</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" />M/m</label></div>
+            </div>
+            <div class="half">
+                <div class="checkbox"><label><input type="checkbox" name="role" />M/f</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" />F/m</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" />F/f</label></div>
+            </div>
+            <div class="clearfix"></div>
+            <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>
+            <a href="javascript:void('save')" class="btn btn-primary btn-sm">Save</a>
         </form>
     </div>
 </div>

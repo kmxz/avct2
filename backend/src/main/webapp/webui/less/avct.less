@@ -97,10 +97,7 @@ nav.navbar {
     }
 }
 
-#file-overlay {
-    .btn {
-        margin-bottom: 4px;
-    }
+.toolbox.overlay {
     width: 100%;
     height: 100%;
     padding: 8px;
@@ -114,7 +111,7 @@ nav.navbar {
     }
 }
 
-#auto-complete {
+.toolbox.popover {
     &.right {
         left: 100%;
         right: auto;
@@ -123,9 +120,18 @@ nav.navbar {
         right: 100%;
         left: auto;
     }
-    height: 110px; // specified by Bootstrap theme. NOT graceful.
-    top: calc(~"50% - 55px");
+    top: 50%;
+    transform: translateY(-50%);
     position: absolute;
+}
+
+#file-overlay {
+    .btn {
+        margin-bottom: 4px;
+    }
+}
+
+#auto-complete {
     input[type=text] {
         width: 200px;
     }
@@ -144,4 +150,14 @@ nav.navbar {
 
 #select-tag {
     position: relative;
+}
+
+#role-editor, #race-select {
+    .popover-content {
+        width: 200px;
+        .half {
+            float: left;
+            width: 50%;
+        }
+    }
 }

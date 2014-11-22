@@ -69,7 +69,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function() {
                 window.alert("Network error occurred. It's highly recommended to reload.");
                 reject(error);
             }
-            request.open(config.method, url);
+            request.open(config.method, '/serv/' + url);
             request.setRequestHeader('X-Db-Connection-Id', dbConnId);
             request.send(formData);
         });

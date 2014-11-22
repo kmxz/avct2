@@ -2,47 +2,17 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
 
     var as = ijkl('actionselector');
     var dom = ijkl('dom');
+    var po = ijkl('popover');
 
     var editor = document.getElementById('auto-complete');
     var it = editor.querySelector('input[type=text]');
-    var sb = editor.querySelector(as('save'));
-    var cb = editor.querySelector(as('cancel'));
     var ul = editor.querySelector('div.list-group');
     var currentHighlightItem = null;
     var suggestionArray = null;
-    var currentOnSubmit = null;
     var notChanged = false;
+    var popover = po(editor);
     editor.addEventListener('click', function(e) {
-        e.stopPropagation();
         ul.innerHTML = '';
-    });
-    var hide = function() {
-        document.body.appendChild(editor);
-    };
-    var locked;
-    var lock = function() {
-        locked = true;
-        sb.classList.add('disabled');
-        cb.classList.add('disabled');
-    };
-    var unlock = function() {
-        locked = false;
-        sb.classList.remove('disabled');
-        cb.classList.remove('disabled');
-    };
-    sb.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (locked) { return; }
-        lock();
-        currentOnSubmit(it.value, function() {
-            unlock();
-            hide();
-        }, unlock);
-    });
-    cb.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (locked) { return; }
-        hide();
     });
     var clickListener = function(e) {
         e.stopPropagation();
@@ -100,17 +70,11 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
     // suggestions would be an array of text
     var start = function(anchor, initialValue, onSubmit, suggestions) {
         it.value = initialValue;
-        currentOnSubmit = onSubmit;
-        locked = false;
         suggestionArray = suggestions;
-        var bcr = anchor.getBoundingClientRect()
-        var toLeft = (bcr.left + bcr.right) / 2 > window.innerWidth / 2
-        editor.classList.remove(toLeft ? 'right' : 'left')
-        editor.classList.add(toLeft ? 'left' : 'right')
-        anchor.appendChild(editor);
+        popover(anchor, function(onSuccess, onReject) {
+            onSubmit(it.value, onSuccess, onReject);
+        });
     };
-    start.isOpen = function() {
-        return editor.parentNode !== document.body;
-    };
+    start.isOpen = popover.isOpen;
     return start;
 });
