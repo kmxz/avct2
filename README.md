@@ -1,4 +1,6 @@
-The original manager written in Java/SWT is too nasty. SWT UI is poor in both taste and compatibility. Coding with it is also hairy.
+**WIP, not usable for production yet.**
+
+The [original manager](http://code.google.com/p/avct) written in Java/SWT is too nasty. SWT UI is poor in both taste and compatibility. Coding with it is also hairy.
 
 This version uses Web UI, with a backend on the same machine.
 
