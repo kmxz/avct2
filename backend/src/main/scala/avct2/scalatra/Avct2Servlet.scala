@@ -13,7 +13,7 @@ import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 
 import scala.slick.driver.HsqldbDriver.simple._
 
-class Avct2Servlet extends ScalatraServlet with FileUploadSupport with JsonSupport with RenderHelper {
+class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with RenderHelper {
 
   configureMultipartHandling(MultipartConfig())
 
@@ -53,6 +53,13 @@ class Avct2Servlet extends ScalatraServlet with FileUploadSupport with JsonSuppo
         case Some(None) => halt(503, "Image not set.")
         case None => halt(404, "Clip does not exist.")
       }
+    }
+  }
+
+  get("/clip/:id/history") {
+    val id = params("id").toInt
+    db.withSession { implicit session =>
+      Tables.record.filter(_.clipId === id).map(_.timestamp).list
     }
   }
 

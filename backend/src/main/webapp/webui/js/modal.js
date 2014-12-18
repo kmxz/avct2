@@ -13,6 +13,12 @@ ijkl.module('modal', ['querySelector', 'classList'], function() {
             });
             el.style.display = 'block';
             mel.classList.add('active');
+            /* TODO: not listen again for the same button
+            el.querySelector('button.close').addEventListener('click', function() {
+                modal.close(el);
+                tb.innerHTML = ''; // dirty method to free some resources
+            });
+            */
         },
         close: function() {
             mel.classList.remove('active');

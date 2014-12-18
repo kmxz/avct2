@@ -3,12 +3,6 @@
 <head>
     <link rel="stylesheet" type="text/css" href="/bootstrap/theme/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="/compiled/styles.css"/>
-    <!-- wro4j compiled -->
-    <script>
-        less = {
-            env: "development"
-        };
-    </script>
     <script type="text/javascript" language="javascript" src="base.js"></script>
 </head>
 <body onload="ijkl.load('app');">
@@ -91,12 +85,34 @@
         </div>
     </div>
 
+    <div class="modal-dialog" id="history">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close"><span>&times;</span></button>
+                <h4 class="modal-title">Clip watching history</h4>
+            </div>
+            <div class="modal-body">
+                <table></table>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<div id="file-overlay" class="toolbox overlay">git 
-    <a href="javascript:void('open')" class="btn btn-primary btn-sm">Open</a>
-    <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
-    <span></span>
+<div id="file-overlay" class="toolbox popover">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Action <span></span></h3>
+
+    <div class="popover-content">
+        <div class="btn-group">
+            <a class="btn btn-primary btn-sm" href="javascript:void('open')">Open</a><!-- fix inline block spacing (http://css-tricks.com/fighting-the-space-between-inline-block-elements/)
+     --><a class="btn btn-primary btn-sm dropdown-toggle" href="javascript:void(0)"><span class="caret"></span></a>
+            <ul class="dropdown-menu pull-right">
+            </ul>
+        </div>
+        <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
+        <code></code>
+    </div>
 </div>
 
 <span class="glyphicon glyphicon-plus toolbox" id="select-tag"></span>

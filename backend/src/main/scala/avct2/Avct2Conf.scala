@@ -3,8 +3,6 @@ package avct2
 import java.io._
 import java.util.Properties
 import javax.swing.UIManager
-import org.json4s.native.JsonMethods._
-import org.json4s.JsonDSL._
 import avct2.desktop.HintFrame
 import avct2.schema.DbConnection
 

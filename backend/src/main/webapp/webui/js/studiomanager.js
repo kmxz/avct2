@@ -12,5 +12,5 @@ ijkl.module('studiomanager', [], function() {
             }, api.FATAL);
         },
         getStudios: function() { return actualStudios; }
-    }
+    };
 });

@@ -46,9 +46,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
         }, actualTags.map(function(tag) { return tag.name; }));
     });
     var render = function() {
-        var tbody = dom('tbody', null, dom('tr', null, [
-            dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children')
-        ]));
+        var tbody = dom('tbody');
         func.forEach(func.toArray(actualTags).sort(function(t1, t2) { return t1.name.localeCompare(t2.name); }), function(tag) {
             var tds = [dom('td'), dom('td'), dom('td')];
             var tr = dom('tr', null, tds);
@@ -58,7 +56,9 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             tag.tr = tr;
             tbody.appendChild(tr);
         });
-        var table =  dom('table', { className: ['table', 'table-condensed', 'table-hover'] }, tbody);
+        var table =  dom('table', { className: ['table', 'table-condensed', 'table-hover'] }, [dom('thead', null, dom('tr', null, [
+            dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children')
+        ])), tbody]);
         tb.parentNode.replaceChild(table, tb);
         tb = table;
     };
@@ -143,10 +143,6 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             api.FATAL(error);
         });
     };
-    el.querySelector('button.close').addEventListener('click', function() {
-        modal.close(el);
-        tb.innerHTML = ''; // dirty method to free some resources
-    });
     return {
         open: function() {
             render();

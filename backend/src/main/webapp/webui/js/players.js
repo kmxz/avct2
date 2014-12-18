@@ -12,5 +12,5 @@ ijkl.module('players', [], function() {
             }, api.FATAL);
         },
         actualPlayers: function() { return actualPlayers; }
-    }
+    };
 });

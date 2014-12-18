@@ -18,32 +18,44 @@ ijkl.module('popover', ['querySelector', 'classList'], function() {
         var locked;
         var lock = function () {
             locked = true;
-            sb.classList.add('disabled');
-            cb.classList.add('disabled');
+            if (sb) {
+                sb.classList.add('disabled');
+            }
+            if (cb) {
+                cb.classList.add('disabled');
+            }
         };
         var unlock = function () {
             locked = false;
-            sb.classList.remove('disabled');
-            cb.classList.remove('disabled');
+            if (sb) {
+                sb.classList.remove('disabled');
+            }
+            if (cb) {
+                cb.classList.remove('disabled');
+            }
         };
-        sb.addEventListener('click', function (e) {
-            e.stopPropagation();
-            if (locked) {
-                return;
-            }
-            lock();
-            currentOnSubmit(function () {
-                unlock();
+        if (sb) {
+            sb.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (locked) {
+                    return;
+                }
+                lock();
+                currentOnSubmit(function () {
+                    unlock();
+                    hide();
+                }, unlock);
+            });
+        }
+        if (cb) {
+            cb.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (locked) {
+                    return;
+                }
                 hide();
-            }, unlock);
-        });
-        cb.addEventListener('click', function (e) {
-            e.stopPropagation();
-            if (locked) {
-                return;
-            }
-            hide();
-        });
+            });
+        }
         // onSubmit should be a function accepting (newValue, onSuccess, onReject)
         // suggestions would be an array of text
         var start = function (anchor, onSubmit) {

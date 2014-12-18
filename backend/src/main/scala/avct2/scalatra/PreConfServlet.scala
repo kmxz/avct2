@@ -10,7 +10,7 @@ import org.scalatra.ScalatraServlet
 import org.scalatra.json.NativeJsonSupport
 import org.scalatra.servlet.FileUploadSupport
 
-class PreConfServlet extends ScalatraServlet with FileUploadSupport with JsonSupport {
+class PreConfServlet extends NoCacheServlet with FileUploadSupport with JsonSupport {
 
   get("/current") {
     contentType = formats("json")

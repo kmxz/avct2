@@ -1,12 +1,12 @@
 import javax.servlet.ServletContext
 
 import avct2.Avct2Conf
-import avct2.scalatra.{Avct2Servlet, PreConfServlet}
+import avct2.scalatra.{NoCacheServlet, Avct2Servlet, PreConfServlet}
 import org.scalatra._
 class ScalatraBootstrap extends LifeCycle {
 
   override def init(context: ServletContext) {
-    context.mount(new ScalatraServlet {
+    context.mount(new NoCacheServlet {
       get("/") {
         Avct2Conf.dbConnection match {
           case None => redirect("/conf")

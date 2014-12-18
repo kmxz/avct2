@@ -4,7 +4,6 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
 
 	var api = ijkl('api');
 	var as = ijkl('actionselector');
-	var cd = ijkl('columndef');
 	var clip = ijkl('clipobj');
 	var dom = ijkl('dom');
 	var ft = ijkl('flextable');
@@ -14,9 +13,11 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
 	var sm = ijkl('studiomanager');
 	var tm = ijkl('tagmanager');
 
+	var cd = clip.columns;
+
 	return function() {
-		Promise.all([api('clip/list'), pl.init(), sm.init(), tm.init()]).then(function(results) {
-			clip.init(results[0]);
+		Promise.all([api('clip/list'), api('players'), pl.init(), sm.init(), tm.init()]).then(function(results) {
+			clip.init(results[0], results[1]);
 			var thead = dom('thead')
 			var tbody = dom('tbody');
 			var table = dom('table', { className: ['table', 'table-hover'], 'width': '100%' }, [thead, tbody]);
