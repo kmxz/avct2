@@ -1,6 +1,6 @@
 "use strict";
 
-ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
+ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
 
     var as = ijkl('actionselector');
     var dom = ijkl('dom');
@@ -13,30 +13,35 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
     var suggestionArray = null;
     var notChanged = false;
     var popover = po(editor);
-    editor.addEventListener('click', function(e) {
+    editor.addEventListener('click', function (e) {
         ul.innerHTML = '';
     });
-    var clickListener = function(e) {
+    var clickListener = function (e) {
         e.stopPropagation();
         updateActive(this);
         selectActive();
     };
-    var updateAc = function() {
-        if (notChanged) { notChanged = false; return; }
+    var updateAc = function () {
+        if (notChanged) {
+            notChanged = false;
+            return;
+        }
         ul.innerHTML = '';
         var previousSelectedText = currentHighlightItem ? currentHighlightItem.innerHTML : null;
         var length = it.value.length;
-        var allNodes = suggestionArray.filter(function(name) {
+        var allNodes = suggestionArray.filter(function (name) {
             return name.substring(0, length).toLowerCase() === it.value.toLowerCase();
-        }).sort().map(function(name) {
-            var a = dom('a', { href: 'javascript:void(0)', className: 'list-group-item' }, name);
+        }).sort().map(function (name) {
+            var a = dom('a', {href: 'javascript:void(0)', className: 'list-group-item'}, name);
             a.addEventListener('click', clickListener);
             return a;
         });
-        updateActive(allNodes.filter(function(el) { return el.innerHTML === previousSelectedText; })[0]);
+        updateActive(allNodes.filter(function (el) {
+            return el.innerHTML === previousSelectedText;
+        })[0]);
         dom.append(ul, allNodes);
     };
-    var updateActive = function(newItem) {
+    var updateActive = function (newItem) {
         if (currentHighlightItem) {
             currentHighlightItem.classList.remove('active');
         }
@@ -45,14 +50,14 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
         }
         currentHighlightItem = newItem;
     };
-    var selectActive = function() {
+    var selectActive = function () {
         it.value = currentHighlightItem.innerHTML;
         currentHighlightItem = null;
         ul.innerHTML = '';
         notChanged = true;
     };
-    it.addEventListener('keydown', function(e) {
-        switch(e.keyCode) {
+    it.addEventListener('keydown', function (e) {
+        switch (e.keyCode) {
             case 38: // up
                 updateActive((currentHighlightItem && currentHighlightItem.previousSibling) || ul.lastChild);
                 break;
@@ -70,10 +75,10 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function() {
     it.addEventListener('keyup', updateAc);
     // onSubmit should be a function accepting (newValue, onSuccess, onReject)
     // suggestions would be an array of text
-    var start = function(anchor, initialValue, onSubmit, suggestions) {
+    var start = function (anchor, initialValue, onSubmit, suggestions) {
         it.value = initialValue;
         suggestionArray = suggestions;
-        popover(anchor, function(onSuccess, onReject) {
+        popover(anchor, function (onSuccess, onReject) {
             onSubmit(it.value, onSuccess, onReject);
         });
     };

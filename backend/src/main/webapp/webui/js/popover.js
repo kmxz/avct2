@@ -1,15 +1,15 @@
 "use strict";
 
-ijkl.module('popover', ['querySelector', 'classList'], function() {
+ijkl.module('popover', ['querySelector', 'classList'], function () {
 
     var as = ijkl('actionselector');
     var dom = ijkl('dom');
 
-    return function(editor) {
+    return function (editor) {
         var sb = editor.querySelector(as('save'));
         var cb = editor.querySelector(as('cancel'));
         var currentOnSubmit;
-        editor.addEventListener('click', function(e) {
+        editor.addEventListener('click', function (e) {
             e.stopPropagation();
         });
         var hide = function () {

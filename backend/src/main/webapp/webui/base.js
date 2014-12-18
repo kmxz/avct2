@@ -2,15 +2,15 @@
 
 "use strict";
 
-var ijkl = (function() {
+var ijkl = (function () {
 
-    var Module = function(factory, featureRequirements) {
+    var Module = function (factory, featureRequirements) {
         this.factory = factory;
         this.featureRequirements = featureRequirements;
         this.instance = null;
     };
 
-    Module.prototype.getInstance = function() {
+    Module.prototype.getInstance = function () {
         var req, i;
         if (!this.instance) {
             for (i = 0; i < this.featureRequirements.length; i++) {
@@ -28,15 +28,17 @@ var ijkl = (function() {
 
     var modules = {};
 
-    var Feature = function(name, detector) {
+    var Feature = function (name, detector) {
         this.detector = detector;
         this.tested = false;
         this.support = false;
         this.name = name;
     };
 
-    Feature.prototype.test = function() {
-        if (this.tested) { return this.support; }
+    Feature.prototype.test = function () {
+        if (this.tested) {
+            return this.support;
+        }
         this.support = this.detector();
         this.tested = true;
         if (!this.support) {
@@ -46,52 +48,53 @@ var ijkl = (function() {
 
     // Available browser feature detections
     var features = {
-        'xhr2': new Feature('XMLHttpRequest 2', function() { // https://gist.github.com/paulirish/1431660#file_xhr2.js
+        'xhr2': new Feature('XMLHttpRequest 2', function () { // https://gist.github.com/paulirish/1431660#file_xhr2.js
             var progEv = !!(window.ProgressEvent);
             var fdata = !!(window.FormData);
             var wCreds = window.XMLHttpRequest && "withCredentials" in new XMLHttpRequest;
             return progEv && fdata && wCreds;
         }),
-        'promise': new Feature('Promise', function() {
+        'promise': new Feature('Promise', function () {
             return !!(window.Promise);
         }),
-        'classList': new Feature('classList', function() {
+        'classList': new Feature('classList', function () {
             return ('classList' in document.documentElement);
         }),
         'es5Array': new Feature('ECMAScript 5 array features', function () {
             return !!(Array.prototype && Array.prototype.every && Array.prototype.filter && Array.prototype.forEach && Array.prototype.indexOf && Array.prototype.lastIndexOf && Array.prototype.map && Array.prototype.some && Array.prototype.reduce && Array.prototype.reduceRight && Array.isArray);
         }),
-        'dragEvents': new Feature('drag and drop events', function() {
+        'dragEvents': new Feature('drag and drop events', function () {
             var div = document.createElement('div');
             return ('draggable' in div) || ('ondragstart' in div && 'ondrop' in div);
         }),
-        'querySelector': new Feature('queryselector', function() {
+        'querySelector': new Feature('queryselector', function () {
             return ('querySelector' in document) && ('querySelectorAll' in document);
         }),
-        'dataset': new Feature('data-* attributes', function() {
+        'dataset': new Feature('data-* attributes', function () {
             var n = document.createElement('div');
             n.setAttribute('data-a-b', 'c');
             return !!(n.dataset && n.dataset.aB === 'c');
         }),
-        'matches': new Feature("matchesSelector", function() {
+        'matches': new Feature("matchesSelector", function () {
             var div = document.createElement('div');
             return ('matches' in div);
         })
     };
 
     // For debug mode only, ugly
-    var debugLoadAll = function(firstModule, callback) {
+    var debugLoadAll = function (firstModule, callback) {
         var loadedScripts = {};
 
-        var checkIfProceed = function() {};
+        var checkIfProceed = function () {
+        };
 
-        var loadScript = function(name) {
+        var loadScript = function (name) {
             var js = document.createElement('script');
-            js.src = 'js/'+ name + '.js';
-            js.onerror = function() {
+            js.src = 'js/' + name + '.js';
+            js.onerror = function () {
                 window.alert('Attempting to find ' + name + '.js failed.');
             };
-            js.onload = function() {
+            js.onload = function () {
                 console.log("Script " + name + " loaded successfully.")
                 loadedScripts[name].loaded = true;
                 checkIfProceed();
@@ -99,7 +102,7 @@ var ijkl = (function() {
             document.getElementsByTagName('head')[0].appendChild(js);
         };
 
-        var debugLoad = function(enterance, loadStack) {
+        var debugLoad = function (enterance, loadStack) {
             if (loadStack.indexOf(enterance) >= 0) {
                 alert("Circular dependency detected: " + loadStack.join(' -> ') + ' -> ' + enterance);
                 return;
@@ -108,7 +111,7 @@ var ijkl = (function() {
                 var request = new XMLHttpRequest();
                 request.open('get', 'js/' + enterance + '.js', false); // let's use synchronized request for simplicity
                 request.send(null);
-                loadedScripts[enterance] = { loaded: false, text: request.responseText };
+                loadedScripts[enterance] = {loaded: false, text: request.responseText};
                 loadScript(enterance);
             }
             var subModules = loadedScripts[enterance].text.match(/ijkl\('[a-z]+'\)/g);
@@ -121,7 +124,7 @@ var ijkl = (function() {
             }
         };
 
-        var checkAllLoaded = function() {
+        var checkAllLoaded = function () {
             var i;
             for (i in loadedScripts) {
                 if (loadedScripts.hasOwnProperty(i)) {
@@ -141,7 +144,7 @@ var ijkl = (function() {
     };
 
     // Requiring a module
-    var require = function(name) {
+    var require = function (name) {
         if (name in modules) {
             return modules[name].getInstance();
         } else {
@@ -150,14 +153,14 @@ var ijkl = (function() {
     };
 
     // Debug mode load
-    require.load = function(name) {
-        debugLoadAll(name, function() {
+    require.load = function (name) {
+        debugLoadAll(name, function () {
             require(name)();
         })
     };
 
     // Defining a module
-    require.module = function(name, featureRequirements, factory) {
+    require.module = function (name, featureRequirements, factory) {
         modules[name] = new Module(factory, featureRequirements);
     };
 

@@ -1,16 +1,18 @@
 "use strict";
 
-ijkl.module('studiomanager', [], function() {
+ijkl.module('studiomanager', [], function () {
 
     var api = ijkl('api');
 
     var actualStudios = null;
     return {
-        init: function() {
-            return api('studio/list').then(function(json) {
+        init: function () {
+            return api('studio/list').then(function (json) {
                 actualStudios = json;
             }, api.FATAL);
         },
-        getStudios: function() { return actualStudios; }
+        getStudios: function () {
+            return actualStudios;
+        }
     };
 });
