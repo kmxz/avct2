@@ -1,11 +1,18 @@
-"use strict";
+/*global ijkl*/
 
 ijkl.module('modal', ['querySelector', 'classList'], function () {
+    "use strict";
 
-    var as = ijkl('actionselector');
     var func = ijkl('function');
 
     var mel = document.getElementById('modal-container');
+    var close = function () {
+        mel.classList.remove('active');
+    };
+    var cel = function () {
+        close();
+        this.removeEventListener('click', cel);
+    };
     return {
         show: function (el) {
             func.toArray(mel.querySelectorAll('.modal-dialog')).forEach(function (m) {
@@ -13,15 +20,8 @@ ijkl.module('modal', ['querySelector', 'classList'], function () {
             });
             el.style.display = 'block';
             mel.classList.add('active');
-            /* TODO: not listen again for the same button
-             el.querySelector('button.close').addEventListener('click', function() {
-             modal.close(el);
-             tb.innerHTML = ''; // dirty method to free some resources
-             });
-             */
+            el.querySelector('button.close').addEventListener('click', cel);
         },
-        close: function () {
-            mel.classList.remove('active');
-        }
+        close: close
     };
-})
+});

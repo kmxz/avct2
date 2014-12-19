@@ -1,32 +1,7 @@
 // iota javascript kmxz-library
 
-"use strict";
-
 var ijkl = (function () {
-
-    var Module = function (factory, featureRequirements) {
-        this.factory = factory;
-        this.featureRequirements = featureRequirements;
-        this.instance = null;
-    };
-
-    Module.prototype.getInstance = function () {
-        var req, i;
-        if (!this.instance) {
-            for (i = 0; i < this.featureRequirements.length; i++) {
-                req = this.featureRequirements[i];
-                if (req in features) {
-                    features[req].test();
-                } else {
-                    window.alert("Feature " + req + " is never defined.");
-                }
-            }
-            this.instance = this.factory();
-        }
-        return this.instance;
-    };
-
-    var modules = {};
+    "use strict";
 
     var Feature = function (name, detector) {
         this.detector = detector;
@@ -81,6 +56,30 @@ var ijkl = (function () {
         })
     };
 
+    var Module = function (factory, featureRequirements) {
+        this.factory = factory;
+        this.featureRequirements = featureRequirements;
+        this.instance = null;
+    };
+
+    Module.prototype.getInstance = function () {
+        var req, i;
+        if (!this.instance) {
+            for (i = 0; i < this.featureRequirements.length; i++) {
+                req = this.featureRequirements[i];
+                if (features.hasOwnProperty(req)) {
+                    features[req].test();
+                } else {
+                    window.alert("Feature " + req + " is never defined.");
+                }
+            }
+            this.instance = this.factory();
+        }
+        return this.instance;
+    };
+
+    var modules = {};
+
     // For debug mode only, ugly
     var debugLoadAll = function (firstModule, callback) {
         var loadedScripts = {};
@@ -95,7 +94,7 @@ var ijkl = (function () {
                 window.alert('Attempting to find ' + name + '.js failed.');
             };
             js.onload = function () {
-                console.log("Script " + name + " loaded successfully.")
+                console.log("Script " + name + " loaded successfully.");
                 loadedScripts[name].loaded = true;
                 checkIfProceed();
             };
@@ -107,7 +106,7 @@ var ijkl = (function () {
                 alert("Circular dependency detected: " + loadStack.join(' -> ') + ' -> ' + enterance);
                 return;
             }
-            if (!(enterance in loadedScripts)) {
+            if (!loadedScripts.hasOwnProperty(enterance)) {
                 var request = new XMLHttpRequest();
                 request.open('get', 'js/' + enterance + '.js', false); // let's use synchronized request for simplicity
                 request.send(null);
@@ -145,18 +144,17 @@ var ijkl = (function () {
 
     // Requiring a module
     var require = function (name) {
-        if (name in modules) {
+        if (modules.hasOwnProperty(name)) {
             return modules[name].getInstance();
-        } else {
-            window.alert("Module " + name + " is never defined.");
         }
+        window.alert("Module " + name + " is never defined.");
     };
 
     // Debug mode load
     require.load = function (name) {
         debugLoadAll(name, function () {
             require(name)();
-        })
+        });
     };
 
     // Defining a module
@@ -166,4 +164,4 @@ var ijkl = (function () {
 
     return require;
 
-})();
+}());

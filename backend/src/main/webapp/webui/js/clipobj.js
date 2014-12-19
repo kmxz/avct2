@@ -1,10 +1,11 @@
-"use strict";
+/*global ijkl*/
 
 ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
+    "use strict";
 
     var ac = ijkl('autocomplete');
     var api = ijkl('api');
-    var as = ijkl('actionselector');
+    var asel = ijkl('actionselector');
     var dom = ijkl('dom');
     var ed = ijkl('delegation');
     var func = ijkl('function');
@@ -16,6 +17,18 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
     var root = document.getElementById("root");
     var fileOverlay = document.getElementById('file-overlay');
     var actualClips = null;
+
+    var Clip = function (json) { // XXX: this is ugly
+        ['id', 'duration', 'file', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay'].forEach(function (key) {
+            this[key] = json[key];
+        }.bind(this));
+        this.tr = null;
+    };
+
+    var getParentTr = function (el) {
+        var cur = dom.getParent(el, dom.match('tr[data-id]'));
+        return cur ? actualClips[cur.dataset.id] : null;
+    };
 
     var reinitThenRerender = function (oldClip, json) {
         var id = oldClip.id;
@@ -47,20 +60,11 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         };
     };
 
-    var getParentTr = function (el) {
-        var cur = dom.getParent(el, dom.match('tr[data-id]'));
-        if (cur) {
-            return actualClips[cur.dataset.id];
-        } else {
-            return null;
-        }
-    };
-
     var Column = function (className, text, renderer, initializer) {
         this.className = className;
         this.text = text;
         this.renderer = renderer;
-        this.initializedUtilities = initializer ? initializer(dom.match(this.selector())) : null; // init event listeners and utility functions
+        this.initializedUtilities = initializer ? initializer.call(this, dom.match(this.selector())) : null; // init event listeners and utility functions
     };
     Column.prototype.render = function (td, clip) {
         td.innerHTML = ''; // XXX: should we recreate a <td> to clear event listeners?
@@ -77,7 +81,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             if (!this.thumbSet) {
                 td.appendChild(empty('thumb'));
             } else {
-                //td.appendChild(dom('img', {src: '/clip/' + this.id + '/thumb', className: 'clip-thumb'}));
+                td.appendChild(dom('img', {src: '/serv/clip/' + this.id + '/thumb', className: 'clip-thumb'}));
             }
         }, function (domFilter) {
             // TODO
@@ -85,28 +89,28 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, this.file);
         }, function (domFilter) {
-            var fileOverlaySpan = fileOverlay.querySelector('code');
+            var fileOverlaySpan = fileOverlay.querySelector('#filename');
             var fileOverlayBtnGroup = fileOverlay.querySelector('.btn-group');
             var fo = po(fileOverlay);
             var foClose = function () {
                 fileOverlayBtnGroup.classList.remove('open');
                 fo.close();
             };
-            fileOverlay.querySelector(as('open')).addEventListener('click', function () {
-                api('clip/open', {"id": getParentTr(this)['id']});
+            fileOverlay.querySelector(asel('open')).addEventListener('click', function () {
+                api('clip/open', {"id": getParentTr(this).id});
             });
-            fileOverlay.querySelector(as('folder')).addEventListener('click', function () {
-                api('clip/folder', {"id": getParentTr(this)['id']});
+            fileOverlay.querySelector(asel('folder')).addEventListener('click', function () {
+                api('clip/folder', {"id": getParentTr(this).id});
             });
             fileOverlay.querySelector('.dropdown-toggle').addEventListener('click', function () {
                 fileOverlayBtnGroup.classList.toggle('open');
             });
-            ed.container(fileOverlay, 'click', dom.match(as('with')), function (el) {
+            ed.container(fileOverlay, 'click', dom.match(asel('with')), function (el) {
+                api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path });
                 foClose();
-                console.log(el.dataset.path);
             });
             ed.target(root, 'mouseover', domFilter, function (el) {
-                fileOverlaySpan.innerHTML = getParentTr(el)['path'];
+                fileOverlaySpan.innerHTML = getParentTr(el).path;
                 fo(el);
             });
             ed.target(root, 'mouseout', domFilter, function () {
@@ -139,7 +143,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     }
                 });
                 re(el, function (onSuccess, onReject) {
-                    post('role', allInputs.filter(function (single) {
+                    post('role', allRoleInputs.filter(function (single) {
                         return single.element.checked;
                     }).map(function (single) {
                         return single.value;
@@ -162,7 +166,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             }
         }, function (domFilter) {
             ed.target(root, 'mouseover', dom.match('.grade-star'), updateHelper(function (el, clip, post) {
-                var grade = parseInt(el.dataset.grade);
+                var grade = parseInt(el.dataset.grade, 10);
                 var stars = el.parentNode.children;
                 var i = 1;
                 var cl;
@@ -170,27 +174,27 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     cl = stars[i - 1].classList;
                     cl.remove(fill ? 'glyphicon-star-empty' : 'glyphicon-star');
                     cl.add(fill ? 'glyphicon-star' : 'glyphicon-star-empty');
-                }
+                };
                 if (grade >= clip.grade) {
-                    for (; i <= clip.grade; i++) {
+                    for (null; i <= clip.grade; i++) {
                         icl(true);
                         cl.remove('golden-star');
                     }
-                    for (; i <= grade; i++) {
+                    for (null; i <= grade; i++) {
                         icl(true);
                         cl.add('golden-star');
                     }
                 } else if (grade < clip.grade) {
-                    for (; i <= grade; i++) {
+                    for (null; i <= grade; i++) {
                         icl(true);
                         cl.add('golden-star');
                     }
-                    for (; i <= clip.grade; i++) {
+                    for (null; i <= clip.grade; i++) {
                         icl(true);
                         cl.remove('golden-star');
                     }
                 }
-                for (; i <= 5; i++) {
+                for (null; i <= 5; i++) {
                     icl(false);
                     cl.remove('golden-star');
                 }
@@ -199,8 +203,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 post('grade', el.dataset.grade);
             }));
             ed.target(root, "mouseout", domFilter, function (el) {
-                cd.grade.render(el, getParentTr(el)); // clear golden stars
-            });
+                this.render(el, getParentTr(el)); // clear golden stars
+            }.bind(this));
         }),
         race: new Column('c-race', 'Race', function (td) {
             dom.append(td, this.race);
@@ -212,14 +216,14 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             });
             ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
                 allRaceInputs.forEach(function (single) {
-                    if (clip.role.indexOf(single.value) < 0) {
+                    if (clip.race !== single.value) {
                         single.element.checked = false;
                     } else {
                         single.element.checked = true;
                     }
                 });
                 rs(el, function (onSuccess, onReject) {
-                    post('race', allInputs.filter(function (single) {
+                    post('race', allRaceInputs.filter(function (single) {
                         return single.element.checked;
                     })[0].value, onSuccess, onReject);
                 });
@@ -246,10 +250,9 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             }));
             ed.target(root, 'mouseout', domFilter, tm.selectTagClose);
             ed.container(root, 'click', dom.match('.tag.removable'), updateHelper(function (el, clip, post) {
-                var td = dom.getParent(el, dom.match(cd.tags.selector()));
                 if (window.confirm('Remove this tag from this clip\'s tag list?')) {
                     var proposed = clip.tags.filter(function (parentId) {
-                        return parentId !== parseInt(el.dataset.id);
+                        return parentId !== parseInt(el.dataset.id, 10);
                     });
                     post('tags', proposed);
                 }
@@ -274,7 +277,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     var table = dom('table', {className: ['table', 'table-condensed', 'table-hover']}, tbody);
                     historyTable.parentNode.replaceChild(table, historyTable);
                     historyTable = table;
-                    modal.show(historyEl)
+                    modal.show(historyEl);
                 }, api.ALERT);
             }));
             return function (ts) {
@@ -296,8 +299,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                         onReject();
                         return;
                     }
-                    var realDuration = parseInt(hrtm[1]) * 60 + parseInt(hrtm[2]);
-                    post('duration', realDuration, onSuccess, onReject)
+                    var realDuration = parseInt(hrtm[1], 10) * 60 + parseInt(hrtm[2], 10);
+                    post('duration', realDuration, onSuccess, onReject);
                 }, []);
             }));
             return function (duration) {
@@ -324,25 +327,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         })
     };
 
-    var Clip = function (json) { // XXX: this is ugly
-        this.id = json['id'];
-
-        this.duration = json['duration'];
-        this.file = json['file'];
-        this.grade = json['grade'];
-        this.lastPlay = json['lastPlay'];
-        this.path = json['path'];
-        this.race = json['race'];
-        this.role = json['role'];
-        this.size = json['size'];
-        this.sourceNote = json['sourceNote'];
-        this.studio = json['studio'];
-        this.tags = json['tags'];
-        this.thumbSet = json['thumbSet'];
-        this.totalPlay = json['totalPlay'];
-
-        this.tr = null;
-    };
     Clip.prototype.setTrAndRenderAll = function (tr) {
         this.tr = tr;
         tr.dataset.id = this.id;
@@ -356,14 +340,14 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         init: function (json, players) {
             actualClips = [];
             json.forEach(function (json) {
-                actualClips[json['id']] = new Clip(json);
+                actualClips[json.id] = new Clip(json);
             });
             var menu = fileOverlay.querySelector('.dropdown-menu');
             menu.innerHTML = '';
             players.forEach(function (path) {
                 var names = path.split(/\/|\\/g);
                 var fileName = names[names.length - 1];
-                var a = dom('a', {'href': as.get('with')}, fileName);
+                var a = dom('a', {'href': asel.get('with')}, fileName);
                 a.dataset.path = path;
                 dom.append(menu, dom('li', null, a));
             });

@@ -1,6 +1,8 @@
-"use strict";
+/*globals ijkl*/
 
 ijkl.module('function', ['es5Array'], function () {
+    "use strict";
+
     var identity = function (input) {
         return input;
     };
@@ -12,15 +14,14 @@ ijkl.module('function', ['es5Array'], function () {
             var i, op;
             if (obj.length && typeof obj.length === 'number') { // array-like object
                 return Array.prototype.map.call(obj, identity);
-            } else {
-                op = [];
-                for (i in obj) {
-                    if (obj.hasOwnProperty(i)) {
-                        op.push(obj[i]);
-                    }
-                }
-                return op;
             }
+            op = [];
+            for (i in obj) {
+                if (obj.hasOwnProperty(i)) {
+                    op.push(obj[i]);
+                }
+            }
+            return op;
         },
         forEach: function (assoc, func) {
             var i;

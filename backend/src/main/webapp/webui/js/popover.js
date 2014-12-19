@@ -1,13 +1,13 @@
-"use strict";
+/*globals ijkl*/
 
 ijkl.module('popover', ['querySelector', 'classList'], function () {
+    "use strict";
 
-    var as = ijkl('actionselector');
-    var dom = ijkl('dom');
+    var asel = ijkl('actionselector');
 
     return function (editor) {
-        var sb = editor.querySelector(as('save'));
-        var cb = editor.querySelector(as('cancel'));
+        var sb = editor.querySelector(asel('save'));
+        var cb = editor.querySelector(asel('cancel'));
         var currentOnSubmit;
         editor.addEventListener('click', function (e) {
             e.stopPropagation();

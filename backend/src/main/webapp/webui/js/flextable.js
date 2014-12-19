@@ -1,8 +1,9 @@
-"use strict";
+/*globals ijkl*/
 
 ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'], function () {
+    "use strict";
 
-    var as = ijkl('actionselector');
+    var asel = ijkl('actionselector');
     var dom = ijkl('dom');
     var func = ijkl('function');
     var modal = ijkl('modal');
@@ -23,8 +24,8 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             }
         });
     };
-    modalEl.querySelector(as('cancel')).addEventListener('click', close);
-    modalEl.querySelector(as('save')).addEventListener('click', function () {
+    modalEl.querySelector(asel('cancel')).addEventListener('click', close);
+    modalEl.querySelector(asel('save')).addEventListener('click', function () {
         func.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function (cb) {
             if (cb.checked) {
                 show(currentModalTable, cb.name, true);
@@ -62,7 +63,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
                     name: info.className,
                     text: info.text, // XXX: this is UGLY!
                     shown: !table.querySelector('.' + info.className).classList.contains('hidden')
-                }
+                };
             }).map(function (item) {
                 var properties = {type: 'checkbox', name: item.name};
                 if (item.shown) {
@@ -125,11 +126,11 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
                 }
             }
         };
-        var dragListener = function (ev) {
+        var dragListener = function () {
             currentDrag = this;
             insertBefore = currentDrag.nextSibling;
         };
-        var dropListener = function (ev) {
+        var dropListener = function () {
             if (!currentDrag) {
                 return;
             }
@@ -166,7 +167,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
                     resizeHandle.addEventListener('dragend', resizeDragListener);
                     th.appendChild(resizeHandle);
                     return th;
-                }))
+                }));
             },
             yieldTds: function () {
                 return dom('tr', null, columns.map(function (info) {

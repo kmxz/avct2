@@ -3,12 +3,10 @@ package avct2.scalatra
 import java.io.File
 
 import avct2.Avct2Conf
+import avct2.desktop.OpenFile._
 import avct2.schema.Utilities._
 import avct2.schema.{Race, Role, Tables}
-import org.json4s.DefaultFormats
 import org.json4s.JsonAST.JNull
-import org.scalatra._
-import org.scalatra.json._
 import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 
 import scala.slick.driver.HsqldbDriver.simple._
@@ -27,7 +25,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       case None => halt(412, "Establish a database connection first.")
       case Some(conn) => {
         val header = request.getHeader("X-Db-Connection-Id")
-        if (header != null && header != conn.id) {
+        if (header != conn.id) {
           halt(412, "Working DB connection changed.");
         }
       }
@@ -63,9 +61,9 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     }
   }
 
-  def openFileHelper(inFolder: Boolean) = {
+  def openFileHelper(opener: (File => Boolean)) = {
     db.withSession { implicit session =>
-      openFile(params("id").toInt, inFolder) match {
+      openFile(params("id").toInt, opener) match {
         case Some(err) => halt(err._1, err._2)
         case None => JNull // nothing to return
       }
@@ -73,11 +71,23 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   post("/clip/:id/open") {
-    openFileHelper(false)
+    openFileHelper(open)
+  }
+
+  post("/clip/:id/openwith") {
+    val player = params("player")
+    if (!Avct2Conf.getPlayers.contains(player)) {
+      halt(404, "Such player is not registered.")
+    }
+    val playerFile = new File(player)
+    if (!playerFile.isFile) {
+      halt(503, "Player executable does not exist.")
+    }
+    openFileHelper(openWith(_, playerFile))
   }
 
   post("/clip/:id/folder") {
-    openFileHelper(true)
+    openFileHelper(openInFolder)
   }
 
   post("/clip/:id/edit") {

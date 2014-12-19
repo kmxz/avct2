@@ -2,7 +2,6 @@ package avct2.scalatra
 
 import java.io.File
 
-import avct2.desktop.OpenFile._
 import avct2.schema._
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST.JNull
@@ -44,12 +43,12 @@ trait RenderHelper {
     }
   }
 
-  def openFile(id: Int, inFolder: Boolean)(implicit session: Session) = {
+  def openFile(id: Int, opener: (File => Boolean))(implicit session: Session) = {
     Tables.clip.filter(_.clipId === id).map(_.file).firstOption match {
       case Some(fileName) => {
         val f = new File(fileName)
         if (f.isFile) {
-          if ((if (inFolder) open else openInFolder)(f)) None else Some((501, "System cannot open the file."))
+          if (opener(f)) None else Some((501, "System cannot open the file."))
         } else Some((503, "File does not exist."))
       }
       case None => Some((404, "Clip does not exist."))

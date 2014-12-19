@@ -1,6 +1,7 @@
-"use strict";
+/*globals ijkl*/
 
 ijkl.module('studiomanager', [], function () {
+    "use strict";
 
     var api = ijkl('api');
 

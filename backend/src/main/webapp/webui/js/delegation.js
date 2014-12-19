@@ -1,6 +1,8 @@
-"use strict";
+/*global ijkl*/
 
 ijkl.module('delegation', [], function () {
+    "use strict";
+
     var isAncestor = function (child, parent) {
         if (!child) {
             return false;
@@ -10,7 +12,8 @@ ijkl.module('delegation', [], function () {
             if (track === parent) {
                 return true;
             }
-        } while (track = track.parentNode);
+            track = track.parentNode;
+        } while (track);
         return false;
     };
     var oneOfAncestorsMatches = function (filter, element) {
@@ -19,14 +22,15 @@ ijkl.module('delegation', [], function () {
             if (filter(track)) {
                 return track;
             }
-        } while (track = track.parentNode);
+            track = track.parentNode;
+        } while (track);
         return null;
     };
     return {
         container: function (element, type, filter, callback) {
             element.addEventListener(type, function (e) {
                 var el = e.target;
-                while (el != element) {
+                while (el !== element) {
                     if (filter(el)) {
                         callback(el);
                     }

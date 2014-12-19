@@ -1,6 +1,7 @@
-"use strict";
+/*global ijkl*/
 
 ijkl.module('players', [], function () {
+    "use strict";
 
     var api = ijkl('api');
 

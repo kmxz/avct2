@@ -1,22 +1,28 @@
-"use strict";
+/*global ijkl,HTMLElement*/
 
 ijkl.module('dom', ['es5Array', 'matches'], function () {
+    "use strict";
+
     var set = function (element, options) {
         var i, j, v;
         for (i in options) {
-            v = options[i];
-            if (i === 'style') {
-                for (j in v) {
-                    element.style[j] = v[j];
-                }
-            } else if (i === 'className') {
-                if (options.className instanceof Array) {
-                    element.className = options.className.join(' ');
+            if (options.hasOwnProperty(i)) {
+                v = options[i];
+                if (i === 'style') {
+                    for (j in v) {
+                        if (v.hasOwnProperty(j)) {
+                            element.style[j] = v[j];
+                        }
+                    }
+                } else if (i === 'className') {
+                    if (options.className instanceof Array) {
+                        element.className = options.className.join(' ');
+                    } else {
+                        element.className = options.className;
+                    }
                 } else {
-                    element.className = options.className;
+                    element.setAttribute(i, v);
                 }
-            } else {
-                element.setAttribute(i, v);
             }
         }
     };
@@ -50,7 +56,7 @@ ijkl.module('dom', ['es5Array', 'matches'], function () {
     create.match = function (selector) {
         return function (el) {
             return (el instanceof HTMLElement) && el.matches(selector);
-        }
+        };
     };
     create.getParent = function (node, filter) {
         var cur = node;

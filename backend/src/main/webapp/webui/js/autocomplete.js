@@ -1,8 +1,8 @@
-"use strict";
+/*globals ijkl*/
 
 ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
+    "use strict";
 
-    var as = ijkl('actionselector');
     var dom = ijkl('dom');
     var po = ijkl('popover');
 
@@ -13,9 +13,24 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
     var suggestionArray = null;
     var notChanged = false;
     var popover = po(editor);
-    editor.addEventListener('click', function (e) {
+    editor.addEventListener('click', function () {
         ul.innerHTML = '';
     });
+    var updateActive = function (newItem) {
+        if (currentHighlightItem) {
+            currentHighlightItem.classList.remove('active');
+        }
+        if (newItem) {
+            newItem.classList.add('active');
+        }
+        currentHighlightItem = newItem;
+    };
+    var selectActive = function () {
+        it.value = currentHighlightItem.innerHTML;
+        currentHighlightItem = null;
+        ul.innerHTML = '';
+        notChanged = true;
+    };
     var clickListener = function (e) {
         e.stopPropagation();
         updateActive(this);
@@ -40,21 +55,6 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
             return el.innerHTML === previousSelectedText;
         })[0]);
         dom.append(ul, allNodes);
-    };
-    var updateActive = function (newItem) {
-        if (currentHighlightItem) {
-            currentHighlightItem.classList.remove('active');
-        }
-        if (newItem) {
-            newItem.classList.add('active');
-        }
-        currentHighlightItem = newItem;
-    };
-    var selectActive = function () {
-        it.value = currentHighlightItem.innerHTML;
-        currentHighlightItem = null;
-        ul.innerHTML = '';
-        notChanged = true;
     };
     it.addEventListener('keydown', function (e) {
         switch (e.keyCode) {

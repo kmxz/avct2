@@ -16,6 +16,10 @@ object OpenFile {
     }
   }
 
+  val openWith = (file: File, player: File) => {
+    Seq(player.getCanonicalPath, file.getCanonicalPath).! == 0
+  }
+
   val openInFolder = (file: File) => {
     val os: String = System.getProperty("os.name")
     if (os.startsWith("Windows")) {

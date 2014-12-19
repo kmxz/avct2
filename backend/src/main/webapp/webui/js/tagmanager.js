@@ -1,6 +1,7 @@
-"use strict";
+/*globals ijkl*/
 
 ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], function () {
+    "use strict";
 
     var ac = ijkl('autocomplete');
     var api = ijkl('api');
@@ -34,7 +35,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             if (!proposedTag) {
                 if (window.confirm("Such tag does not exist. Create one?")) {
                     api('tag/create', {'name': newTagName}).then(function (ret) {
-                        currentSelectTagCallback(ret['id'], onSuccess, onReject);
+                        currentSelectTagCallback(ret.id, onSuccess, onReject);
                     }, function (error) {
                         api.ALERT(error);
                         onReject();
@@ -75,9 +76,24 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
         this.parent = [];
         this.tr = null;
     };
+    var init = function () {
+        return api('tag/list').then(function (json) {
+            actualTags = [];
+            json.forEach(function (tag) {
+                actualTags[tag.id] = new Tag(tag.id, tag.name);
+            });
+            json.forEach(function (tag) {
+                actualTags[tag.id].parent = tag.parent.map(function (tagId) {
+                    actualTags[tagId].children.push(actualTags[tag.id]);
+                    return actualTags[tagId];
+                });
+            });
+        }, function (error) {
+            api.FATAL(error);
+        });
+    };
     Tag.prototype = {
         renderName: function (td) {
-            var inEditing = false;
             dom.append(td, this.name);
             td.addEventListener('click', function () {
                 ac(td, this.name, function (newName, onSuccess, onReject) {
@@ -105,10 +121,9 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
                         });
                         api('tag/parent', {'parent': proposed, 'id': child.id}).then(function () {
                             init().then(function () {
-                                onSuccess();
                                 render();
                             }); // do thing on fail, as init() will take care of it
-                        }, api.ALERT)
+                        }, api.ALERT);
                     }
                 });
                 return tagEl;
@@ -138,22 +153,6 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
                 return dom('a', {className: 'tag'}, tag.name);
             }));
         }
-    };
-    var init = function () {
-        return api('tag/list').then(function (json) {
-            actualTags = [];
-            json.forEach(function (tag) {
-                actualTags[tag['id']] = new Tag(tag['id'], tag['name']);
-            })
-            json.forEach(function (tag) {
-                actualTags[tag['id']].parent = tag['parent'].map(function (tagId) {
-                    actualTags[tagId].children.push(actualTags[tag['id']]);
-                    return actualTags[tagId];
-                });
-            });
-        }, function (error) {
-            api.FATAL(error);
-        });
     };
     return {
         open: function () {
