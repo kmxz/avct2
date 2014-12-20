@@ -26,6 +26,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
         'clip/history': {method: 'get', url: 'clip/$/history'},
         // studio
         'studio/list': {method: 'get', url: 'studio'},
+        'studio/create': {method: 'post', url: 'studio/create', params: ['name']},
         // tag
         'tag/list': {method: 'get', url: 'tag'},
         'tag/create': {method: 'post', url: 'tag/create', params: ['name']},

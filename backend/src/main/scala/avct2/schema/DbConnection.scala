@@ -23,8 +23,7 @@ class DbConnection(file: String) {
   }
 
   def close() = {
-    dataSource.close(0
-    )
+    dataSource.close(0)
   }
 
 }

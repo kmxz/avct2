@@ -2,6 +2,7 @@ package avct2.scalatra
 
 import java.io.File
 
+import avct2.Avct2Conf
 import avct2.schema._
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST.JNull
@@ -32,7 +33,7 @@ trait RenderHelper {
   }
 
   // to be used with queryClip
-  def renderClip(tuple: (Int, String, Option[Int], Race.Value, Int, Role.ValueSet, Int, Int, Boolean, String))(implicit session: Session) = tuple match {
+  def renderClip(tuple: (Int, String, Option[Int], Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String))(implicit session: Session) = tuple match {
     case (clipId, file, studio, race, grade, role, size, length, thumbSet, sourceNote) => {
       val tags = Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list
       val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp);
@@ -46,7 +47,7 @@ trait RenderHelper {
   def openFile(id: Int, opener: (File => Boolean))(implicit session: Session) = {
     Tables.clip.filter(_.clipId === id).map(_.file).firstOption match {
       case Some(fileName) => {
-        val f = new File(fileName)
+        val f = new File(new File(Avct2Conf.getVideoDir), fileName)
         if (f.isFile) {
           if (opener(f)) None else Some((501, "System cannot open the file."))
         } else Some((503, "File does not exist."))

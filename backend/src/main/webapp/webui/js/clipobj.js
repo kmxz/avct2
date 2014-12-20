@@ -73,9 +73,11 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
     Column.prototype.selector = function () {
         return 'td.' + this.className;
     };
+
     var empty = function (field) {
         return dom('span', {className: ['label', 'label-warning']}, 'No ' + field + '!');
     };
+
     var columns = {
         thumb: new Column('c-thumb', 'Thumb', function (td) {
             if (!this.thumbSet) {
@@ -119,6 +121,12 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         }),
         studio: new Column('c-studio', 'Studio', function (td) {
             dom.append(td, sm.getStudios()[this.studio]);
+        }, function (domFilter) {
+            ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
+                sm.open(el, el.innerHTML, function (proposedStudio, onSuccess, onReject) {
+                    post('studio', proposedStudio, onSuccess, onReject);
+                });
+            }));
         }),
         role: new Column('c-role', 'Role', function (td) {
             if (!this.role.length) {
@@ -287,6 +295,12 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         }),
         sourceNote: new Column('c-source-note', 'Source note', function (td) {
             dom.append(td, this.sourceNote);
+        }, function (domFilter) {
+            ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
+                ac(el, el.innerHTML, function (newValue, onSuccess, onReject) {
+                    post('sourceNote', newValue, onSuccess, onReject);
+                }, []);
+            }));
         }),
         duration: new Column('c-duration', 'Duration', function (td, humanReadableDuration) {
             dom.append(td, humanReadableDuration(this.duration));

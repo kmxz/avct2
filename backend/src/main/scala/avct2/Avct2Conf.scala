@@ -3,12 +3,14 @@ package avct2
 import java.io._
 import java.util.Properties
 import javax.swing.UIManager
+
 import avct2.desktop.HintFrame
 import avct2.schema.DbConnection
 
 object Avct2Conf {
 
   final val configFileName = "avct2.properties"
+  final val videoDirDbDirName = "Avct_v2"
 
   val properties = new Properties()
 
@@ -72,7 +74,7 @@ object Avct2Conf {
     if (dbConnection.isDefined) {
       dbConnection.get.close()
     }
-    dbConnection = Some(new DbConnection(getVideoDir + "/Avct_v2/Avct_dbv2.db"))
+    dbConnection = Some(new DbConnection(getVideoDir + "/" + videoDirDbDirName + "/Avct_dbv2.db"))
   }
 
 }

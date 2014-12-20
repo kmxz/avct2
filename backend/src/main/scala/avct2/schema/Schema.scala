@@ -12,8 +12,6 @@ class Tags(tag: T) extends Table[(Option[Int], String)](tag, "tag") {
   def * = (tagId.?, name)
 }
 
-// Studio
-
 class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
   def studioId = column[Int]("studio_id", O.PrimaryKey, O.AutoInc)
   def name = column[String]("name")
@@ -21,7 +19,7 @@ class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
   def * = (studioId.?, name)
 }
 
-class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Int, Int, String)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
   def file = column[String]("file")
   def studioId = column[Option[Int]]("studio_id")
@@ -29,7 +27,8 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
   def thumb = column[Option[Blob]]("thumb")
   def grade = column[Int]("grade")
   def role = column[Role.ValueSet]("role")(Role.mct)
-  def size = column[Int]("size")
+
+  def size = column[Long]("size")
   def length = column[Int]("length")
   def sourceNote = column[String]("SOURCE_NOTES") // FIXME change it back to lowercase after debugging
   index("index_file", file, unique = true)

@@ -14,6 +14,15 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
     var tb = el.querySelector('table');
     var actualTags = null;
     var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
+
+    var Tag = function (id, name) {
+        this.id = id;
+        this.name = name;
+        this.children = [];
+        this.parent = [];
+        this.tr = null;
+    };
+
     var selectTagOpen = function (td, callback) {
         if (ac.isOpen()) {
             return;
@@ -35,6 +44,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             if (!proposedTag) {
                 if (window.confirm("Such tag does not exist. Create one?")) {
                     api('tag/create', {'name': newTagName}).then(function (ret) {
+                        actualTags[ret.id] = new Tag(ret.id, newTagName); // manually append
                         currentSelectTagCallback(ret.id, onSuccess, onReject);
                     }, function (error) {
                         api.ALERT(error);
@@ -68,13 +78,6 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
         ])), tbody]);
         tb.parentNode.replaceChild(table, tb);
         tb = table;
-    };
-    var Tag = function (id, name) {
-        this.id = id;
-        this.name = name;
-        this.children = [];
-        this.parent = [];
-        this.tr = null;
     };
     var init = function () {
         return api('tag/list').then(function (json) {
@@ -154,6 +157,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
             }));
         }
     };
+
     return {
         open: function () {
             render();

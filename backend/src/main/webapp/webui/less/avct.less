@@ -115,6 +115,13 @@ nav.navbar {
     .btn {
         margin-bottom: 4px;
     }
+    .btn-group {
+        white-space: nowrap;
+        & > .btn {
+            float: none;
+            display: inline-block;
+        }
+    }
 }
 
 #auto-complete {
@@ -149,11 +156,3 @@ nav.navbar {
 }
 
 // overridding fix
-
-.btn-group {
-    white-space: nowrap;
-    & > .btn {
-        float: none;
-        display: inline-block;
-    }
-}
