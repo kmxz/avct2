@@ -1,7 +1,7 @@
 import javax.servlet.ServletContext
 
 import avct2.Avct2Conf
-import avct2.scalatra.{NoCacheServlet, Avct2Servlet, PreConfServlet}
+import avct2.scalatra.{Avct2Servlet, NoCacheServlet, PreConfServlet}
 import org.scalatra._
 class ScalatraBootstrap extends LifeCycle {
 

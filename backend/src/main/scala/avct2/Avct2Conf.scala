@@ -33,6 +33,8 @@ object Avct2Conf {
 
   def setPlayers(players: Seq[String]) = properties.setProperty("videoPlayers", players.mkString(";"))
 
+  def getVideoDirSubDir = new File(new File(getVideoDir), videoDirDbDirName)
+
   def validMPlayer(mPlayer: String) = {
     (mPlayer != null && new File(mPlayer).isFile)
   }
@@ -74,7 +76,7 @@ object Avct2Conf {
     if (dbConnection.isDefined) {
       dbConnection.get.close()
     }
-    dbConnection = Some(new DbConnection(getVideoDir + "/" + videoDirDbDirName + "/Avct_dbv2.db"))
+    dbConnection = Some(new DbConnection(getVideoDirSubDir.getCanonicalPath + "/Avct_dbv2.db"))
   }
 
 }

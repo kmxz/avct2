@@ -27,7 +27,6 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
   def thumb = column[Option[Blob]]("thumb")
   def grade = column[Int]("grade")
   def role = column[Role.ValueSet]("role")(Role.mct)
-
   def size = column[Long]("size")
   def length = column[Int]("length")
   def sourceNote = column[String]("SOURCE_NOTES") // FIXME change it back to lowercase after debugging

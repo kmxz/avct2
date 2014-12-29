@@ -79,8 +79,8 @@
             <div class="modal-header">
                 <h4 class="modal-title">Loading...</h4>
             </div>
-            <div class="modal-body">
-                <p>Getting clips information and rendering...</p>
+            <div class="modal-body" id="modal-notify-body">
+                <p>Page loading...</p>
             </div>
         </div>
     </div>
@@ -93,6 +93,33 @@
             </div>
             <div class="modal-body">
                 <table></table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-dialog" id="screenshot">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Screenshot picker</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-7">
+                        <canvas class="img-thumbnail" width="300" height="200"></canvas>
+                    </div>
+                    <div class="col-sm-5">
+                        <div>
+                            <label for="fileInput">Choose a file</label><br />
+                            <input type="file" id="fileInput" /><br />
+                            <label for="startShot">or use screenshooter</label><br />
+                            <input type="button" class="btn btn-default" id="startShot" value="Launch" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="javascript:void('cancel')" class="btn btn-default">Cancel</a>
+                <a href="javascript:void('save')" class="btn btn-primary">Save</a>
             </div>
         </div>
     </div>
@@ -151,7 +178,6 @@
         </form>
     </div>
 </div>
-
 
 <div class="toolbox popover" id="role-editor">
     <div class="arrow"></div>

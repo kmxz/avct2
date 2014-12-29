@@ -12,6 +12,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
     var modal = ijkl('modal');
     var po = ijkl('popover');
     var sm = ijkl('studiomanager');
+    var ss = ijkl('screenshooter');
     var tm = ijkl('tagmanager');
 
     var root = document.getElementById("root");
@@ -86,7 +87,9 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 td.appendChild(dom('img', {src: '/serv/clip/' + this.id + '/thumb', className: 'clip-thumb'}));
             }
         }, function (domFilter) {
-            // TODO
+            ed.container(root, 'click', domFilter, function (el) {
+                ss(getParentTr(el));
+            });
         }),
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, this.file);

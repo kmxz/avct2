@@ -14,7 +14,7 @@ object Role extends Enumeration {
 }
 
 object Race extends Enumeration {
-  Value("Unknown")
+  val unknown = Value("Unknown")
   Value("Chinese")
   Value("Other Asian")
   Value("Other races")

@@ -10,15 +10,14 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
     }
     var actions = {
         // boot
-        'boot/pending': {method: 'get', url: 'boot/pending'},
-        'boot/action': {method: 'post', url: 'boot/pending/action', params: ['file', 'action']},
-        'boot/disappeared': {method: 'get', url: 'boot/disappeared'},
+        'clip/autocrawl': {method: 'post', url: 'clip/autocrawl'},
         // info
         'players': {method: 'get', url: 'players'},
         // clip
         'clip/list': {method: 'get', url: 'clip'},
         'clip/delete': {method: 'post', url: 'clip/$/delete'},
-        'clip/shot': {method: 'get', url: 'clip/$/shot'},
+        'clip/saveshot': {method: 'post', url: 'clip/$/saveshot'},
+        'clip/shot': {method: 'post', url: 'clip/$/shot', blob: true},
         'clip/edit': {method: 'post', url: 'clip/$/edit', params: ['key', 'value']},
         'clip/open': {method: 'post', url: 'clip/$/open'},
         'clip/openwith': {method: 'post', url: 'clip/$/openwith', params: ['player']},
@@ -47,6 +46,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
         }
         if (config.method === 'post') {
             formData = new FormData();
+            formData.append('db_conn_id', dbConnId);
             if (config.params) {
                 config.params.forEach(function (key) {
                     if (!(opt_params.hasOwnProperty(key))) {
@@ -58,29 +58,27 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
                     }
                     formData.append(key, value);
                 });
-            } else {
-                formData.append('dummy', 'dummy'); // XXX: very ugly fix! Jetty is failing to handle empty request elsewise
             }
         }
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
+            xhr.open(config.method, '/serv/' + url);
+            if (config.blob) {
+                xhr.responseType = "blob";
+            } else {
+                xhr.responseType = "json";
+            }
             xhr.onload = function () {
                 if (xhr.status === 200) {
-                    try {
-                        resolve(JSON.parse(xhr.responseText));
-                    } catch (error) {
-                        window.alert("Response parsing failed.");
-                    }
+                    resolve(xhr.response);
                 } else {
-                    reject(xhr.responseText);
+                    reject(xhr.getResponseHeader("X-Error"));
                 }
             };
             xhr.onerror = function (error) {
                 window.alert("Network error occurred. It's highly recommended to reload.");
                 reject(error);
             };
-            xhr.open(config.method, '/serv/' + url);
-            xhr.setRequestHeader('X-Db-Connection-Id', dbConnId);
             xhr.send(formData);
         });
     };

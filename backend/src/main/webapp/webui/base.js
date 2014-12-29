@@ -53,6 +53,9 @@ var ijkl = (function () {
         'matches': new Feature("matchesSelector", function () {
             var div = document.createElement('div');
             return ('matches' in div);
+        }),
+        'bloburls': new Feature('window.URL', function () {
+            return ('URL' in window && 'createObjectURL' in URL);
         })
     };
 

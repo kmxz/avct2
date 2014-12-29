@@ -2,12 +2,8 @@ package avct2.scalatra
 
 import java.io.File
 
-import avct2.Avct2Conf
 import avct2.Avct2Conf._
 import avct2.desktop.FileBrowser
-import org.json4s.DefaultFormats
-import org.scalatra.ScalatraServlet
-import org.scalatra.json.NativeJsonSupport
 import org.scalatra.servlet.FileUploadSupport
 
 class PreConfServlet extends NoCacheServlet with FileUploadSupport with JsonSupport {

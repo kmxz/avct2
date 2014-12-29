@@ -20,7 +20,10 @@ ijkl.module('modal', ['querySelector', 'classList'], function () {
             });
             el.style.display = 'block';
             mel.classList.add('active');
-            el.querySelector('button.close').addEventListener('click', cel);
+            var closeBtn = el.querySelector('button.close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', cel);
+            }
         },
         close: close
     };
