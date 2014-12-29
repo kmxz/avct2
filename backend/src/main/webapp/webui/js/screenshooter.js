@@ -5,6 +5,7 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'bloburls'], functio
 
     var api = ijkl('api');
     var asel = ijkl('actionselector');
+    var func = ijkl('function');
     var modal = ijkl('modal');
 
     var shooter = document.getElementById('screenshot');
@@ -12,34 +13,13 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'bloburls'], functio
     var cb = shooter.querySelector(asel('cancel'));
     var sb = shooter.querySelector(asel('save'));
     var ss = document.getElementById('startShot');
-
-    var objectUrlIntern = (function () {
-        var current = null;
-        var revoke = function () {
-            if (current) {
-                window.URL.revokeObjectURL(current);
-            }
-        };
-        return {
-            add: function (response) {
-                revoke();
-                current = window.URL.createObjectURL(response);
-                return current;
-            },
-            revoke: revoke
-        };
-    }());
-
-    var close = function () {
-        objectUrlIntern.revoke();
-        modal.close();
-    };
+    var fi = document.getElementById('fileInput');
 
     var locked = false;
     var currentClipId;
     var currentToBeUpdated;
 
-    var loadfit = function (url, isInit) {
+    var loadfit = function (url, isInit, finallyCallback) {
         var image = new Image();
         image.onload = function () {
             var w = image.width;
@@ -60,33 +40,52 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'bloburls'], functio
                 currentToBeUpdated = true;
             }
             locked = false;
+            finallyCallback();
         };
         image.onerror = function () {
             currentToBeUpdated = false;
             locked = false;
+            finallyCallback();
         };
         image.src = url;
     };
 
     cb.addEventListener('click', function () {
-        if (locked) { return; }
-        close();
+        if (locked) {
+            return;
+        }
+        modal.close();
     });
 
     sb.addEventListener('click', function () {
-        if (locked) { return; }
+        if (locked) {
+            return;
+        }
         if (!currentToBeUpdated) {
-            close();
+            modal.close();
             return;
         }
     });
 
     ss.addEventListener('click', function () {
-        if (locked) { return; }
+        if (locked) {
+            return;
+        }
         locked = true;
-        api('clip/shot', { 'id': currentClipId }).then(function (response) {
-            loadfit(objectUrlIntern.add(response), false);
+        api('clip/shot', {'id': currentClipId}).then(function (response) {
+            var url = window.URL.createObjectURL(response);
+            loadfit(url, false, function () {
+                window.URL.revokeObjectURL(url);
+            });
         }, api.ALERT);
+    });
+
+    fi.addEventListener('change', function () {
+        var fr = new FileReader();
+        fr.onload = function (fe) {
+            loadfit(fe.target.result, false, func.doNothing);
+        };
+        fr.readAsDataURL(fi.files[0]);
     });
 
     var getUrl = function (clip) {
@@ -97,7 +96,7 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'bloburls'], functio
         currentToBeUpdated = false;
         currentClipId = clip.id;
         locked = true;
-        loadfit(getUrl(clip), true);
+        loadfit(getUrl(clip), true, func.doNothing);
         modal.show(shooter);
     };
 

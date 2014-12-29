@@ -10,7 +10,9 @@ ijkl.module('studiomanager', [], function () {
     var actualStudios = null;
 
     var open = function (anchor, currentVal, callback) {
-        if (ac.isOpen()) { return; }
+        if (ac.isOpen()) {
+            return;
+        }
         ac(anchor, currentVal, function (newStudioName, onSuccess, onReject) {
             var proposedStudio = func.filter(actualStudios, function (name) {
                 return name === newStudioName;

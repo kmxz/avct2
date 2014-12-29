@@ -19,7 +19,7 @@ class PreConfServlet extends NoCacheServlet with FileUploadSupport with JsonSupp
       FileBrowser.browse(new File(params("path")))
     } catch {
       case e: IllegalArgumentException => {
-        Map("error" -> e.getMessage())
+        Map("error" -> e.getMessage)
       }
     }
   }
@@ -37,7 +37,7 @@ class PreConfServlet extends NoCacheServlet with FileUploadSupport with JsonSupp
       setMPlayer(mPlayer)
     }
     if (validPlayers(players)) {
-      setPlayers(players);
+      setPlayers(players)
     }
     if (legal) {
       save()

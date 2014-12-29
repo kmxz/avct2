@@ -111,7 +111,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 fileOverlayBtnGroup.classList.toggle('open');
             });
             ed.container(fileOverlay, 'click', dom.match(asel('with')), function (el) {
-                api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path });
+                api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path});
                 foClose();
             });
             ed.target(root, 'mouseover', domFilter, function (el) {

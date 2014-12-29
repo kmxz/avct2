@@ -8,12 +8,9 @@ import avct2.schema.{Race, Role, Tables}
 
 import scala.slick.driver.HsqldbDriver.simple._
 
-/**
- * Created by kmxz on 12/20/14.
- */
 object Autocrawl {
 
-  private final val excludeFileTypes = Set[String]("", "jpg", "bmp", "png", "gif", "txt", "rar", "tar", "zip", "gz", "bz2", "7z", "tgz");
+  private final val excludeFileTypes = Set[String]("", "jpg", "bmp", "png", "gif", "txt", "rar", "tar", "zip", "gz", "bz2", "7z", "tgz")
 
   private def getFileExtension(file: File) = {
     val name = file.getName
@@ -35,7 +32,7 @@ object Autocrawl {
   }
 
   private def relativePath(base: File, path: File) = {
-    base.toURI().relativize(path.toURI()).getPath()
+    base.toURI.relativize(path.toURI).getPath
   }
 
   private def fileExistInDir(path: String)(implicit session: Session) = {

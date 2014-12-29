@@ -29,7 +29,6 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   before() {
-    println("Before:\t" + request.getMethod + "\t" + request.getRequestURI)
     contentType = formats("json")
     Avct2Conf.dbConnection match {
       case None => terminate(412, "Establish a database connection first.")
@@ -39,10 +38,6 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         }
       }
     }
-  }
-
-  after() {
-    println("After:\t" + request.getMethod + "\t" + request.getRequestURI)
   }
 
   get("/players") { // available players
@@ -122,7 +117,6 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       if (!file.isFile) {
         terminate(503, "File does not exist.")
       }
-      println("Shoting entered...")
       MpShooter.run(file, new Output {
         override def copy(s: InputStream) = org.scalatra.util.io.copy(s, response.getOutputStream)
       })

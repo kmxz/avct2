@@ -13,11 +13,11 @@ import java.util.regex.Pattern;
 
 public class MpShooter {
 
-    static MpShooter instance = null;
+    private static MpShooter instance = null;
 
-    static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
-    static String lineBreak = System.getProperty("line.separator");
+    private static final String lineBreak = System.getProperty("line.separator");
 
     private Process pr;
 
@@ -33,23 +33,20 @@ public class MpShooter {
 
     private final String filePath;
 
-    private File screenshotPath = new File(Avct2Conf.getVideoDirSubDir(), "screenshots");
+    private final File screenshotPath = new File(Avct2Conf.getVideoDirSubDir(), "screenshots");
 
-    private static Pattern screenshot_fn_regex = Pattern.compile(".*screenshot \'([A-Za-z0-9.]+)\'.*");
+    private static final Pattern screenshot_fn_regex = Pattern.compile(".*screenshot \'([A-Za-z0-9.]+)\'.*");
 
     private Output output;
 
     public static void run(File fp, Output op) {
-        System.out.println("Entering MpShooter...");
         if (instance != null) { return; }
         try {
             instance = new MpShooter(fp, op);
-            System.out.println("MpShooter instance created...");
             instance.startMplayer();
-            System.out.println("mplayer Exit code: " + String.valueOf(instance.waitFor()));
+            instance.waitFor();
         } catch (IOException e) {
             e.printStackTrace(); // by default
-            return;
         } finally {
             instance = null;
         }
@@ -62,7 +59,7 @@ public class MpShooter {
     }
 
     private void startMplayer() {
-        List<String> command = new ArrayList<String>();
+        List<String> command = new ArrayList<>();
         command.add(Avct2Conf.getMPlayer());
         command.add(filePath);
         ProcessBuilder pb = new ProcessBuilder(command);
@@ -100,20 +97,18 @@ public class MpShooter {
     }
 
     private void log(String to_log) {
-        if (error_log != null) {
-            try {
-                error_log.write(dateFormat.format(new Date()) + ": ");
-                error_log.write(to_log);
-                error_log.write("[" + filePath + "]");
-                error_log.write(lineBreak);
-                error_log.flush();
-            } catch (IOException e) {
-                e.printStackTrace(); // by default
-            }
+        try {
+            error_log.write(dateFormat.format(new Date()) + ": ");
+            error_log.write(to_log);
+            error_log.write("[" + filePath + "]");
+            error_log.write(lineBreak);
+            error_log.flush();
+        } catch (IOException e) {
+            e.printStackTrace(); // by default
         }
     }
 
-    private Runnable listenOnStdIn = new Runnable() {
+    private final Runnable listenOnStdIn = new Runnable() {
         public void run() {
             try {
                 final BufferedReader lReader = new BufferedReader(new InputStreamReader(stdin, "UTF-8"));
@@ -130,16 +125,12 @@ public class MpShooter {
         }
     };
 
-    private Runnable listenOnStdErrIn = new Runnable() {
+    private final Runnable listenOnStdErrIn = new Runnable() {
         public void run() {
             try {
                 final BufferedReader lReader = new BufferedReader(new InputStreamReader(stderrin, "UTF-8"));
                 for (String l = lReader.readLine(); l != null; l = lReader.readLine()) {
                     log(l);
-                    if (l.startsWith("FATAL")) {
-                        final String error_str = l;
-                        close(true);
-                    }
                 }
             } catch (IOException e) {
                 log(e.getMessage());

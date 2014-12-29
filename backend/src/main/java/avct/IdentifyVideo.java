@@ -9,8 +9,8 @@ import java.util.HashMap;
 
 public class IdentifyVideo {
 
-    public static final HashMap<String, String> identify(File fp, String mpCommand) throws IOException, InterruptedException {
-        HashMap<String, String> output = new HashMap<String, String>();
+    private static HashMap<String, String> identify(File fp, String mpCommand) throws IOException, InterruptedException {
+        HashMap<String, String> output = new HashMap<>();
         String[] command = {mpCommand, "-vo", "null", "-ao", "null", "-really-quiet", "-frames", "0", "-identify", fp.getCanonicalPath()};
         Process pr = new ProcessBuilder(command).start();
         pr.waitFor();
@@ -28,7 +28,7 @@ public class IdentifyVideo {
         return output;
     }
 
-    public static final int getDuration(File fp, String mpCommand) throws IOException, InterruptedException {
+    public static int getDuration(File fp, String mpCommand) throws IOException, InterruptedException {
         HashMap<String, String> hm = identify(fp, mpCommand);
         if (hm.containsKey("LENGTH")) {
             return Math.round(Float.parseFloat(hm.get("LENGTH")));

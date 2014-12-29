@@ -36,7 +36,7 @@ trait RenderHelper {
   def renderClip(tuple: (Int, String, Option[Int], Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String))(implicit session: Session) = tuple match {
     case (clipId, file, studio, race, grade, role, size, length, thumbSet, sourceNote) => {
       val tags = Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list
-      val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp);
+      val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp)
       val record = (ts.length, ts.max).shaped.run
       val f = new File(file)
       // caution: lastPlay may be void

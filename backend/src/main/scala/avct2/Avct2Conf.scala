@@ -36,11 +36,11 @@ object Avct2Conf {
   def getVideoDirSubDir = new File(new File(getVideoDir), videoDirDbDirName)
 
   def validMPlayer(mPlayer: String) = {
-    (mPlayer != null && new File(mPlayer).isFile)
+    mPlayer != null && new File(mPlayer).isFile
   }
 
   def validVideoDir(videoDir: String) = {
-    (videoDir != null && new File(videoDir).isDirectory)
+    videoDir != null && new File(videoDir).isDirectory
   }
 
   def validPlayers(players: Seq[String]) = {

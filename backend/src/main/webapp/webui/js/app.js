@@ -25,7 +25,10 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                         loaded.appendThen("Rendering...", function () {
                             var thead = dom('thead');
                             var tbody = dom('tbody');
-                            var table = dom('table', {className: ['table', 'table-hover'], 'width': '100%'}, [thead, tbody]);
+                            var table = dom('table', {
+                                className: ['table', 'table-hover'],
+                                'width': '100%'
+                            }, [thead, tbody]);
                             var ftt = ft(table, func.toArray(cd));
                             thead.appendChild(ftt.yieldThs());
                             func.forEach(clip.getClips(), function (clip) {

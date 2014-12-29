@@ -9,7 +9,6 @@ ijkl.module('function', ['es5Array'], function () {
     return {
         identity: identity,
         doNothing: function () {
-            return null; // mute jslint
         },
         toArray: function (obj) { // convert an array-like object to an array, or an object's values to an array
             var i, op;
@@ -43,7 +42,9 @@ ijkl.module('function', ['es5Array'], function () {
             return op;
         },
         filter: function (assoc, func) { // filter an object to return keys
-            return Object.keys(assoc).filter(function (key) { return func(assoc[key]); });
+            return Object.keys(assoc).filter(function (key) {
+                return func(assoc[key]);
+            });
         }
     };
 });
