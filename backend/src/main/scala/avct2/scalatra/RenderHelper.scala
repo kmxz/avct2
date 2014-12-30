@@ -1,6 +1,8 @@
 package avct2.scalatra
 
-import java.io.File
+import java.io.{InputStream, File}
+import java.sql.Blob
+import javax.sql.rowset.serial.SerialBlob
 
 import avct2.Avct2Conf
 import avct2.schema._
@@ -54,6 +56,11 @@ trait RenderHelper {
       }
       case None => Some((404, "Clip does not exist."))
     }
+  }
+
+  def inputStreamToBlob(is: InputStream) = { // even in Java, we can use Hibernate.createBlob(InputStream) directly. fuck!
+    val byteArr = (Iterator continually is.read takeWhile (-1 !=) map (_.toByte) toArray) // http://stackoverflow.com/a/4906964
+    new SerialBlob(byteArr)
   }
 
 }

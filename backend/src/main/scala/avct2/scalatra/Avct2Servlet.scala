@@ -1,6 +1,7 @@
 package avct2.scalatra
 
 import java.io.{File, InputStream}
+import javax.sql.rowset.serial.SerialBlob
 
 import avct.{MpShooter, Output}
 import avct2.Avct2Conf
@@ -31,10 +32,11 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   before() {
     contentType = formats("json")
     Avct2Conf.dbConnection match {
-      case None => terminate(412, "Establish a database connection first.")
+      case None => halt(412, "Establish a database connection first.")
       case Some(conn) => {
-        if (request.getMethod.toUpperCase == "POST" && params("db_conn_id") != conn.id) {
-          terminate(412, "Working DB connection changed.")
+        val header = request.getHeader("X-Db-Connection-Id")
+        if (header != conn.id) {
+          halt(412, "Working DB connection changed.");
         }
       }
     }
@@ -47,18 +49,6 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   get("/clip") {
     db.withSession { implicit session =>
       queryClip(identity).list.map(renderClip)
-    }
-  }
-
-  get("/clip/:id/thumb") {
-    contentType = "image/jpeg" // override
-    val id = params("id").toInt
-    db.withSession { implicit session =>
-      Tables.clip.filter(_.clipId === id).map(_.thumb).firstOption match {
-        case Some(Some(thumb)) => org.scalatra.util.io.copy(thumb.getBinaryStream, response.getOutputStream)
-        case Some(None) => terminate(503, "Image not set.")
-        case None => terminate(404, "Clip does not exist.")
-      }
     }
   }
 
@@ -104,6 +94,18 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     openFileHelper(openInFolder, false)
   }
 
+  get("/clip/:id/thumb") {
+    contentType = "image/png" // override
+    val id = params("id").toInt
+    db.withSession { implicit session =>
+      Tables.clip.filter(_.clipId === id).map(_.thumb).firstOption match {
+        case Some(Some(thumb)) => org.scalatra.util.io.copy(thumb.getBinaryStream, response.getOutputStream)
+        case Some(None) => terminate(503, "Image not set.")
+        case None => terminate(404, "Clip does not exist.")
+      }
+    }
+  }
+
   post("/clip/:id/shot") {
     contentType = "image/png" // override
     val id = params("id").toInt
@@ -121,6 +123,19 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         override def copy(s: InputStream) = org.scalatra.util.io.copy(s, response.getOutputStream)
       })
     }
+  }
+
+  post("/clip/:id/saveshot") {
+    val id = params("id").toInt
+    val fis = fileParams("file").getInputStream
+    db.withSession { implicit session =>
+      val clipRow = Tables.clip.filter(_.clipId === id)
+      if (!clipRow.exists.run) {
+        terminate(404, "Clip does not exist.")
+      }
+      clipRow.map(_.thumb).update(Some(inputStreamToBlob(fis)))
+    }
+    JNull
   }
 
   post("/clip/:id/edit") {

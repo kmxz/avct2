@@ -3,10 +3,11 @@
 var ijkl = (function () {
     "use strict";
 
-    var Feature = function (name, detector) {
+    var Feature = function (name, detector, opt_polyfill) {
         this.detector = detector;
         this.tested = false;
         this.support = false;
+        this.polyfill = opt_polyfill;
         this.name = name;
     };
 
@@ -17,8 +18,22 @@ var ijkl = (function () {
         this.support = this.detector();
         this.tested = true;
         if (!this.support) {
-            window.alert("Feature [" + this.name + "] is not supported by your browser. Some things will break up.");
+            if (this.polyfill) {
+                console.warn("Feature [" + this.name + "] is not supported by your browser. A polyfill will be employed.");
+                this.loadPolyfill();
+            } else {
+                window.alert("Feature [" + this.name + "] is not supported by your browser. Some things will break up.");
+            }
         }
+    };
+
+    Feature.prototype.loadPolyfill = function () { // TODO: fix it later to ensure the polyfill IS LOADED before any scripts run!
+        var js = document.createElement('script');
+        js.src = this.polyfill;
+        js.onerror = function () {
+            window.alert("Loading polyfill for feature [" + this.name + "] failed. Some things will break up.");
+        };
+        document.getElementsByTagName('head')[0].appendChild(js);
     };
 
     // Available browser feature detections
@@ -56,7 +71,11 @@ var ijkl = (function () {
         }),
         'bloburls': new Feature('window.URL', function () {
             return ('URL' in window && 'createObjectURL' in URL);
-        })
+        }),
+        'toBlob': new Feature('<canvas> toBlob', function () {
+            var canvas = document.createElement('canvas');
+            return ('toBlob' in canvas);
+        }, 'http://rawgit.com/eligrey/canvas-toBlob.js/master/canvas-toBlob.js')
     };
 
     var Module = function (factory, featureRequirements) {

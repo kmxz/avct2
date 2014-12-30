@@ -55,7 +55,7 @@ public class MpShooter {
     private MpShooter(File fp, Output op) throws IOException {
         filePath = fp.getCanonicalPath();
         output = op;
-        error_log = new BufferedWriter(new FileWriter(new File(Avct2Conf.getVideoDirSubDir(), "mplayer_error.log")));
+        error_log = new BufferedWriter(new FileWriter(new File(Avct2Conf.getVideoDirSubDir(), "mplayer_error.log"), true));
     }
 
     private void startMplayer() {

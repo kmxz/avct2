@@ -80,16 +80,28 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
     };
 
     var columns = {
-        thumb: new Column('c-thumb', 'Thumb', function (td) {
+        thumb: new Column('c-thumb', 'Thumb', function (td, loadImg) {
             if (!this.thumbSet) {
                 td.appendChild(empty('thumb'));
             } else {
-                td.appendChild(dom('img', {src: '/serv/clip/' + this.id + '/thumb', className: 'clip-thumb'}));
+                loadImg(this.id, td);
             }
         }, function (domFilter) {
+            var loadImg = function (id, td) {
+                api('clip/thumb', {"id": id}).then(function (response) {
+                    var img = api.loadImage(response);
+                    img.className = 'clip-thumb';
+                    td.innerHTML = '';
+                    td.appendChild(img);
+                }, api.ALERT);
+            };
             ed.container(root, 'click', domFilter, function (el) {
-                ss(getParentTr(el));
+                var clip = getParentTr(el);
+                ss(clip, function () {
+                    loadImg(clip.id, el);
+                });
             });
+            return loadImg;
         }),
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, this.file);
