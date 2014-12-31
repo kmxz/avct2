@@ -32,11 +32,11 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   before() {
     contentType = formats("json")
     Avct2Conf.dbConnection match {
-      case None => halt(412, "Establish a database connection first.")
+      case None => terminate(412, "Establish a database connection first.")
       case Some(conn) => {
         val header = request.getHeader("X-Db-Connection-Id")
         if (header != conn.id) {
-          halt(412, "Working DB connection changed.");
+          terminate(412, "Working DB connection changed.");
         }
       }
     }

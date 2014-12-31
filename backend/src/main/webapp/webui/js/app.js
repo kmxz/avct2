@@ -13,6 +13,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
     var pl = ijkl('players');
     var sm = ijkl('studiomanager');
     var tm = ijkl('tagmanager');
+    var qjmodal = ijkl('quickjerkmodal');
 
     var cd = clip.columns;
 
@@ -43,6 +44,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                                 ftt.columnSel();
                             });
                             document.querySelector(asel('tags')).addEventListener('click', tm.open.bind(tm));
+                            document.getElementById('quickjerk-btn').addEventListener('click', qjmodal);
                             loaded();
                         });
                     }, api.FATAL);
