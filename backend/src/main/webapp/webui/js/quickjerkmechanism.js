@@ -7,8 +7,8 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
     var dom = ijkl('dom');
     var func = ijkl('function');
 
-    var voidFirst = document.getElementById('voidFirst');
-    var hide0 = document.getElementById('hide0');
+    var voidFirst = document.getElementById('voidFirst'); // TODO: include the consideration of this
+    var hide0 = document.getElementById('hide0'); // TODO: include the consideration of this
     var tbody;
 
     var ResultEntry = function (criterion, score, message) {
