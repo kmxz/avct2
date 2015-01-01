@@ -95,6 +95,21 @@
         </div>
     </div>
 
+    <div class="modal-dialog" id="score">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close"><span>&times;</span></button>
+                <h4 class="modal-title">Details of QuickJerk score</h4>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <thead><tr><th>Entry</th><th>Weight</th><th>Score</th><th>Message</th><th>Weighted score</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <p>Total score <b>0</b></p>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-dialog" id="quickjerk">
         <div class="modal-content">
@@ -124,7 +139,7 @@
                     <div class="panel-heading">Role</div>
                     <div class="panel-body">
                         <p>
-                            A boolean value. 1 if any one of selected roles are present.
+                            A boolean value. 1 if any of selected roles are present.
                         </p>
                         <form class="form-inline">
                         </form>
@@ -144,7 +159,7 @@
                     <div class="panel-heading">Tags</div>
                     <div class="panel-body">
                         <p>
-                            A boolean value. 1 if one of selected tags are present.
+                            A boolean value. 1 if any of selected tags are present.
                         </p>
                         <div class="tag-container">
                             Selected tags:
@@ -157,6 +172,9 @@
                         <p>
                             Linearly map grade [1, 5] to [0, 1].
                         </p>
+                        <form class="form-inline">
+                            for those without a grade, assume a grade of: <div class="form-group"><input type="text" value="3" /></div>
+                        </form>
                     </div>
                 </div>
                 <div class="panel panel-default template-random">
@@ -175,7 +193,7 @@
                                 <input type="text" />
                                 <div class="checkbox">
                                     <label>
-                                        <input type="checkbox"> Also search in source notes
+                                        <input type="checkbox" checked> Also search in source notes
                                     </label>
                                 </div>
                             </div>
@@ -189,7 +207,7 @@
                             [0, ∞) will be mapped to [0, 1).
                         </p>
                         <form class="form-inline">
-                            specify the value which should be mapped to 0.5: <div class="form-group"><input type="text" /></div>
+                            specify the value which should be mapped to 0.5: <div class="form-group"><input type="text" value="5" /></div>
                         </form>
                     </div>
                 </div>
@@ -200,7 +218,7 @@
                             [0, ∞) will be mapped to [0, 1).
                         </p>
                         <form class="form-inline">
-                            specify the value which should be mapped to 0.5 (unit of days): <div class="form-group"><input type="text" /></div>
+                            specify the value which should be mapped to 0.5 (unit of days): <div class="form-group"><input type="text" value="15" /></div>
                         </form>
                     </div>
                 </div>

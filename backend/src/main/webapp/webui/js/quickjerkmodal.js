@@ -18,10 +18,6 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
     var cb = qm.querySelector(asel('cancel'));
     var sb = qm.querySelector(asel('apply'));
 
-    cb.addEventListener('click', function () {
-        modal.close();
-    });
-
     var initTagCriterionUi = function (el) {
         var ec = el.querySelector('.tag-container');
         ec.addEventListener('mouseenter', function () {
@@ -43,11 +39,40 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
             return new qjmech.builders.random();
         },
         'race': function (el) {
-            var allInputs = func.toArray(el.querySelectorAll('input[type=radio]')).map(function (single) {
-                return {value: single.nextSibling.textContent.trim(), element: single};
-            });
-            return new qjmech.builders.race();
+            var checkedOne = func.toArray(el.querySelectorAll('input[type=radio]')).filter(function (input) { return input.checked; })[0];
+            return new qjmech.builders.race(checkedOne.nextSibling.textContent.trim());
         },
+        'role': function (el) {
+            var allChecked = func.toArray(el.querySelectorAll('input[type=radio]')).filter(function (input) { return input.checked; });
+            return new qjmech.builders.role(allChecked.map(function (input) { return input.nextSibling.textContent.trim(); }));
+        },
+        'tag': function (el) {
+            var allTags = tm.getTags();
+            var pickedTags = func.toArray(el.querySelectorAll('.tag')).map(function (tel) {
+                return allTags[tel.dataset.id];
+            });
+            return new qjmech.builders.tag(pickedTags);
+        },
+        'grade': function (el) {
+            var parsed = parseFloat(el.querySelector('input').value);
+            parsed = isNaN(parsed) ? 3 : parsed;
+            return new qjmech.builders.grade(parsed);
+        },
+        'lastplay': function (el) {
+            var parsed = parseFloat(el.querySelector('input').value);
+            parsed = isNaN(parsed) ? 5 : parsed;
+            return new qjmech.builders.lastView(parsed);
+        },
+        'playcount': function (el) {
+            var parsed = parseFloat(el.querySelector('input').value);
+            parsed = isNaN(parsed) ? 15 : parsed;
+            return new qjmech.builders.playCount(parsed);
+        },
+        'keyword': function (el) {
+            var keyword = el.querySelector('input[type=text]').value;
+            var checked = el.querySelector('input[type=checkbox]').checked;
+            return new qjmech.builders.keyword(keyword, checked);
+        }
     };
 
     ['random', 'race', 'role', 'tag', 'grade', 'lastplay', 'playcount', 'keyword'].forEach(function (key) {
@@ -78,11 +103,13 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
     });
 
     var applyPolicy = function () {
-        func.toArray(mb.children).filter(function (el) { return el.classList.contains('panel'); }).map(function (panel) {
+        var allCriteria = func.toArray(mb.children).filter(function (el) { return el.classList.contains('panel'); }).map(function (panel) {
             var targetType = func.toArray(panel.classList).filter(function (className) { return className.substring(0, 9) === 'template-'; })[0].substring(9);
             var createdCriterion = processTypes[targetType](panel.querySelector('.panel-body'));
-            createdCriterion.weight = panel.querySelector('.weight').value;
+            createdCriterion.weight = parseFloat(panel.querySelector('.weight').value) || 1;
+            return createdCriterion;
         });
+        qjmech.runCriteria(allCriteria);
     };
 
     var init = {
@@ -111,13 +138,24 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
             });
         }
     };
+
+    cb.addEventListener('click', function () {
+        modal.close();
+    });
+
+    sb.addEventListener('click', function () {
+        applyPolicy();
+        modal.close();
+    });
+
     return {
         show: function () {
             modal.show(qm);
         },
-        init: function () {
+        init: function (tbody) {
             init.race();
             init.role();
+            qjmech.init(tbody);
         }
     };
 });

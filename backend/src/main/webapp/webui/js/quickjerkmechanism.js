@@ -21,17 +21,17 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
     ResultEntry.prototype.getTr = function () {
         return dom('tr', null, [
             dom('td', null, this.criterion.name),
-            dom('td', null, this.score),
-            dom('td', null, this.criterion.weight),
-            dom('td', null, this.weightedScore)
+            dom('td', null, this.criterion.weight.toFixed(3)),
+            dom('td', null, this.score.toFixed(3)),
+            dom('td', null, this.message),
+            dom('td', null, this.weightedScore.toFixed(3))
         ]);
     };
 
-    var Criterion = function (name, calc, weight, opt_postNormalize) { // "calc" should return the { score, message }
+    var Criterion = function (name, calc) { // "calc" should return the { score, message }
         this.name = name;
         this.calc = calc;
-        this.weight = weight;
-        this.postNormalize = opt_postNormalize || func.doNothing; // TODO: remove this
+        this.weight = 1;
     };
 
     Criterion.prototype.doCalc = function (clip) {
@@ -39,16 +39,14 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
         return new ResultEntry(this, result.score, result.message);
     };
 
-    var jerk = function (clips, criteria) {
-        clips.forEach(function (clip) {
-            clip.jerkEntries = {};
-            criteria.forEach(function (criterion) {
-                clip.jerkEntries[criterion.name] = criterion.doCalc(clip);
-            });
-            clip.jerkScore = func.toArray(clip.jerkEntries).map(function (entry) {
-                return entry.weightedScore;
-            }).reduce(function (a, b) { return a + b; }, 0);
+    var calcForClip = function (clip, criteria) {
+        clip.jerkEntries = criteria.map(function (criterion) {
+            return criterion.doCalc(clip);
         });
+        clip.jerkScore = clip.jerkEntries.map(function (entry) {
+            return entry.weightedScore;
+        }).reduce(function (a, b) { return a + b; }, 0);
+        clip.renderColumn(clipobj.columns.score);
     };
 
     // map from [0, infinity) to [0, 1)
@@ -80,9 +78,15 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
                     return hit.length ? {score: 1, message: "found: " + hit.join(", ")} : {score: 0, message: "not found"};
                 });
             },
-            grade: function () {
+            grade: function (treatVoid) {
                 return new Criterion("Grade", function (clip) {
-                    return { score: (clip.grade - 1) / 4, message: "grade: " + clip.grade };
+                    return clip.grade ? {
+                        score: (clip.grade - 1) / 4,
+                        message: "grade: " + clip.grade
+                    } : {
+                        score: (treatVoid - 1) / 4,
+                        message: "no grade yet. treated as grade of " + treatVoid
+                    };
                 });
             },
             tag: function (tagEntries) {
@@ -112,8 +116,17 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
             lastView: function (valueMappingToHalf) {
                 var reduceRatio = getReduceRatio(valueMappingToHalf);
                 return new Criterion("Last view (half: " + valueMappingToHalf.toFixed(3), ", ratio: " + reduceRatio.toFixed(3), function (clip) {
+                    if (!clip.lastplay) { // never played
+                        return {
+                            score: 1,
+                            message: "never played before"
+                        };
+                    }
                     var diffDays = (new Date().getTime() / 1000 - clip.lastPlay) / (3600 * 24);
-                    return { score: mapFrom0Infto01(diffDays, reduceRatio), message: "last played: " + diffDays.toFixed(3) + " days ago" };
+                    return {
+                        score: mapFrom0Infto01(diffDays, reduceRatio),
+                        message: "last played: " + diffDays.toFixed(3) + " days ago"
+                    };
                 });
             },
             playCount: function (valueMappingToHalf) {
@@ -125,17 +138,21 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
             random: function () {
                 return new Criterion("Random", function () {
                     var random = Math.random();
-                    return { score: random, message: random };
+                    return { score: random, message: random.toFixed(3) + " taken" };
                 });
             }
         },
-        runCriterion: function (criteria) {
+        runCriteria: function (criteria) {
+            var updater = function (clip) {
+                calcForClip(clip, criteria);
+            };
             var clips = clipobj.getClips();
-            jerk(clips, criteria); // after which, rearrange items
+            clips.forEach(updater);
+            clipobj.setQuickJerkScoreUpdater(updater);
             func.toArray(clips).sort(function (x, y) {
                 return (y.jerkScore - x.jerkScore) || (Math.random() - 0.5);
             }).forEach(function (item) {
-                tbody.appendChild(item);
+                tbody.appendChild(item.tr);
             });
         },
         init: function (theTbody) {

@@ -18,11 +18,14 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
     var root = document.getElementById("root");
     var fileOverlay = document.getElementById('file-overlay');
     var actualClips = null;
+    var quickJerkScoreUpdater = func.doNothing;
 
     var Clip = function (json) { // XXX: this is ugly
         ['id', 'duration', 'file', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay'].forEach(function (key) {
             this[key] = json[key];
         }.bind(this));
+        this.jerkScore = 0;
+        this.jerkEntries = [];
         this.tr = null;
     };
 
@@ -31,25 +34,27 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         return cur ? actualClips[cur.dataset.id] : null;
     };
 
-    var reinitThenRerender = function (oldClip, json) {
+    var reinitThenRerender = function (oldClip, json, columnToUpdate) {
         var id = oldClip.id;
         var tr = oldClip.tr;
         actualClips[id] = new Clip(json);
-        actualClips[id].setTrAndRenderAll(tr);
+        actualClips[id].setTrAndRender(tr, columnToUpdate);
+        return actualClips[id]; // return the new clip
     };
 
-    var updateHelper = function (raw) {
+    var updateHelper = function (raw, columnToUpdate) {
         return function (el) {
             var clip = getParentTr(el);
             if (!clip) {
                 return;
-            } // not sure if this line is necessary (considering the header)
+            } // not sure if this line is necessary (considering the <thead>)
             var post = function (key, value, onSuccess, onReject) {
                 api('clip/edit', {'id': clip.id, 'key': key, 'value': value}).then(function (json) {
                     if (onSuccess) {
                         onSuccess(json);
                     }
-                    reinitThenRerender(clip, json); // TODO: maybe only rerender current td?
+                    var newClip = reinitThenRerender(clip, json, columnToUpdate); // this may only rerender current td
+                    quickJerkScoreUpdater(newClip);
                 }, function (error) {
                     if (onReject) {
                         onReject(error);
@@ -80,28 +85,25 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
     };
 
     var columns = {
-        thumb: new Column('c-thumb', 'Thumb', function (td, loadImg) {
+        thumb: new Column('c-thumb', 'Thumb', function (td) {
             if (!this.thumbSet) {
                 td.appendChild(empty('thumb'));
             } else {
-                loadImg(this.id, td);
-            }
-        }, function (domFilter) {
-            var loadImg = function (id, td) {
-                api('clip/thumb', {"id": id}).then(function (response) {
+                api('clip/thumb', {"id": this.id}).then(function (response) {
                     var img = api.loadImage(response);
                     img.className = 'clip-thumb';
                     td.innerHTML = '';
                     td.appendChild(img);
                 }, api.ALERT);
-            };
+            }
+        }, function (domFilter) {
+            var thisColumn = this;
             ed.container(root, 'click', domFilter, function (el) {
                 var clip = getParentTr(el);
                 ss(clip, function () {
-                    loadImg(clip.id, el);
+                    clip.renderColumn(thisColumn);
                 });
             });
-            return loadImg;
         }),
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, this.file);
@@ -135,13 +137,17 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             });
         }),
         studio: new Column('c-studio', 'Studio', function (td) {
-            dom.append(td, sm.getStudios()[this.studio]);
+            if (typeof this.studio !== 'number') {
+                td.appendChild(empty('studio'));
+            } else {
+                dom.append(td, sm.getStudios()[this.studio]);
+            }
         }, function (domFilter) {
             ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
-                sm.open(el, el.innerHTML, function (proposedStudio, onSuccess, onReject) {
+                sm.open(el, sm.getStudios()[clip.studio] || '', function (proposedStudio, onSuccess, onReject) {
                     post('studio', proposedStudio, onSuccess, onReject);
                 });
-            }));
+            }, this));
         }),
         role: new Column('c-role', 'Role', function (td) {
             if (!this.role.length) {
@@ -172,23 +178,23 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                         return single.value;
                     }), onSuccess, onReject);
                 });
-            }));
+            }, this));
         }),
         grade: new Column('c-grade', 'Grade', function (td) {
+            var list = [];
+            var i, current;
+            for (i = 1; i <= 5; i++) {
+                current = dom('span', {className: ['grade-star', 'glyphicon', i <= this.grade ? 'glyphicon-star' : 'glyphicon-star-empty']});
+                current.dataset.grade = i;
+                list.push(current);
+            }
+            dom.append(td, list);
             if (this.grade <= 0) {
                 td.appendChild(empty('grade'));
-            } else {
-                var list = [];
-                var i, current;
-                for (i = 1; i <= 5; i++) {
-                    current = dom('span', {className: ['grade-star', 'glyphicon', i <= this.grade ? 'glyphicon-star' : 'glyphicon-star-empty']});
-                    current.dataset.grade = i;
-                    list.push(current);
-                }
-                dom.append(td, list);
             }
         }, function (domFilter) {
-            ed.target(root, 'mouseover', dom.match('.grade-star'), updateHelper(function (el, clip, post) {
+            ed.target(root, 'mouseover', dom.match('.grade-star'), function (el) {
+                var clip = getParentTr(el);
                 var grade = parseInt(el.dataset.grade, 10);
                 var stars = el.parentNode.children;
                 var i = 1;
@@ -221,16 +227,20 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     icl(false);
                     cl.remove('golden-star');
                 }
-            }));
+            });
             ed.container(root, 'click', dom.match('.grade-star'), updateHelper(function (el, clip, post) {
                 post('grade', el.dataset.grade);
-            }));
+            }, this));
             ed.target(root, "mouseout", domFilter, function (el) {
                 this.render(el, getParentTr(el)); // clear golden stars
             }.bind(this));
         }),
         race: new Column('c-race', 'Race', function (td) {
-            dom.append(td, this.race);
+            if (this.race === 'Unknown') { // XXX
+                td.appendChild(empty('race'));
+            } else {
+                dom.append(td, this.race);
+            }
         }, function (domFilter) {
             var rsEl = document.getElementById('race-select');
             var rs = po(rsEl);
@@ -250,7 +260,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                         return single.element.checked;
                     })[0].value, onSuccess, onReject);
                 });
-            }));
+            }, this));
         }),
         tags: new Column('c-tags', 'Tags', function (td) {
             var tags = tm.getTags();
@@ -270,7 +280,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     var proposed = clip.tags.concat([newTagId]);
                     post('tags', proposed, onSuccess, onReject);
                 });
-            }));
+            }, this));
             ed.target(root, 'mouseout', domFilter, tm.selectTagClose);
             ed.container(root, 'click', dom.match('.tag.removable'), updateHelper(function (el, clip, post) {
                 if (window.confirm('Remove this tag from this clip\'s tag list?')) {
@@ -279,7 +289,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     });
                     post('tags', proposed);
                 }
-            }));
+            }, this));
         }),
         record: new Column('c-record', 'Record', function (td, daysFromNow) {
             if (!this.lastPlay || !this.totalPlay) {
@@ -290,8 +300,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         }, function (domFilter) {
             var historyEl = document.getElementById('history');
             var historyTable = historyEl.querySelector('table');
-            ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
-                api("clip/history", {id: clip.id}).then(function (entries) {
+            ed.container(root, 'click', domFilter, function (el) {
+                api("clip/history", {id: getParentTr(el).id}).then(function (entries) {
                     // show history info
                     var tbody = dom('tbody', null, entries.map(function (date) {
                         var dateObj = new Date(date);
@@ -302,7 +312,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     historyTable = table;
                     modal.show(historyEl);
                 }, api.ALERT);
-            }));
+            });
             return function (ts) {
                 var diffSecs = new Date().getTime() / 1000 - ts;
                 return Math.floor(diffSecs / (24 * 3600));
@@ -315,7 +325,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 ac(el, el.innerHTML, function (newValue, onSuccess, onReject) {
                     post('sourceNote', newValue, onSuccess, onReject);
                 }, []);
-            }));
+            }, this));
         }),
         duration: new Column('c-duration', 'Duration', function (td, humanReadableDuration) {
             dom.append(td, humanReadableDuration(this.duration));
@@ -331,7 +341,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     var realDuration = parseInt(hrtm[1], 10) * 60 + parseInt(hrtm[2], 10);
                     post('duration', realDuration, onSuccess, onReject);
                 }, []);
-            }));
+            }, this));
             return function (duration) {
                 var min = (duration % 60);
                 if (min < 10) {
@@ -353,15 +363,36 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 }
                 return out.toPrecision(3) + units[index];
             };
+        }),
+        score: new Column('c-score', 'QuickJerk', function (td) {
+            dom.append(td, this.jerkScore.toFixed(3));
+        }, function (domFilter) {
+            var modalEl = document.getElementById('score');
+            var tbody = modalEl.querySelector('tbody');
+            var scoreB = modalEl.querySelector('b');
+            ed.container(root, 'click', domFilter, function (el) {
+                var clip = getParentTr(el);
+                tbody.innerHTML = '';
+                dom.append(tbody, clip.jerkEntries.map(function (resultEntry) { return resultEntry.getTr(); }));
+                scoreB.innerHTML = clip.jerkScore.toFixed(3);
+                modal.show(modalEl);
+            });
         })
     };
 
-    Clip.prototype.setTrAndRenderAll = function (tr) {
+    Clip.prototype.renderColumn = function (column) {
+        column.render(this.tr.querySelector(column.selector()), this);
+    };
+    Clip.prototype.setTrAndRender = function (tr, opt_column) { // only rerender opt_column if specified
         this.tr = tr;
         tr.dataset.id = this.id;
-        func.forEach(columns, function (column) {
-            column.render(tr.querySelector(column.selector()), this);
-        }.bind(this));
+        if (opt_column) {
+            this.renderColumn(opt_column);
+        } else {
+            func.forEach(columns, function (column) {
+                this.renderColumn(column);
+            }.bind(this));
+        }
     };
 
     return {
@@ -384,6 +415,9 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         getClips: function () {
             return actualClips;
         },
-        columns: columns
+        columns: columns,
+        setQuickJerkScoreUpdater: function (callback) {
+            quickJerkScoreUpdater = callback;
+        }
     };
 });
