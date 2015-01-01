@@ -155,7 +155,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             var reEl = document.getElementById('role-editor');
             var re = po(reEl);
             var allRoleInputs = func.toArray(reEl.querySelectorAll('input[type=checkbox]')).map(function (single) {
-                return {value: single.nextSibling.textContent, element: single};
+                return {value: single.nextSibling.textContent.trim(), element: single};
             });
             ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
                 allRoleInputs.forEach(function (single) {
@@ -235,7 +235,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             var rsEl = document.getElementById('race-select');
             var rs = po(rsEl);
             var allRaceInputs = func.toArray(rsEl.querySelectorAll('input[type=radio]')).map(function (single) {
-                return {value: single.nextSibling.textContent, element: single};
+                return {value: single.nextSibling.textContent.trim(), element: single};
             });
             ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
                 allRaceInputs.forEach(function (single) {

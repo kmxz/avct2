@@ -1,6 +1,6 @@
 /*globals ijkl*/
 
-ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], function () {
+ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'mouseEnterLeave'], function () {
     "use strict";
 
     var ac = ijkl('autocomplete');
@@ -13,6 +13,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
     var selectTag = document.getElementById('select-tag');
     var tb = el.querySelector('table');
     var actualTags = null;
+    var currentAllowTagCreation;
     var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
 
     var Tag = function (id, name) {
@@ -23,11 +24,12 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
         this.tr = null;
     };
 
-    var selectTagOpen = function (td, callback) {
+    var selectTagOpen = function (td, callback, opt_disallowCreation) {
         if (ac.isOpen()) {
             return;
         }
         td.appendChild(selectTag);
+        currentAllowTagCreation = !opt_disallowCreation;
         currentSelectTagCallback = callback;
     };
     var selectTagClose = function () {
@@ -38,23 +40,32 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise'], f
     };
     selectTag.addEventListener('click', function () {
         ac(selectTag, '', function (newTagName, onSuccess, onReject) {
+            var onSuccessNc = function () {
+                onSuccess();
+                selectTagClose();
+            };
             var proposedTag = actualTags.filter(function (tag) {
                 return tag.name === newTagName;
             })[0];
             if (!proposedTag) {
-                if (window.confirm("Such tag does not exist. Create one?")) {
-                    api('tag/create', {'name': newTagName}).then(function (ret) {
-                        actualTags[ret.id] = new Tag(ret.id, newTagName); // manually append
-                        currentSelectTagCallback(ret.id, onSuccess, onReject);
-                    }, function (error) {
-                        api.ALERT(error);
+                if (currentAllowTagCreation) {
+                    if (window.confirm("Such tag does not exist. Create one?")) {
+                        api('tag/create', {'name': newTagName}).then(function (ret) {
+                            actualTags[ret.id] = new Tag(ret.id, newTagName); // manually append
+                            currentSelectTagCallback(ret.id, onSuccessNc, onReject);
+                        }, function (error) {
+                            api.ALERT(error);
+                            onReject();
+                        });
+                    } else {
                         onReject();
-                    });
+                    }
                 } else {
+                    alert("Such tag does not exist!");
                     onReject();
                 }
             } else {
-                currentSelectTagCallback(proposedTag.id, onSuccess, onReject);
+                currentSelectTagCallback(proposedTag.id, onSuccessNc, onReject);
             }
         }, actualTags.map(function (tag) {
             return tag.name;

@@ -55,7 +55,7 @@
             <div class="modal-body clearfix"><form></form></div>
             <div class="modal-footer">
                 <a href="javascript:void('cancel')" class="btn btn-default">Cancel</a>
-                <a href="javascript:void('save')" class="btn btn-primary">Save</a>
+                <a href="javascript:void('apply')" class="btn btn-primary">Apply</a>
             </div>
         </div>
     </div>
@@ -102,42 +102,105 @@
                 <h4 class="modal-title">Quickjerk</h4>
             </div>
             <div class="modal-body">
-                Add new criteria:
-                <a class="btn btn-default" href="javascript:void('random')">Random</a>
-                <a class="btn btn-default" href="javascript:void('race')">Race</a>
-                <a class="btn btn-default" href="javascript:void('role')">Role</a>
-                <a class="btn btn-default" href="javascript:void('tag')">Tag</a>
-                <a class="btn btn-default" href="javascript:void('grade')">Grade</a>
-                <a class="btn btn-default" href="javascript:void('lastplay')">Last played</a>
-                <a class="btn btn-default" href="javascript:void('playcount')">Total play</a>
-                <a class="btn btn-default" href="javascript:void('keyword')">Keyword search</a>
+                <p>
+                    Add new criterion:
+                    <a class="btn btn-default" href="javascript:void('random')">Random</a>
+                    <a class="btn btn-default" href="javascript:void('race')">Race</a>
+                    <a class="btn btn-default" href="javascript:void('role')">Role</a>
+                    <a class="btn btn-default" href="javascript:void('tag')">Tag</a>
+                    <a class="btn btn-default" href="javascript:void('grade')">Grade</a>
+                    <a class="btn btn-default" href="javascript:void('lastplay')">Last played</a>
+                    <a class="btn btn-default" href="javascript:void('playcount')">Total play</a>
+                    <a class="btn btn-default" href="javascript:void('keyword')">Keyword search</a>
+                </p>
+                <p>Any of the criteria will result in score of either [0, 1] or [0, 1).</p>
             </div>
             <div class="modal-footer">
                 <a href="javascript:void('cancel')" class="btn btn-default">Cancel</a>
-                <a href="javascript:void('save')" class="btn btn-primary">Save</a>
+                <a href="javascript:void('apply')" class="btn btn-primary">Apply</a>
             </div>
             <div id="templates">
                 <div class="panel panel-default template-role">
-                    <div class="panel-heading">Role filter</div>
+                    <div class="panel-heading">Role</div>
                     <div class="panel-body">
+                        <p>
+                            A boolean value. 1 if any one of selected roles are present.
+                        </p>
                         <form class="form-inline">
-                            <div class="checkbox"><label><input type="checkbox" name="role" />Vanilla</label></div>
-                            <div class="checkbox"><label><input type="checkbox" name="role" />M self</label></div>
-                            <div class="checkbox"><label><input type="checkbox" name="role" />F self</label></div>
-                            <div class="checkbox"><label><input type="checkbox" name="role" />M/m</label></div>
-                            <div class="checkbox"><label><input type="checkbox" name="role" />M/f</label></div>
-                            <div class="checkbox"><label><input type="checkbox" name="role" />F/m</label></div>
-                            <div class="checkbox"><label><input type="checkbox" name="role" />F/f</label></div>
                         </form>
                     </div>
                 </div>
                 <div class="panel panel-default template-race">
-                    <div class="panel-heading">Race filter</div>
+                    <div class="panel-heading">Race</div>
+                    <div class="panel-body">
+                        <p>
+                            A boolean value. 1 if matches the satisfies the selected race.
+                        </p>
+                        <form class="form-inline">
+                        </form>
+                    </div>
+                </div>
+                <div class="panel panel-default template-tag">
+                    <div class="panel-heading">Tags</div>
+                    <div class="panel-body">
+                        <p>
+                            A boolean value. 1 if one of selected tags are present.
+                        </p>
+                        <div class="tag-container">
+                            Selected tags:
+                        </div>
+                    </div>
+                </div>
+                <div class="panel panel-default template-grade">
+                    <div class="panel-heading">Grade</div>
+                    <div class="panel-body">
+                        <p>
+                            Linearly map grade [1, 5] to [0, 1].
+                        </p>
+                    </div>
+                </div>
+                <div class="panel panel-default template-random">
+                    <div class="panel-heading">Random</div>
+                    <div class="panel-body">
+                        <p>
+                            Random number in [0, 1).
+                        </p>
+                    </div>
+                </div>
+                <div class="panel panel-default template-keyword">
+                    <div class="panel-heading">Keyword</div>
                     <div class="panel-body">
                         <form class="form-inline">
-                            <div class="radio"><label><input type="radio" name="race" />Chinese</label></div>
-                            <div class="radio"><label><input type="radio" name="race" />Other Asian</label></div>
-                            <div class="radio"><label><input type="radio" name="race" />Other races</label></div>
+                            <div class="form-group">
+                                <input type="text" />
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="checkbox"> Also search in source notes
+                                    </label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel panel-default template-playcount">
+                    <div class="panel-heading">Total played</div>
+                    <div class="panel-body">
+                        <p>
+                            [0, ∞) will be mapped to [0, 1).
+                        </p>
+                        <form class="form-inline">
+                            specify the value which should be mapped to 0.5: <div class="form-group"><input type="text" /></div>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel panel-default template-lastplay">
+                    <div class="panel-heading">Last played</div>
+                    <div class="panel-body">
+                        <p>
+                            [0, ∞) will be mapped to [0, 1).
+                        </p>
+                        <form class="form-inline">
+                            specify the value which should be mapped to 0.5 (unit of days): <div class="form-group"><input type="text" /></div>
                         </form>
                     </div>
                 </div>
@@ -214,11 +277,11 @@
     <div class="popover-content">
         <form>
             <div class="half">
-                <div class="radio"><label><input type="radio" name="race" />Chinese</label></div>
-                <div class="radio"><label><input type="radio" name="race" />Other Asian</label></div>
+                <div class="radio"><label><input type="radio" name="race" /> Chinese </label></div>
+                <div class="radio"><label><input type="radio" name="race" /> Other Asian </label></div>
             </div>
             <div class="half">
-                <div class="radio"><label><input type="radio" name="race" />Other races</label></div>
+                <div class="radio"><label><input type="radio" name="race" /> Other races </label></div>
             </div>
             <div class="clearfix"></div>
             <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>
@@ -234,15 +297,15 @@
     <div class="popover-content">
         <form>
             <div class="half">
-                <div class="checkbox"><label><input type="checkbox" name="role" />Vanilla</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" />M self</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" />F self</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" />M/m</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" /> Vanilla </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" /> M self </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" /> F self </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" /> M/m </label></div>
             </div>
             <div class="half">
-                <div class="checkbox"><label><input type="checkbox" name="role" />M/f</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" />F/m</label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" />F/f</label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" /> M/f </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" /> F/m </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role" /> F/f </label></div>
             </div>
             <div class="clearfix"></div>
             <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>

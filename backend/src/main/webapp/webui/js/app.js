@@ -16,6 +16,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
     var qjmodal = ijkl('quickjerkmodal');
 
     var cd = clip.columns;
+    qjmodal.init();
 
     return function () {
         loaded.appendThen("Script loaded...", function () {
@@ -44,7 +45,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                                 ftt.columnSel();
                             });
                             document.querySelector(asel('tags')).addEventListener('click', tm.open.bind(tm));
-                            document.getElementById('quickjerk-btn').addEventListener('click', qjmodal);
+                            document.getElementById('quickjerk-btn').addEventListener('click', qjmodal.show);
                             loaded();
                         });
                     }, api.FATAL);

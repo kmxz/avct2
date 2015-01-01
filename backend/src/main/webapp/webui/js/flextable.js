@@ -25,7 +25,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
         });
     };
     modalEl.querySelector(asel('cancel')).addEventListener('click', close);
-    modalEl.querySelector(asel('save')).addEventListener('click', function () {
+    modalEl.querySelector(asel('apply')).addEventListener('click', function () {
         func.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function (cb) {
             if (cb.checked) {
                 show(currentModalTable, cb.name, true);

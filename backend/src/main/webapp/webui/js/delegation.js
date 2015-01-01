@@ -30,7 +30,7 @@ ijkl.module('delegation', [], function () {
         container: function (element, type, filter, callback) {
             element.addEventListener(type, function (e) {
                 var el = e.target;
-                while (el !== element) {
+                while (el && el !== element) { // check el is NOT null, as callback may change DOM
                     if (filter(el)) {
                         callback(el);
                     }

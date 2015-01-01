@@ -75,7 +75,11 @@ var ijkl = (function () {
         'toBlob': new Feature('<canvas> toBlob', function () {
             var canvas = document.createElement('canvas');
             return ('toBlob' in canvas);
-        }, 'http://rawgit.com/eligrey/canvas-toBlob.js/master/canvas-toBlob.js')
+        }, 'http://rawgit.com/eligrey/canvas-toBlob.js/master/canvas-toBlob.js'),
+        'mouseEnterLeave': new Feature('mouseenter and mouseleave events', function () {
+            var div = document.createElement('div');
+            return ('onmouseenter' in div && 'onmouseleave' in div);
+        })
     };
 
     var Module = function (factory, featureRequirements) {
