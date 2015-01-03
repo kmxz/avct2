@@ -14,6 +14,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
     var sm = ijkl('studiomanager');
     var tm = ijkl('tagmanager');
     var qjmodal = ijkl('quickjerkmodal');
+    var qjmech = ijkl('quickjerkmechanism');
 
     var cd = clip.columns;
 
@@ -44,7 +45,8 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                                 ftt.columnSel();
                             });
                             document.querySelector(asel('tags')).addEventListener('click', tm.open.bind(tm));
-                            qjmodal.init(tbody);
+                            qjmodal.init();
+                            qjmech.init(tbody);
                             document.getElementById('quickjerk-btn').addEventListener('click', qjmodal.show);
                             loaded();
                         });

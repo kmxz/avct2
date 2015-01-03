@@ -126,6 +126,7 @@
                     <a class="btn btn-default" href="javascript:void('grade')">Grade</a>
                     <a class="btn btn-default" href="javascript:void('lastplay')">Last played</a>
                     <a class="btn btn-default" href="javascript:void('playcount')">Total play</a>
+                    <a class="btn btn-default" href="javascript:void('studio')">Studio</a>
                     <a class="btn btn-default" href="javascript:void('keyword')">Keyword search</a>
                 </p>
                 <p>Any of the criteria will result in score of either [0, 1] or [0, 1).</p>
@@ -149,7 +150,7 @@
                     <div class="panel-heading">Race</div>
                     <div class="panel-body">
                         <p>
-                            A boolean value. 1 if matches the satisfies the selected race.
+                            A boolean value. 1 if matches the selected race.
                         </p>
                         <form class="form-inline">
                         </form>
@@ -177,6 +178,15 @@
                         </form>
                     </div>
                 </div>
+                <div class="panel panel-default template-studio">
+                    <div class="panel-heading">Studio</div>
+                    <div class="panel-body">
+                        <p>
+                            A boolean value. 1 if matches the selected studio.
+                        </p>
+                        <span id="studio-name"></span> <span class="label label-warning" id="studio-label">Not selected yet!</span>
+                    </div>
+                </div>
                 <div class="panel panel-default template-random">
                     <div class="panel-heading">Random</div>
                     <div class="panel-body">
@@ -188,6 +198,9 @@
                 <div class="panel panel-default template-keyword">
                     <div class="panel-heading">Keyword</div>
                     <div class="panel-body">
+                        <p>
+                            Separate keywords using spaces. Score will be given according to number of keywords matched.
+                        </p>
                         <form class="form-inline">
                             <div class="form-group">
                                 <input type="text" />

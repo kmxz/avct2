@@ -30,8 +30,9 @@ var ijkl = (function () {
     Feature.prototype.loadPolyfill = function () { // TODO: fix it later to ensure the polyfill IS LOADED before any scripts run!
         var js = document.createElement('script');
         js.src = this.polyfill;
+        var feature = this;
         js.onerror = function () {
-            window.alert("Loading polyfill for feature [" + this.name + "] failed. Some things will break up.");
+            window.alert("Loading polyfill for feature [" + feature.name + "] failed. Some things will break up.");
         };
         document.getElementsByTagName('head')[0].appendChild(js);
     };

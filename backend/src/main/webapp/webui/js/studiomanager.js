@@ -9,30 +9,46 @@ ijkl.module('studiomanager', [], function () {
 
     var actualStudios = null;
 
-    var open = function (anchor, currentVal, callback) {
+    var VA_STR = 'V/A';
+
+    var open = function (anchor, currentVal, callback, includeVAAndAllowCreation) {
         if (ac.isOpen()) {
             return;
         }
+        var studios = func.toArray(actualStudios);
+        if (includeVAAndAllowCreation) {
+            studios.unshift(VA_STR);
+        }
         ac(anchor, currentVal, function (newStudioName, onSuccess, onReject) {
-            var proposedStudio = func.filter(actualStudios, function (name) {
-                return name === newStudioName;
-            })[0];
-            if (!proposedStudio) {
-                if (window.confirm("Such studio does not exist. Create one?")) {
-                    api('studio/create', {'name': newStudioName}).then(function (ret) {
-                        actualStudios[ret.id] = newStudioName; // manually append
-                        callback(ret.id, onSuccess, onReject);
-                    }, function (error) {
-                        api.ALERT(error);
+            var proposedStudio = -1;
+            if (includeVAAndAllowCreation && newStudioName === VA_STR) {
+                proposedStudio = 0;
+            } else {
+                proposedStudio = func.filter(actualStudios, function (name) {
+                    return name === newStudioName;
+                })[0];
+            }
+            if (proposedStudio < 0) {
+                if (includeVAAndAllowCreation) {
+                    if (window.confirm("Such studio does not exist. Create one?")) {
+                        api('studio/create', {'name': newStudioName}).then(function (ret) {
+                            actualStudios[ret.id] = newStudioName; // manually append
+                            callback(ret.id, onSuccess, onReject);
+                        }, function (error) {
+                            api.ALERT(error);
+                            onReject();
+                        });
+                    } else {
                         onReject();
-                    });
+                    }
                 } else {
+                    alert("Such studio does not exist!");
                     onReject();
                 }
             } else {
                 callback(proposedStudio, onSuccess, onReject);
             }
-        }, func.toArray(actualStudios));
+        }, studios);
     };
 
     return {
@@ -41,9 +57,10 @@ ijkl.module('studiomanager', [], function () {
                 actualStudios = json;
             }, api.FATAL);
         },
-        getStudios: function () {
-            return actualStudios;
+        getStudio: function (id) {
+            return id === 0 ? VA_STR : actualStudios[id];
         },
-        open: open
+        open: open,
+        VA_STR: VA_STR
     };
 });

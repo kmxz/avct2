@@ -9,6 +9,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
     var func = ijkl('function');
     var modal = ijkl('modal');
     var qjmech = ijkl('quickjerkmechanism');
+    var sm = ijkl('studiomanager');
     var tm = ijkl('tagmanager');
 
     var qm = document.getElementById('quickjerk');
@@ -18,64 +19,128 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
     var cb = qm.querySelector(asel('cancel'));
     var sb = qm.querySelector(asel('apply'));
 
-    var initTagCriterionUi = function (el) {
-        var ec = el.querySelector('.tag-container');
-        ec.addEventListener('mouseenter', function () {
-            tm.selectTagOpen(ec, function (newTagId, onSuccess, onReject) {
-                var a = dom('a', { className: ['tag', 'removable'] }, tm.getTags()[newTagId].name);
-                a.dataset.id = newTagId;
-                ec.appendChild(a);
-                onSuccess();
-            }, true);
-        });
-        ec.addEventListener('mouseleave', tm.selectTagClose);
-        ed.container(el, 'click', dom.match('.tag.removable'), function (tagEl) {
-            ec.removeChild(tagEl);
-        });
-    };
-
     var processTypes = {
-        'random': function () {
-            return new qjmech.builders.random();
+        'random': {
+            getCriterion: function () {
+                return new qjmech.builders.random();
+            }
         },
-        'race': function (el) {
-            var checkedOne = func.toArray(el.querySelectorAll('input[type=radio]')).filter(function (input) { return input.checked; })[0];
-            return new qjmech.builders.race(checkedOne.nextSibling.textContent.trim());
+        'race': {
+            getCriterion: function (el) {
+                var checkedOne = func.toArray(el.querySelectorAll('input[type=radio]')).filter(function (input) {
+                    return input.checked;
+                })[0];
+                if (!checkedOne) {
+                    return null;
+                }
+                return new qjmech.builders.race(checkedOne.nextSibling.textContent.trim());
+            }
         },
-        'role': function (el) {
-            var allChecked = func.toArray(el.querySelectorAll('input[type=radio]')).filter(function (input) { return input.checked; });
-            return new qjmech.builders.role(allChecked.map(function (input) { return input.nextSibling.textContent.trim(); }));
+        'role': {
+            getCriterion: function (el) {
+                var allChecked = func.toArray(el.querySelectorAll('input[type=radio]')).filter(function (input) {
+                    return input.checked;
+                });
+                if (!allChecked.length) {
+                    return null;
+                }
+                return new qjmech.builders.role(allChecked.map(function (input) {
+                    return input.nextSibling.textContent.trim();
+                }));
+            }
         },
-        'tag': function (el) {
-            var allTags = tm.getTags();
-            var pickedTags = func.toArray(el.querySelectorAll('.tag')).map(function (tel) {
-                return allTags[tel.dataset.id];
-            });
-            return new qjmech.builders.tag(pickedTags);
+        'tag': {
+            getCriterion: function (el) {
+                var allTags = tm.getTags();
+                var pickedTags = func.toArray(el.querySelectorAll('.tag')).map(function (tel) {
+                    return allTags[tel.dataset.id];
+                });
+                if (!pickedTags.length) {
+                    return null;
+                }
+                return new qjmech.builders.tag(pickedTags);
+            },
+            init: function (el) {
+                var ec = el.querySelector('.tag-container');
+                ec.addEventListener('mouseenter', function () {
+                    tm.selectTagOpen(ec, function (newTagId, onSuccess, onReject) {
+                        var a = dom('a', {className: ['tag', 'removable']}, tm.getTags()[newTagId].name);
+                        a.dataset.id = newTagId;
+                        ec.appendChild(a);
+                        onSuccess();
+                    }, true);
+                });
+                ec.addEventListener('mouseleave', tm.selectTagClose);
+                ed.container(el, 'click', dom.match('.tag.removable'), function (tagEl) {
+                    ec.removeChild(tagEl);
+                });
+            }
         },
-        'grade': function (el) {
-            var parsed = parseFloat(el.querySelector('input').value);
-            parsed = isNaN(parsed) ? 3 : parsed;
-            return new qjmech.builders.grade(parsed);
+        'grade': {
+            getCriterion: function (el) {
+                var parsed = parseFloat(el.querySelector('input').value);
+                if (isNaN(parsed)) {
+                    return null;
+                }
+                return new qjmech.builders.grade(parsed);
+            }
         },
-        'lastplay': function (el) {
-            var parsed = parseFloat(el.querySelector('input').value);
-            parsed = isNaN(parsed) ? 5 : parsed;
-            return new qjmech.builders.lastView(parsed);
+        'lastplay': {
+            getCriterion: function (el) {
+                var parsed = parseFloat(el.querySelector('input').value);
+                if (isNaN(parsed)) {
+                    return null;
+                }
+                return new qjmech.builders.lastView(parsed);
+            }
         },
-        'playcount': function (el) {
-            var parsed = parseFloat(el.querySelector('input').value);
-            parsed = isNaN(parsed) ? 15 : parsed;
-            return new qjmech.builders.playCount(parsed);
+        'playcount': {
+            getCriterion: function (el) {
+                var parsed = parseFloat(el.querySelector('input').value);
+                if (isNaN(parsed)) {
+                    return null;
+                }
+                return new qjmech.builders.playCount(parsed);
+            }
         },
-        'keyword': function (el) {
-            var keyword = el.querySelector('input[type=text]').value;
-            var checked = el.querySelector('input[type=checkbox]').checked;
-            return new qjmech.builders.keyword(keyword, checked);
+        'keyword': {
+            getCriterion: function (el) {
+                var keywords = el.querySelector('input[type=text]').value.split(/\s/g).filter(function (str) {
+                    return str.length;
+                });
+                var checked = el.querySelector('input[type=checkbox]').checked;
+                if (!keywords.length) {
+                    return null;
+                }
+                return new qjmech.builders.keyword(keywords, checked);
+            }
+        },
+        'studio': {
+            getCriterion: function () {
+                var studio = parseInt(document.getElementById('studio-name').dataset.id, 10);
+                if (isNaN(studio)) {
+                    return null;
+                }
+                return new qjmech.builders.studio(studio);
+            },
+            init: function (el) {
+                var lb = el.querySelector('.label');
+                var sn = document.getElementById('studio-name');
+                lb.addEventListener('click', function () {
+                    sm.open(lb, '', function (proposedStudio, onSuccess, onReject) {
+                        sn.dataset.id = proposedStudio;
+                        lb.innerHTML = 'Click to modify';
+                        lb.classList.remove('label-warning');
+                        lb.classList.add('label-default');
+                        sn.innerHTML = sm.getStudio(proposedStudio);
+                        onSuccess();
+                    }, false);
+                }); // update all columns!
+            }
         }
     };
 
-    ['random', 'race', 'role', 'tag', 'grade', 'lastplay', 'playcount', 'keyword'].forEach(function (key) {
+    func.forEach(processTypes, function (value, key) {
         qm.querySelector(asel(key)).addEventListener('click', function () {
             var el = tp.querySelector('.template-' + key).cloneNode(true);
             var deletion = dom('a', {className: ['btn', 'btn-default']}, 'Delete');
@@ -96,8 +161,8 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
                     ])
                 )
             );
-            if (key === 'tag') {
-                initTagCriterionUi(el);
+            if (value.init) {
+                value.init(el);
             }
         });
     });
@@ -105,10 +170,12 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
     var applyPolicy = function () {
         var allCriteria = func.toArray(mb.children).filter(function (el) { return el.classList.contains('panel'); }).map(function (panel) {
             var targetType = func.toArray(panel.classList).filter(function (className) { return className.substring(0, 9) === 'template-'; })[0].substring(9);
-            var createdCriterion = processTypes[targetType](panel.querySelector('.panel-body'));
-            createdCriterion.weight = parseFloat(panel.querySelector('.weight').value) || 1;
+            var createdCriterion = processTypes[targetType].getCriterion(panel.querySelector('.panel-body'));
+            if (createdCriterion) {
+                createdCriterion.weight = parseFloat(panel.querySelector('.weight').value) || 1;
+            }
             return createdCriterion;
-        });
+        }).filter(func.identity);
         qjmech.runCriteria(allCriteria);
     };
 
@@ -152,10 +219,9 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
         show: function () {
             modal.show(qm);
         },
-        init: function (tbody) {
+        init: function () {
             init.race();
             init.role();
-            qjmech.init(tbody);
         }
     };
 });

@@ -6,6 +6,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
     var clipobj = ijkl('clipobj');
     var dom = ijkl('dom');
     var func = ijkl('function');
+    var sm = ijkl('studiomanager');
 
     var voidFirst = document.getElementById('voidFirst'); // TODO: include the consideration of this
     var hide0 = document.getElementById('hide0'); // TODO: include the consideration of this
@@ -57,106 +58,129 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
         return valueMappingToHalf / (Math.E - 1);
     };
 
-    return {
-        builders: {
-            race: function (raceEntry) {
-                return new Criterion("Race: " + raceEntry, function (clip) {
-                    return clip.race === raceEntry ? {score: 1, message: "race matched"} : {
-                        score: 0,
-                        message: "race not matched"
-                    };
-                });
-            },
-            role: function (roleEntries) {
-                return new Criterion("Role: " + roleEntries.join(", "), function (clip) {
-                    var hit = [];
-                    roleEntries.forEach(function (role) {
-                        if (clip.role.indexOf(role) > -1) {
-                            hit.push(role);
-                        }
-                    });
-                    return hit.length ? {score: 1, message: "found: " + hit.join(", ")} : {score: 0, message: "not found"};
-                });
-            },
-            grade: function (treatVoid) {
-                return new Criterion("Grade", function (clip) {
-                    return clip.grade ? {
-                        score: (clip.grade - 1) / 4,
-                        message: "grade: " + clip.grade
-                    } : {
-                        score: (treatVoid - 1) / 4,
-                        message: "no grade yet. treated as grade of " + treatVoid
-                    };
-                });
-            },
-            tag: function (tagEntries) {
-                return new Criterion("Tags: " + tagEntries.map(function (tag) { return tag.name; }).join(", "), function (clip) {
-                    var hit = [];
-                    tagEntries.forEach(function (tag) {
-                        if (clip.tags.indexOf(tag.id) > -1) {
-                            hit.push(tag.name);
-                        }
-                    });
-                    return hit.length ? {score: 1, message: "found: " + hit.join(", ")} : {score: 0, message: "not found"};
-                });
-            },
-            keyword: function (name, countSourceNote) {
-                return new Criterion("Keyword \"" + name + "\"", function (clip) {
-                    var message = [];
-                    var lcn = name.toLowerCase();
-                    if (clip.file.toLowerCase().indexOf(lcn) > -1) {
-                        message.push("found in file name");
-                    }
-                    if (countSourceNote && clip.sourceNote.toLowerCase().indexOf(lcn) > -1) {
-                        message.push("found in source note");
-                    }
-                    return message.length ? {score: 1, message: message.join(";")} : {score: 0, message: "not found"};
-                });
-            },
-            lastView: function (valueMappingToHalf) {
-                var reduceRatio = getReduceRatio(valueMappingToHalf);
-                return new Criterion("Last view (half: " + valueMappingToHalf.toFixed(3), ", ratio: " + reduceRatio.toFixed(3), function (clip) {
-                    if (!clip.lastplay) { // never played
-                        return {
-                            score: 1,
-                            message: "never played before"
-                        };
-                    }
-                    var diffDays = (new Date().getTime() / 1000 - clip.lastPlay) / (3600 * 24);
-                    return {
-                        score: mapFrom0Infto01(diffDays, reduceRatio),
-                        message: "last played: " + diffDays.toFixed(3) + " days ago"
-                    };
-                });
-            },
-            playCount: function (valueMappingToHalf) {
-                var reduceRatio = getReduceRatio(valueMappingToHalf);
-                return new Criterion("Total play (half: " + valueMappingToHalf.toFixed(3), ", ratio: " + reduceRatio.toFixed(3), function (clip) {
-                    return { score: mapFrom0Infto01(clip.totalPlay, reduceRatio), message: "total play: " + clip.totalPlay };
-                });
-            },
-            random: function () {
-                return new Criterion("Random", function () {
-                    var random = Math.random();
-                    return { score: random, message: random.toFixed(3) + " taken" };
-                });
-            }
-        },
-        runCriteria: function (criteria) {
-            var updater = function (clip) {
-                calcForClip(clip, criteria);
-            };
-            var clips = clipobj.getClips();
-            clips.forEach(updater);
-            clipobj.setQuickJerkScoreUpdater(updater);
-            func.toArray(clips).sort(function (x, y) {
-                return (y.jerkScore - x.jerkScore) || (Math.random() - 0.5);
-            }).forEach(function (item) {
-                tbody.appendChild(item.tr);
+    var builders = {
+        race: function (raceEntry) {
+            return new Criterion("Race: " + raceEntry, function (clip) {
+                return clip.race === raceEntry ? {score: 1, message: "race matched"} : {score: 0, message: "race not matched"};
             });
         },
+        role: function (roleEntries) {
+            return new Criterion("Role: " + roleEntries.join(", "), function (clip) {
+                var hit = [];
+                roleEntries.forEach(function (role) {
+                    if (clip.role.indexOf(role) > -1) {
+                        hit.push(role);
+                    }
+                });
+                return hit.length ? {score: 1, message: "found: " + hit.join(", ")} : {score: 0, message: "not found"};
+            });
+        },
+        grade: function (treatVoid) {
+            return new Criterion("Grade", function (clip) {
+                return clip.grade ? {
+                    score: (clip.grade - 1) / 4,
+                    message: "grade: " + clip.grade
+                } : {
+                    score: (treatVoid - 1) / 4,
+                    message: "no grade yet. treated as grade of " + treatVoid
+                };
+            });
+        },
+        tag: function (tagEntries) {
+            return new Criterion("Tags: " + tagEntries.map(function (tag) { return tag.name; }).join(", "), function (clip) {
+                var hit = [];
+                tagEntries.forEach(function (tag) {
+                    if (clip.tags.indexOf(tag.id) > -1) {
+                        hit.push(tag.name);
+                    }
+                });
+                return hit.length ? {score: 1, message: "found: " + hit.join(", ")} : {score: 0, message: "not found"};
+            });
+        },
+        keyword: function (keywords, countSourceNote) {
+            return new Criterion("Keyword \"" + keywords.join(", ") + "\"", function (clip) {
+                var message = [];
+                var matched = 0;
+                keywords.forEach(function (keyword) {
+                    var lcn = keyword.toLowerCase();
+                    var matchedThis = false;
+                    if (clip.file.toLowerCase().indexOf(lcn) > -1) {
+                        message.push("found \"" + keyword + "\" in file name");
+                        matchedThis = true;
+                    }
+                    if (countSourceNote && clip.sourceNote.toLowerCase().indexOf(lcn) > -1) {
+                        message.push("found \"" + keyword + "\" in source note");
+                        matchedThis = true;
+                    }
+                    if (matchedThis) { matched++; }
+                });
+                return message.length ? {score: matched / keywords.length, message: message.join("; ")} : {score: 0, message: "not found"};
+            });
+        },
+        lastView: function (valueMappingToHalf) {
+            var reduceRatio = getReduceRatio(valueMappingToHalf);
+            return new Criterion("Last view (half: " + valueMappingToHalf.toFixed(3) + ", ratio: " + reduceRatio.toFixed(3), function (clip) {
+                if (typeof clip.lastPlay !== 'number') { // never played
+                    return {
+                        score: 1,
+                        message: "never played before"
+                    };
+                }
+                var diffDays = (new Date().getTime() / 1000 - clip.lastPlay) / (3600 * 24);
+                return {
+                    score: mapFrom0Infto01(diffDays, reduceRatio),
+                    message: "last played: " + diffDays.toFixed(3) + " days ago"
+                };
+            });
+        },
+        playCount: function (valueMappingToHalf) {
+            var reduceRatio = getReduceRatio(valueMappingToHalf);
+            return new Criterion("Total play (half: " + valueMappingToHalf.toFixed(3), ", ratio: " + reduceRatio.toFixed(3), function (clip) {
+                return { score: mapFrom0Infto01(clip.totalPlay, reduceRatio), message: "total play: " + clip.totalPlay };
+            });
+        },
+        random: function () {
+            return new Criterion("Random", function () {
+                var random = Math.random();
+                return { score: random, message: random.toFixed(3) + " taken" };
+            });
+        },
+        studio: function (studioId) {
+            return new Criterion("Studio " + sm.getStudio(studioId), function (clip) {
+                return (clip.studio === studioId) ? {score: 1, message: "studio matched"} : {score: 0, message: "studio not matched"};
+            });
+        }
+    };
+
+    var runCriteria = function (criteria) {
+        var updater = function (clip) {
+            calcForClip(clip, criteria);
+        };
+        var clips = clipobj.getClips();
+        clips.forEach(updater);
+        clipobj.setQuickJerkScoreUpdater(updater);
+        func.toArray(clips).sort(function (x, y) {
+            return (y.jerkScore - x.jerkScore) || (Math.random() - 0.5);
+        }).forEach(function (item) {
+            tbody.appendChild(item.tr);
+        });
+    };
+
+    return {
+        builders: builders,
+        runCriteria: runCriteria,
         init: function (theTbody) {
             tbody = theTbody;
+            var initListener = function (suffix, criterion) {
+                document.getElementById('quickjerk-btn-' + suffix).addEventListener('click', function () {
+                    runCriteria([criterion]);
+                });
+            };
+            initListener('random', builders.random());
+            initListener('grade', builders.grade(3));
+            var lastViewCriterion = builders.lastView(15);
+            lastViewCriterion.weight = -1;
+            initListener('most-recent', lastViewCriterion);
         }
     };
 });

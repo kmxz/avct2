@@ -31,7 +31,6 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
   def length = column[Int]("length")
   def sourceNote = column[String]("SOURCE_NOTES") // FIXME change it back to lowercase after debugging
   index("index_file", file, unique = true)
-  foreignKey("foreign_key_studio_id", studioId, Tables.studio)(_.studioId)
   def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote)
 }
 

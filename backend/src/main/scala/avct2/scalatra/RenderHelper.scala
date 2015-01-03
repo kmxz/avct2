@@ -10,6 +10,7 @@ import org.json4s.DefaultFormats
 import org.json4s.JsonAST.JNull
 import org.scalatra.RenderPipeline
 import org.scalatra.json.NativeJsonSupport
+import scala.collection.mutable.Map
 
 import scala.slick.driver.HsqldbDriver.simple._
 
@@ -55,6 +56,38 @@ trait RenderHelper {
         } else Some((503, "File does not exist."))
       }
       case None => Some((404, "Clip does not exist."))
+    }
+  }
+
+  def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioId: Int)(implicit session: Session) = {
+    val otherClips = Tables.clip.filter(_.studioId === studioId).map(_.race).list
+    if (otherClips.nonEmpty) {
+      val map = Map[Race.Value, Int]()
+      otherClips.foreach { race =>
+        map.update(race, map.getOrElse(race, 0) + 1)
+      }
+      var length = otherClips.length
+      map.maxBy(_._2) match {
+        case (race, count) =>
+          if (count * 2 > length) {
+            Tables.clip.filter(_.clipId === clipId).map(_.race).update(race)
+          }
+      }
+    }
+  }
+
+  def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioId: Int)(implicit session: Session) = {
+    val otherClips = Tables.clip.filter(_.studioId === studioId).map(_.role).list
+    if (otherClips.nonEmpty) {
+      val map = Map[Role.Value, Int]()
+      otherClips.foreach { roles =>
+        roles.foreach(role => {
+          map.update(role, map.getOrElse(role, 0) + 1)
+        })
+      }
+      val length = otherClips.length
+      val newRoles = Role.ValueSet(map.filter(_._2 * 2 > length).keys.toSeq:_*)
+      Tables.clip.filter(_.clipId === clipId).map(_.role).update(newRoles)
     }
   }
 

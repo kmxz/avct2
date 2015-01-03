@@ -34,15 +34,15 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         return cur ? actualClips[cur.dataset.id] : null;
     };
 
-    var reinitThenRerender = function (oldClip, json, columnToUpdate) {
+    var reinitThenRerender = function (oldClip, json, opt_columnToUpdate) {
         var id = oldClip.id;
         var tr = oldClip.tr;
         actualClips[id] = new Clip(json);
-        actualClips[id].setTrAndRender(tr, columnToUpdate);
+        actualClips[id].setTrAndRender(tr, opt_columnToUpdate);
         return actualClips[id]; // return the new clip
     };
 
-    var updateHelper = function (raw, columnToUpdate) {
+    var updateHelper = function (raw, opt_columnToUpdate) { // all columns will be rerendered if not given opt_columnToUpdate
         return function (el) {
             var clip = getParentTr(el);
             if (!clip) {
@@ -53,7 +53,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     if (onSuccess) {
                         onSuccess(json);
                     }
-                    var newClip = reinitThenRerender(clip, json, columnToUpdate); // this may only rerender current td
+                    var newClip = reinitThenRerender(clip, json, opt_columnToUpdate);
                     quickJerkScoreUpdater(newClip);
                 }, function (error) {
                     if (onReject) {
@@ -140,14 +140,14 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             if (typeof this.studio !== 'number') {
                 td.appendChild(empty('studio'));
             } else {
-                dom.append(td, sm.getStudios()[this.studio]);
+                dom.append(td, sm.getStudio(this.studio));
             }
         }, function (domFilter) {
             ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
-                sm.open(el, sm.getStudios()[clip.studio] || '', function (proposedStudio, onSuccess, onReject) {
+                sm.open(el, sm.getStudio(clip.studio) || '', function (proposedStudio, onSuccess, onReject) {
                     post('studio', proposedStudio, onSuccess, onReject);
-                });
-            }, this));
+                }, true);
+            })); // update all columns!
         }),
         role: new Column('c-role', 'Role', function (td) {
             if (!this.role.length) {
@@ -300,12 +300,15 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         }, function (domFilter) {
             var historyEl = document.getElementById('history');
             var historyTable = historyEl.querySelector('table');
+            var yyyymmdd = function (dateSec) {
+                var date = new Date(dateSec * 1000);
+                return date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+            };
             ed.container(root, 'click', domFilter, function (el) {
                 api("clip/history", {id: getParentTr(el).id}).then(function (entries) {
                     // show history info
                     var tbody = dom('tbody', null, entries.map(function (date) {
-                        var dateObj = new Date(date);
-                        return dom('tr', null, dom('td', null, dateObj.toString()));
+                        return dom('tr', null, dom('td', null, yyyymmdd(date)));
                     }));
                     var table = dom('table', {className: ['table', 'table-condensed', 'table-hover']}, tbody);
                     historyTable.parentNode.replaceChild(table, historyTable);

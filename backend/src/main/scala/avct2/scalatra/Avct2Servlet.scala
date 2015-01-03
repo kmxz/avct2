@@ -149,11 +149,18 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       params("key") match {
         case "studio" => {
           val studio = value.toInt
-          if (!Tables.studio.filter(_.studioId === studio).exists.run) {
-            terminate(404, "Studio does not exist.")
+          if (studio != 0) {
+            if (!Tables.studio.filter(_.studioId === studio).exists.run) {
+              terminate(404, "Studio does not exist.")
+            }
+            if (clipRow.map(_.race).first == Race.unknown) {
+              updateRaceAutomaticallyAccordingToStudio(id, studio)
+            }
+            if (clipRow.map(_.role).first.isEmpty) {
+              updateRolesAutomaticallyAccordingToStudio(id, studio)
+            }
           }
           clipRow.map(_.studioId).update(Some(studio))
-          // TODO: auto-set role and race according to previous values
         }
         case "race" => {
           try {
