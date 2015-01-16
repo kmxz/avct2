@@ -27,6 +27,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         this.jerkScore = 0;
         this.jerkEntries = [];
         this.tr = null;
+        this.isVoid = this.isAnyVoid();
     };
 
     var getParentTr = function (el) {
@@ -54,7 +55,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                         onSuccess(json);
                     }
                     var newClip = reinitThenRerender(clip, json, opt_columnToUpdate);
-                    quickJerkScoreUpdater(newClip);
+                    quickJerkScoreUpdater(newClip); // is score update shown? perhaps NOT! FIXME
                 }, function (error) {
                     if (onReject) {
                         onReject(error);
@@ -66,36 +67,39 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         };
     };
 
-    var Column = function (className, text, renderer, initializer) {
+    var Column = function (className, text, renderer, initializer, opt_isVoid, opt_renderWhenVoid) {
         this.className = className;
         this.text = text;
         this.renderer = renderer;
         this.initializedUtilities = initializer ? initializer.call(this, dom.match(this.selector())) : null; // init event listeners and utility functions
+        this.isVoid = opt_isVoid || function () { return false; };
+        this.renderWhenVoid =  opt_renderWhenVoid || false;
     };
     Column.prototype.render = function (td, clip) {
         td.innerHTML = ''; // XXX: should we recreate a <td> to clear event listeners?
-        this.renderer.call(clip, td, this.initializedUtilities);
+        var isVoid = this.isVoid(clip); // XXX
+        if (this.renderWhenVoid || !isVoid) {
+            this.renderer.call(clip, td, this.initializedUtilities);
+        }
+        if (isVoid) {
+            td.appendChild(this.empty());
+        }
     };
     Column.prototype.selector = function () {
         return 'td.' + this.className;
     };
-
-    var empty = function (field) {
-        return dom('span', {className: ['label', 'label-warning']}, 'No ' + field + '!');
+    Column.prototype.empty = function () {
+        return dom('span', {className: ['label', 'label-warning']}, this.text + ' is void!');
     };
 
     var columns = {
         thumb: new Column('c-thumb', 'Thumb', function (td) {
-            if (!this.thumbSet) {
-                td.appendChild(empty('thumb'));
-            } else {
-                api('clip/thumb', {"id": this.id}).then(function (response) {
-                    var img = api.loadImage(response);
-                    img.className = 'clip-thumb';
-                    td.innerHTML = '';
-                    td.appendChild(img);
-                }, api.ALERT);
-            }
+            api('clip/thumb', {"id": this.id}).then(function (response) {
+                var img = api.loadImage(response);
+                img.className = 'clip-thumb';
+                td.innerHTML = '';
+                td.appendChild(img);
+            }, api.ALERT);
         }, function (domFilter) {
             var thisColumn = this;
             ed.container(root, 'click', domFilter, function (el) {
@@ -104,6 +108,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     clip.renderColumn(thisColumn);
                 });
             });
+        }, function (clip) {
+            return !clip.thumbSet;
         }),
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, this.file);
@@ -137,26 +143,20 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             });
         }),
         studio: new Column('c-studio', 'Studio', function (td) {
-            if (typeof this.studio !== 'number') {
-                td.appendChild(empty('studio'));
-            } else {
-                dom.append(td, sm.getStudio(this.studio));
-            }
+            dom.append(td, sm.getStudio(this.studio));
         }, function (domFilter) {
             ed.container(root, 'click', domFilter, updateHelper(function (el, clip, post) {
                 sm.open(el, sm.getStudio(clip.studio) || '', function (proposedStudio, onSuccess, onReject) {
                     post('studio', proposedStudio, onSuccess, onReject);
                 }, true);
             })); // update all columns!
+        }, function (clip) {
+            return (typeof clip.studio !== 'number');
         }),
         role: new Column('c-role', 'Role', function (td) {
-            if (!this.role.length) {
-                td.appendChild(empty('roles'));
-            } else {
-                dom.append(td, this.role.map(function (role) {
-                    return dom('a', {className: 'tag'}, role);
-                }));
-            }
+            dom.append(td, this.role.map(function (role) {
+                return dom('a', {className: 'tag'}, role);
+            }));
         }, function (domFilter) {
             var reEl = document.getElementById('role-editor');
             var re = po(reEl);
@@ -179,6 +179,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     }), onSuccess, onReject);
                 });
             }, this));
+        }, function (clip) {
+            return !clip.role.length;
         }),
         grade: new Column('c-grade', 'Grade', function (td) {
             var list = [];
@@ -189,9 +191,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 list.push(current);
             }
             dom.append(td, list);
-            if (this.grade <= 0) {
-                td.appendChild(empty('grade'));
-            }
         }, function (domFilter) {
             ed.target(root, 'mouseover', dom.match('.grade-star'), function (el) {
                 var clip = getParentTr(el);
@@ -234,13 +233,11 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             ed.target(root, "mouseout", domFilter, function (el) {
                 this.render(el, getParentTr(el)); // clear golden stars
             }.bind(this));
-        }),
+        }, function (clip) {
+            return clip.grade <= 0;
+        }, true),
         race: new Column('c-race', 'Race', function (td) {
-            if (this.race === 'Unknown') { // XXX
-                td.appendChild(empty('race'));
-            } else {
-                dom.append(td, this.race);
-            }
+            dom.append(td, this.race);
         }, function (domFilter) {
             var rsEl = document.getElementById('race-select');
             var rs = po(rsEl);
@@ -261,19 +258,17 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     })[0].value, onSuccess, onReject);
                 });
             }, this));
+        }, function (clip) {
+            return clip.race === 'Unknown'; // XXX
         }),
         tags: new Column('c-tags', 'Tags', function (td) {
             var tags = tm.getTags();
-            if (!this.tags.length) {
-                td.appendChild(empty('tags'));
-            } else {
-                dom.append(td, this.tags.map(function (tagId) {
-                    var tag = tags[tagId];
-                    var el = dom('a', {className: ['tag', 'removable'], title: "Click to remove"}, tag.name);
-                    el.dataset.id = tag.id;
-                    return el;
-                }));
-            }
+            dom.append(td, this.tags.map(function (tagId) {
+                var tag = tags[tagId];
+                var el = dom('a', {className: ['tag', 'removable'], title: "Click to remove"}, tag.name);
+                el.dataset.id = tag.id;
+                return el;
+            }));
         }, function (domFilter) {
             ed.target(root, 'mouseover', domFilter, updateHelper(function (el, clip, post) {
                 tm.selectTagOpen(el, function (newTagId, onSuccess, onReject) {
@@ -290,6 +285,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     post('tags', proposed);
                 }
             }, this));
+        }, function (clip) {
+            return !clip.tags.length;
         }),
         record: new Column('c-record', 'Record', function (td, daysFromNow) {
             if (!this.lastPlay || !this.totalPlay) {
@@ -352,6 +349,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 }
                 return Math.floor(duration / 60) + ':' + min;
             };
+        }, function (clip) {
+            return clip.duration <= 0;
         }),
         size: new Column('c-size', 'Size', function (td, humanReadableSize) {
             dom.append(td, humanReadableSize(this.size));
@@ -397,11 +396,17 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
             }.bind(this));
         }
     };
+    Clip.prototype.isAnyVoid = function () {
+        var clip = this;
+        return func.toArray(columns).map(function (column) {
+            return column.isVoid(clip);
+        }).reduce(function (a, b) { return a || b; }, false);
+    };
 
     return {
         Clip: Clip,
         init: function (json, players) {
-            actualClips = [];
+            actualClips = {};
             json.forEach(function (json) {
                 actualClips[json.id] = new Clip(json);
             });

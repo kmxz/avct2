@@ -127,7 +127,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
                 var lb = el.querySelector('.label');
                 var sn = document.getElementById('studio-name');
                 lb.addEventListener('click', function () {
-                    sm.open(lb, '', function (proposedStudio, onSuccess, onReject) {
+                    sm.open(lb, sn.innerHTML, function (proposedStudio, onSuccess, onReject) {
                         sn.dataset.id = proposedStudio;
                         lb.innerHTML = 'Click to modify';
                         lb.classList.remove('label-warning');
@@ -183,7 +183,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
         race: function () {
             var src = document.getElementById('race-select');
             var all = func.toArray(src.querySelectorAll('div.radio'));
-            var template = document.getElementById('templates').querySelector('.template-role form.form-inline');
+            var template = document.getElementById('templates').querySelector('.template-race form.form-inline');
             template.innerHTML = '';
             all.forEach(function (each) {
                 var cloned = each.firstChild.cloneNode(true);
@@ -195,7 +195,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
         role: function () {
             var src = document.getElementById('role-editor');
             var all = func.toArray(src.querySelectorAll('div.checkbox'));
-            var template = document.getElementById('templates').querySelector('.template-race form.form-inline');
+            var template = document.getElementById('templates').querySelector('.template-role form.form-inline');
             template.innerHTML = '';
             all.forEach(function (each) {
                 var cloned = each.firstChild.cloneNode(true);

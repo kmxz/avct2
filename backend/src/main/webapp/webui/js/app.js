@@ -24,6 +24,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                 loaded.appendThen("New clips scanned: " + (newClips.length ? newClips.join(', ') : "none"), function () {
                     Promise.all([api('clip/list'), api('players'), pl.init(), sm.init(), tm.init()]).then(function (results) {
                         clip.init(results[0], results[1]);
+                        document.getElementById('total-clips').innerHTML = results[0].length;
                         loaded.appendThen("Rendering...", function () {
                             var thead = dom('thead');
                             var tbody = dom('tbody');
@@ -40,13 +41,13 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                             });
                             ftt.showColumn(cd.duration.className, false);
                             ftt.showColumn(cd.size.className, false);
+                            qjmech.init(tbody);
                             document.getElementById("root").appendChild(table);
                             document.querySelector(asel('columns')).addEventListener('click', function () {
                                 ftt.columnSel();
                             });
                             document.querySelector(asel('tags')).addEventListener('click', tm.open.bind(tm));
                             qjmodal.init();
-                            qjmech.init(tbody);
                             document.getElementById('quickjerk-btn').addEventListener('click', qjmodal.show);
                             loaded();
                         });

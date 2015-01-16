@@ -8,9 +8,11 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
     var func = ijkl('function');
     var sm = ijkl('studiomanager');
 
-    var voidFirst = document.getElementById('voidFirst'); // TODO: include the consideration of this
-    var hide0 = document.getElementById('hide0'); // TODO: include the consideration of this
+    var voidFirst = document.getElementById('voidFirst');
+    var hide0 = document.getElementById('hide0');
+    var shownClipsSpan = document.getElementById('shown-clips');
     var tbody;
+    var lastCriteria;
 
     var ResultEntry = function (criterion, score, message) {
         this.criterion = criterion;
@@ -51,11 +53,11 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
     };
 
     // map from [0, infinity) to [0, 1)
-    var mapFrom0Infto01 = function (input, reduceRatio) { return 1 - 1 / (Math.log(input / reduceRatio + 1) + 1); };
+    var mapFrom0Infto01 = function (input, reduceRatio) { return 1 - Math.exp(-input * reduceRatio); };
 
     // get reduceRatio by providing a value that should be mapped to 0.5
     var getReduceRatio = function (valueMappingToHalf) {
-        return valueMappingToHalf / (Math.E - 1);
+        return Math.log(2) / valueMappingToHalf;
     };
 
     var builders = {
@@ -153,17 +155,28 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
     };
 
     var runCriteria = function (criteria) {
+        lastCriteria = criteria;
         var updater = function (clip) {
             calcForClip(clip, criteria);
         };
+        var voidFirstActivated = voidFirst.checked;
+        var hide0Activated = hide0.checked;
         var clips = clipobj.getClips();
-        clips.forEach(updater);
+        var shown = 0;
+        func.forEach(clips, updater);
         clipobj.setQuickJerkScoreUpdater(updater);
         func.toArray(clips).sort(function (x, y) {
-            return (y.jerkScore - x.jerkScore) || (Math.random() - 0.5);
+            return (voidFirstActivated && (y.isVoid - x.isVoid)) || (y.jerkScore - x.jerkScore) || (Math.random() - 0.5);
         }).forEach(function (item) {
             tbody.appendChild(item.tr);
+            if (hide0Activated && item.jerkScore <= 0) {
+                item.tr.style.display = 'none';
+            } else {
+                item.tr.style.display = ''; // default
+                shown++;
+            }
         });
+        shownClipsSpan.innerHTML = shown;
     };
 
     return {
@@ -181,6 +194,12 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
             var lastViewCriterion = builders.lastView(15);
             lastViewCriterion.weight = -1;
             initListener('most-recent', lastViewCriterion);
+            var rerun = function () {
+                runCriteria(lastCriteria);
+            };
+            voidFirst.addEventListener('change', rerun);
+            hide0.addEventListener('change', rerun);
+            runCriteria([]);
         }
     };
 });

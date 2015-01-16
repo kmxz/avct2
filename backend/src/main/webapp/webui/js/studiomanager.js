@@ -20,13 +20,13 @@ ijkl.module('studiomanager', [], function () {
             studios.unshift(VA_STR);
         }
         ac(anchor, currentVal, function (newStudioName, onSuccess, onReject) {
-            var proposedStudio = -1;
+            var proposedStudio;
             if (includeVAAndAllowCreation && newStudioName === VA_STR) {
                 proposedStudio = 0;
             } else {
                 proposedStudio = func.filter(actualStudios, function (name) {
                     return name === newStudioName;
-                })[0];
+                })[0] || -1;
             }
             if (proposedStudio < 0) {
                 if (includeVAAndAllowCreation) {
