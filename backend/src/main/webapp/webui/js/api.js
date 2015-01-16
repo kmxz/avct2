@@ -33,9 +33,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
         'tag/list': {method: 'get', url: 'tag'},
         'tag/create': {method: 'post', url: 'tag/create', params: ['name']},
         'tag/parent': {method: 'post', url: 'tag/$/parent', params: ['parent']},
-        'tag/edit': {method: 'post', url: 'tag/$/edit', params: ['name']},
-        // quickjerk
-        'quickjerk': {method: 'get', url: 'quickjerk', params: [/* todo */]}
+        'tag/edit': {method: 'post', url: 'tag/$/edit', params: ['name']}
     };
     var request = function (api, opt_params) {
         var config = actions[api];

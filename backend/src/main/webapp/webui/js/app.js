@@ -53,7 +53,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                         });
                     }, api.FATAL);
                 });
-            }, api.ALERT);
+            }, api.FATAL);
         });
     };
 });

@@ -5,7 +5,6 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
 
     var api = ijkl('api');
     var asel = ijkl('actionselector');
-    var func = ijkl('function');
     var modal = ijkl('modal');
     var canvas = ijkl('canvas');
 
@@ -16,9 +15,9 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
     var ss = document.getElementById('startShot');
     var fi = document.getElementById('fileInput');
 
-    var currentClipId;
     var currentToBeUpdated;
     var currentCallbackOnConfirm;
+    var currentClip;
 
     var voidImage = new Image();
     voidImage.src = 'no-thumbnail.jpg'; // we assume this to be loaded before usage
@@ -53,7 +52,8 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
             return;
         }
         canvasCtx.canvas.toBlob(function (blob) {
-            api('clip/saveshot', {'id': currentClipId, 'file': blob}).then(function () {
+            api('clip/saveshot', {'id': currentClip.id, 'file': blob}).then(function () {
+                currentClip.thumbSet = true;
                 currentCallbackOnConfirm();
                 modal.close();
             }, function (error) {
@@ -78,7 +78,7 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
             return;
         }
         lock();
-        api('clip/shot', {'id': currentClipId}).then(function (response) {
+        api('clip/shot', {'id': currentClip.id}).then(function (response) {
             api.loadImage(response, imgOnLoad, unlock);
         }, api.ALERT);
     });
@@ -97,11 +97,11 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
 
     var open = function (clip, callback) {
         currentToBeUpdated = false;
-        currentClipId = clip.id;
+        currentClip = clip;
         currentCallbackOnConfirm = callback;
         lock();
         if (clip.thumbSet) {
-            api('clip/thumb', {'id': currentClipId}).then(function (response) {
+            api('clip/thumb', {'id': currentClip.id}).then(function (response) {
                 api.loadImage(response, imgOnLoadInit, unlock);
             }, api.ALERT);
         } else {

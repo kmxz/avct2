@@ -55,7 +55,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                         onSuccess(json);
                     }
                     var newClip = reinitThenRerender(clip, json, opt_columnToUpdate);
-                    quickJerkScoreUpdater(newClip); // is score update shown? perhaps NOT! FIXME
+                    quickJerkScoreUpdater(newClip);
                 }, function (error) {
                     if (onReject) {
                         onReject(error);

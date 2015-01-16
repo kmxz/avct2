@@ -62,6 +62,8 @@ public class MpShooter {
         List<String> command = new ArrayList<>();
         command.add(Avct2Conf.getMPlayer());
         command.add(filePath);
+        command.add("-vf");
+        command.add("screenshot");
         ProcessBuilder pb = new ProcessBuilder(command);
         screenshotPath.mkdirs();
         pb.directory(screenshotPath);
