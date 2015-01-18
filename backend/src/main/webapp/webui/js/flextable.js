@@ -40,7 +40,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
         var currentDrag = null;
         var currentDragover = null;
         var currentVisualAux = null;
-        var currentDragHandle = null;
+        var currentResizeHandle = null;
         var currentResizeRelative = 0;
         var currentResizeOriginal = 0;
         var getValidClassName = function (el) {
@@ -62,7 +62,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             var checkboxes = columns.map(function (info) {
                 return {
                     name: info.className,
-                    text: info.text,
+                    text: info.text, // XXX: this is UGLY!
                     shown: !table.querySelector('.' + info.className).classList.contains('hidden')
                 };
             }).map(function (item) {
@@ -98,16 +98,17 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             insertBefore = currentDrag.nextSibling;
             removeClass(currentDragover);
             removeClass(currentVisualAux);
-            currentDragover = this.parentNode;
-            var rect = currentDragover.getBoundingClientRect();
+            currentDragover = this;
+            var rect = this.getBoundingClientRect();
             if (currentDragover === currentDrag) {
                 return;
             }
             if ((ev.clientX - rect.left) > (rect.right - rect.left) / 2) {
                 if (currentDrag.previousSibling !== currentDragover) {
                     currentDragover.classList.add('shadow-right');
-                    insertBefore = currentDragover.nextSibling;
                     currentVisualAux = currentDragover.nextSibling;
+                    while (currentVisualAux && currentVisualAux.classList.contains('hidden')) { currentVisualAux = currentVisualAux.nextSibling; }
+                    insertBefore = currentVisualAux;
                     if (currentVisualAux) {
                         currentVisualAux.classList.add('shadow-left');
                     } else {
@@ -117,8 +118,9 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             } else {
                 if (currentDrag.nextSibling !== currentDragover) {
                     currentDragover.classList.add('shadow-left');
-                    insertBefore = currentDragover;
                     currentVisualAux = currentDragover.previousSibling;
+                    while (currentVisualAux && currentVisualAux.classList.contains('hidden')) { currentVisualAux = currentVisualAux.previousSibling; }
+                    insertBefore = currentDragover;
                     if (currentVisualAux) {
                         currentVisualAux.classList.add('shadow-right');
                     } else {
@@ -127,8 +129,9 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
                 }
             }
         };
-        var dragListener = function () {
-            currentDrag = this.parentNode;
+        var dragListener = function (ev) {
+            ev.dataTransfer.setData('firefox', 'hack'); // http://stackoverflow.com/a/20908112
+            currentDrag = this;
             insertBefore = currentDrag.nextSibling;
         };
         var dropListener = function (ev) {
@@ -140,16 +143,17 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
                 }
             }
             currentDrag = null;
-            if (currentDragHandle) {
-                currentDragHandle.parentNode.parentNode.setAttribute('width', ev.clientX - currentResizeRelative + currentResizeOriginal);
+            if (currentResizeHandle) {
+                currentResizeHandle.parentNode.setAttribute('width', ev.clientX - currentResizeRelative + currentResizeOriginal);
             }
-            currentDragHandle = null;
+            currentResizeHandle = null;
         };
         var resizeDragStartListener = function (ev) {
-            ev.stopPropagation();
-            currentDragHandle = this;
+            ev.stopPropagation(); // don't trigger the parent listener for rearranging
+            ev.dataTransfer.setData('firefox', 'hack'); // http://stackoverflow.com/a/20908112
+            currentResizeHandle = this;
             currentResizeRelative = ev.clientX;
-            currentResizeOriginal = this.parentNode.parentNode.clientWidth;
+            currentResizeOriginal = this.parentNode.clientWidth;
         };
         table.classList.add('flextable');
         return {
@@ -159,14 +163,13 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             },
             yieldThs: function () {
                 return dom('tr', null, columns.map(function (info) {
-                    var subDiv = dom('div', null, info.text);
-                    var th = dom('th', {className: info.className, draggable: true}, subDiv);
-                    subDiv.addEventListener('dragover', dragOverListener);
-                    subDiv.addEventListener('dragstart', dragListener);
-                    subDiv.addEventListener('drop', dropListener);
+                    var th = dom('th', {className: info.className, draggable: true}, info.text);
+                    th.addEventListener('dragover', dragOverListener);
+                    th.addEventListener('dragstart', dragListener);
+                    th.addEventListener('drop', dropListener);
                     var resizeHandle = getResizeHandle();
                     resizeHandle.addEventListener('dragstart', resizeDragStartListener);
-                    subDiv.appendChild(resizeHandle);
+                    th.appendChild(resizeHandle);
                     return th;
                 }));
             },

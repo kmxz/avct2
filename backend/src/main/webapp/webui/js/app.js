@@ -25,7 +25,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                     Promise.all([api('clip/list'), api('players'), pl.init(), sm.init(), tm.init()]).then(function (results) {
                         clip.init(results[0], results[1]);
                         document.getElementById('total-clips').innerHTML = results[0].length;
-                        loaded.appendThen("Rendering...", function () {
+                        loaded.appendThen("Clips loaded. Rendering...", function () {
                             var thead = dom('thead');
                             var tbody = dom('tbody');
                             var table = dom('table', {
