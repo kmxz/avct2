@@ -22,7 +22,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
         'clip/saveshot': {method: 'post', url: 'clip/$/saveshot', params: ['file']},
         'clip/shot': {method: 'post', url: 'clip/$/shot', blob: true},
         'clip/edit': {method: 'post', url: 'clip/$/edit', params: ['key', 'value']},
-        'clip/open': {method: 'post', url: 'clip/$/open'},
+        'clip/open': {method: 'post', url: 'clip/$/open', params: ['record']},
         'clip/openwith': {method: 'post', url: 'clip/$/openwith', params: ['player']},
         'clip/folder': {method: 'post', url: 'clip/$/folder'},
         'clip/history': {method: 'get', url: 'clip/$/history'},

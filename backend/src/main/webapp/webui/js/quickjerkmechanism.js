@@ -165,9 +165,15 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
         var shown = 0;
         func.forEach(clips, updater);
         clipobj.setQuickJerkScoreUpdater(updater);
-        func.toArray(clips).sort(function (x, y) {
-            return (voidFirstActivated && (y.isVoid - x.isVoid)) || (y.jerkScore - x.jerkScore) || (Math.random() - 0.5);
-        }).forEach(function (item) {
+        func.toArray(clips).map(function (clip) {
+            return {
+                clip: clip,
+                random: Math.random()
+            };
+        }).sort(function (x, y) {
+            return (voidFirstActivated && (y.clip.isVoid - x.clip.isVoid)) || (y.clip.jerkScore - x.clip.jerkScore) || (y.random - x.random);
+        }).forEach(function (mapped) {
+            var item = mapped.clip;
             tbody.appendChild(item.tr);
             if (hide0Activated && item.jerkScore <= 0) {
                 item.tr.style.display = 'none';

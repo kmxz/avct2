@@ -126,7 +126,10 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 fo.close();
             };
             fileOverlay.querySelector(asel('open')).addEventListener('click', function () {
-                api('clip/open', {"id": getParentTr(this).id});
+                api('clip/open', {"id": getParentTr(this).id, "record": true});
+            });
+            fileOverlay.querySelector(asel('norecord')).addEventListener('click', function () {
+                api('clip/open', {"id": getParentTr(this).id, "record": false});
             });
             fileOverlay.querySelector(asel('folder')).addEventListener('click', function () {
                 api('clip/folder', {"id": getParentTr(this).id});
@@ -430,7 +433,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 actualClips[json.id] = new Clip(json);
             });
             var menu = fileOverlay.querySelector('.dropdown-menu');
-            menu.innerHTML = '';
             players.forEach(function (path) {
                 var names = path.split(/\/|\\/g);
                 var fileName = names[names.length - 1];

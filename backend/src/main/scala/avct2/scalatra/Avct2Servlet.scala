@@ -74,7 +74,8 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   post("/clip/:id/open") {
-    openFileHelper(open, true)
+    val record = params("record").toBoolean
+    openFileHelper(open, record)
   }
 
   post("/clip/:id/openwith") {
