@@ -40,7 +40,9 @@ public class MpShooter {
     private Output output;
 
     public static void run(File fp, Output op) {
-        if (instance != null) { return; }
+        if (instance != null) {
+            return;
+        }
         try {
             instance = new MpShooter(fp, op);
             instance.startMplayer();
@@ -86,7 +88,9 @@ public class MpShooter {
     }
 
     private void close(boolean force) throws IOException {
-        for (File file: screenshotPath.listFiles()) { file.delete(); } // clear up the dir
+        for (File file : screenshotPath.listFiles()) {
+            file.delete();
+        } // clear up the dir
         stdin.close();
         stderrin.close();
         if (force) {

@@ -60,7 +60,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     if (onReject) {
                         onReject(error);
                     }
-                    api.ALERT(error);
                 });
             };
             raw(el, clip, post);
@@ -99,7 +98,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 img.className = 'clip-thumb';
                 td.innerHTML = '';
                 td.appendChild(img);
-            }, api.ALERT);
+            });
         }, function (domFilter) {
             var thisColumn = this;
             ed.container(root, 'click', domFilter, function (el) {
@@ -127,10 +126,10 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 fo.close();
             };
             fileOverlay.querySelector(asel('open')).addEventListener('click', function () {
-                api('clip/open', {"id": getParentTr(this).id}).then(func.doNothing, api.ALERT);
+                api('clip/open', {"id": getParentTr(this).id});
             });
             fileOverlay.querySelector(asel('folder')).addEventListener('click', function () {
-                api('clip/folder', {"id": getParentTr(this).id}).then(func.doNothing, api.ALERT);
+                api('clip/folder', {"id": getParentTr(this).id});
             });
             fileOverlay.querySelector(asel('delete')).addEventListener('click', function () {
                 var id = getParentTr(this).id;
@@ -142,13 +141,13 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     tcel.innerHTML = parseInt(tcel.innerHTML, 10) - 1; // step 3: update the total count displayed (XXX: not graceful!)
                     var scel = document.getElementById('shown-clips');
                     scel.innerHTML = parseInt(scel.innerHTML, 10) - 1; // step 4: update the count displayed by QuickJerk (XXX: not graceful!)
-                }, api.ALERT);
+                });
             });
             fileOverlay.querySelector('.dropdown-toggle').addEventListener('click', function () {
                 fileOverlayBtnGroup.classList.toggle('open');
             });
             ed.container(fileOverlay, 'click', dom.match(asel('with')), function (el) {
-                api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path}).then(func.doNothing, api.ALERT);
+                api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path}).then(func.doNothing);
                 foClose();
             });
             ed.target(root, 'mouseover', domFilter, function (el) {
@@ -331,7 +330,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     historyTable.parentNode.replaceChild(table, historyTable);
                     historyTable = table;
                     modal.show(historyEl);
-                }, api.ALERT);
+                });
             });
             return function (ts) {
                 var diffSecs = new Date().getTime() / 1000 - ts;

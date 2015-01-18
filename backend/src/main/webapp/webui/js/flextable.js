@@ -40,6 +40,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
         var currentDrag = null;
         var currentDragover = null;
         var currentVisualAux = null;
+        var currentDragHandle = null;
         var currentResizeRelative = 0;
         var currentResizeOriginal = 0;
         var getValidClassName = function (el) {
@@ -61,7 +62,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             var checkboxes = columns.map(function (info) {
                 return {
                     name: info.className,
-                    text: info.text, // XXX: this is UGLY!
+                    text: info.text,
                     shown: !table.querySelector('.' + info.className).classList.contains('hidden')
                 };
             }).map(function (item) {
@@ -97,8 +98,8 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             insertBefore = currentDrag.nextSibling;
             removeClass(currentDragover);
             removeClass(currentVisualAux);
-            currentDragover = this;
-            var rect = this.getBoundingClientRect();
+            currentDragover = this.parentNode;
+            var rect = currentDragover.getBoundingClientRect();
             if (currentDragover === currentDrag) {
                 return;
             }
@@ -127,28 +128,28 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             }
         };
         var dragListener = function () {
-            currentDrag = this;
+            currentDrag = this.parentNode;
             insertBefore = currentDrag.nextSibling;
         };
-        var dropListener = function () {
-            if (!currentDrag) {
-                return;
-            }
-            removeClass(currentDragover);
-            removeClass(currentVisualAux);
-            if (currentDrag.nextSibling !== insertBefore) {
-                fastMoveCurrentItems(getValidClassName(currentDrag), insertBefore ? getValidClassName(insertBefore) : null);
+        var dropListener = function (ev) {
+            if (currentDrag) {
+                removeClass(currentDragover);
+                removeClass(currentVisualAux);
+                if (currentDrag.nextSibling !== insertBefore) {
+                    fastMoveCurrentItems(getValidClassName(currentDrag), insertBefore ? getValidClassName(insertBefore) : null);
+                }
             }
             currentDrag = null;
+            if (currentDragHandle) {
+                currentDragHandle.parentNode.parentNode.setAttribute('width', ev.clientX - currentResizeRelative + currentResizeOriginal);
+            }
+            currentDragHandle = null;
         };
         var resizeDragStartListener = function (ev) {
             ev.stopPropagation();
+            currentDragHandle = this;
             currentResizeRelative = ev.clientX;
-            currentResizeOriginal = this.parentNode.clientWidth;
-        };
-        var resizeDragListener = function (ev) {
-            var nw = ev.clientX - currentResizeRelative + currentResizeOriginal;
-            this.parentNode.setAttribute('width', nw);
+            currentResizeOriginal = this.parentNode.parentNode.clientWidth;
         };
         table.classList.add('flextable');
         return {
@@ -158,14 +159,14 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             },
             yieldThs: function () {
                 return dom('tr', null, columns.map(function (info) {
-                    var th = dom('th', {className: info.className, draggable: true}, info.text);
-                    th.addEventListener('dragover', dragOverListener);
-                    th.addEventListener('dragstart', dragListener);
-                    th.addEventListener('drop', dropListener);
+                    var subDiv = dom('div', null, info.text);
+                    var th = dom('th', {className: info.className, draggable: true}, subDiv);
+                    subDiv.addEventListener('dragover', dragOverListener);
+                    subDiv.addEventListener('dragstart', dragListener);
+                    subDiv.addEventListener('drop', dropListener);
                     var resizeHandle = getResizeHandle();
                     resizeHandle.addEventListener('dragstart', resizeDragStartListener);
-                    resizeHandle.addEventListener('dragend', resizeDragListener);
-                    th.appendChild(resizeHandle);
+                    subDiv.appendChild(resizeHandle);
                     return th;
                 }));
             },

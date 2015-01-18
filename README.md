@@ -1,4 +1,4 @@
-**WIP, not usable for production yet.**
+Seems usable for production now. Tested under Linux-desktop, using Google Chrome or Mozilla Firefox as browsers.
 
 The [original manager](http://code.google.com/p/avct) written in Java/SWT is too nasty. SWT UI is poor in both taste and compatibility. Coding with it is also hairy.
 

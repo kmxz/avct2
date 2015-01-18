@@ -56,10 +56,7 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
                 currentClip.thumbSet = true;
                 currentCallbackOnConfirm();
                 modal.close();
-            }, function (error) {
-                unlock();
-                api.ALERT(error);
-            });
+            }, unlock);
         });
     });
 
@@ -80,7 +77,7 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
         lock();
         api('clip/shot', {'id': currentClip.id}).then(function (response) {
             api.loadImage(response, imgOnLoad, unlock);
-        }, api.ALERT);
+        });
     });
 
     fi.addEventListener('change', function () {
@@ -103,7 +100,7 @@ ijkl.module('screenshooter', ['querySelector', 'classList', 'toBlob'], function 
         if (clip.thumbSet) {
             api('clip/thumb', {'id': currentClip.id}).then(function (response) {
                 api.loadImage(response, imgOnLoadInit, unlock);
-            }, api.ALERT);
+            });
         } else {
             canvas.loadImgToCover(voidImage, canvasCtx);
             unlock();

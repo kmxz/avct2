@@ -35,7 +35,6 @@ ijkl.module('studiomanager', [], function () {
                             actualStudios[ret.id] = newStudioName; // manually append
                             callback(ret.id, onSuccess, onReject);
                         }, function (error) {
-                            api.ALERT(error);
                             onReject();
                         });
                     } else {

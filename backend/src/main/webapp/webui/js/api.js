@@ -69,10 +69,15 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
                 xhr.responseType = "json";
             }
             xhr.onload = function () {
+                var err;
                 if (xhr.status === 200) {
                     resolve(xhr.response);
                 } else {
-                    reject(xhr.getResponseHeader("X-Error"));
+                    err = xhr.getResponseHeader("X-Error");
+                    if (window.confirm("The server rejected a request. Do you want to reload the program? Information: " + err)) {
+                        window.location.href = "/";
+                    }
+                    reject(err);
                 }
             };
             xhr.onerror = function (error) {
@@ -83,13 +88,8 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
             xhr.send(formData);
         });
     };
-    request.FATAL = function (reason) {
-        if (window.confirm("This seems to be a fatal server error. Restart the program? Information: " + reason)) {
-            window.location.href = "/";
-        }
-    };
-    request.ALERT = function (reason) {
-        window.alert("The server rejected your request: " + reason);
+    request.FATAL = function () {
+        window.alert("You just ignored a fatal error. The program will fail to function if you do not reload.");
     };
     request.loadImage = function (response, opt_onload, opt_onerror) {
         var image = new Image();

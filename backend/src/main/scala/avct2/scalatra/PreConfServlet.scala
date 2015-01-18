@@ -18,9 +18,8 @@ class PreConfServlet extends NoCacheServlet with FileUploadSupport with JsonSupp
     try {
       FileBrowser.browse(new File(params("path")))
     } catch {
-      case e: IllegalArgumentException => {
+      case e: IllegalArgumentException =>
         Map("error" -> e.getMessage)
-      }
     }
   }
 

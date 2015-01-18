@@ -53,10 +53,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                         api('tag/create', {'name': newTagName}).then(function (ret) {
                             actualTags[ret.id] = new Tag(ret.id, newTagName); // manually append
                             currentSelectTagCallback(ret.id, onSuccessNc, onReject);
-                        }, function (error) {
-                            api.ALERT(error);
-                            onReject();
-                        });
+                        }, onReject);
                     } else {
                         onReject();
                     }
@@ -102,9 +99,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                     return actualTags[tagId];
                 });
             });
-        }, function (error) {
-            api.FATAL(error);
-        });
+        }, api.FATAL);
     };
     Tag.prototype = {
         renderName: function (td) {
@@ -115,10 +110,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                         onSuccess();
                         this.name = newName;
                         render(); // this one does not require reload
-                    }.bind(this), function (error) {
-                        api.ALERT(error);
-                        onReject();
-                    }.bind(this));
+                    }.bind(this), onReject);
                 }.bind(this), []);
             }.bind(this));
         },
@@ -137,7 +129,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                             init().then(function () {
                                 render();
                             }); // do thing on fail, as init() will take care of it
-                        }, api.ALERT);
+                        });
                     }
                 });
                 return tagEl;
@@ -152,10 +144,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                             onSuccess();
                             render();
                         }); // do thing on fail, as init() will take care of it
-                    }, function (error) {
-                        api.ALERT(error);
-                        onReject();
-                    });
+                    }, onReject);
                 });
             });
             td.addEventListener('mouseleave', function () {

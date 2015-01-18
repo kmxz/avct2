@@ -5,6 +5,7 @@ import java.io.File
 import avct.IdentifyVideo
 import avct2.Avct2Conf
 import avct2.schema.{Race, Role, Tables, Utilities}
+
 import scala.slick.driver.HsqldbDriver.simple._
 
 object Autocrawl {
@@ -14,7 +15,11 @@ object Autocrawl {
   private def getFileExtension(file: File) = {
     val name = file.getName
     val lastIndexOf = name.lastIndexOf(".")
-    if (lastIndexOf == -1) { "" } else { name.substring(lastIndexOf + 1) }
+    if (lastIndexOf == -1) {
+      ""
+    } else {
+      name.substring(lastIndexOf + 1)
+    }
   }
 
   private def notExcludedFile(f: File) = {

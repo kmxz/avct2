@@ -19,7 +19,7 @@ object HintFrame {
     }
   }
 
-  lazy val frame:MainFrame = new MainFrame() {
+  lazy val frame: MainFrame = new MainFrame() {
     title = "Avct2"
     contents = ui
     resizable = false

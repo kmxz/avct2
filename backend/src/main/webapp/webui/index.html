@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" type="text/css" href="/bootstrap/theme/bootstrap.css" />
-    <link rel="stylesheet" type="text/css" href="/compiled/styles.css" />
+    <link rel="stylesheet" type="text/css" href="/bootstrap/theme/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="/compiled/styles.css"/>
     <script type="text/javascript" language="javascript" src="base.js"></script>
 </head>
-<body onload="ijkl.load('app');">
+<body onload="ijkl.load('app', ['actionselector', 'api', 'app', 'autocomplete', 'canvas', 'clipobj', 'delegation', 'dom', 'flextable', 'function', 'loading', 'modal', 'players', 'popover', 'quickjerkmechanism', 'quickjerkmodal', 'screenshooter', 'studiomanager', 'tagmanager']);">
 
 <div id="wrap">
 
     <nav class="navbar navbar-default navbar-static-top" role="navigation">
         <p class="navbar-text"><span id="total-clips">?</span> clips (<span id="shown-clips">?</span> shown)</p>
+
         <form class="navbar-form navbar-left">
             <button type="button" class="btn btn-primary" id="quickjerk-btn">QuickJerk</button>
             <div class="btn-group">
@@ -22,14 +23,14 @@
         <form class="navbar-form navbar-left">
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" id="voidFirst" /> Void first
+                    <input type="checkbox" id="voidFirst"/> Void first
                 </label>
             </div>
         </form>
         <form class="navbar-form navbar-left">
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" id="hide0" /> Hide 0
+                    <input type="checkbox" id="hide0"/> Hide 0
                 </label>
             </div>
         </form>
@@ -51,7 +52,9 @@
             <div class="modal-header">
                 <h4 class="modal-title">Select visible columns</h4>
             </div>
-            <div class="modal-body clearfix"><form></form></div>
+            <div class="modal-body clearfix">
+                <form></form>
+            </div>
             <div class="modal-footer">
                 <a href="javascript:void('cancel')" class="btn btn-default">Cancel</a>
                 <a href="javascript:void('apply')" class="btn btn-primary">Apply</a>
@@ -102,7 +105,15 @@
             </div>
             <div class="modal-body">
                 <table class="table">
-                    <thead><tr><th>Entry</th><th>Weight</th><th>Score</th><th>Message</th><th>Weighted score</th></tr></thead>
+                    <thead>
+                    <tr>
+                        <th>Entry</th>
+                        <th>Weight</th>
+                        <th>Score</th>
+                        <th>Message</th>
+                        <th>Weighted score</th>
+                    </tr>
+                    </thead>
                     <tbody></tbody>
                 </table>
                 <p>Total score <b>0</b></p>
@@ -128,6 +139,7 @@
                     <a class="btn btn-default" href="javascript:void('studio')">Studio</a>
                     <a class="btn btn-default" href="javascript:void('keyword')">Keyword search</a>
                 </p>
+
                 <p>Any of the criteria will result in score of either [0, 1] or [0, 1).</p>
             </div>
             <div class="modal-footer">
@@ -141,6 +153,7 @@
                         <p>
                             A boolean value. 1 if any of selected roles are present.
                         </p>
+
                         <form class="form-inline">
                         </form>
                     </div>
@@ -151,6 +164,7 @@
                         <p>
                             A boolean value. 1 if matches the selected race.
                         </p>
+
                         <form class="form-inline">
                         </form>
                     </div>
@@ -161,6 +175,7 @@
                         <p>
                             A boolean value. 1 if any of selected tags are present.
                         </p>
+
                         <div class="tag-container">
                             Selected tags:
                         </div>
@@ -172,8 +187,10 @@
                         <p>
                             Linearly map grade [1, 5] to [0, 1].
                         </p>
+
                         <form class="form-inline">
-                            for those without a grade, assume a grade of: <div class="form-group"><input type="text" value="3" /></div>
+                            for those without a grade, assume a grade of:
+                            <div class="form-group"><input type="text" value="3"/></div>
                         </form>
                     </div>
                 </div>
@@ -200,9 +217,11 @@
                         <p>
                             Separate keywords using spaces. Score will be given according to number of keywords matched.
                         </p>
+
                         <form class="form-inline">
                             <div class="form-group">
-                                <input type="text" />
+                                <input type="text"/>
+
                                 <div class="checkbox">
                                     <label>
                                         <input type="checkbox" checked> Also search in source notes
@@ -218,8 +237,10 @@
                         <p>
                             [0, ∞) will be mapped to [0, 1).
                         </p>
+
                         <form class="form-inline">
-                            specify the value which should be mapped to 0.5: <div class="form-group"><input type="text" value="5" /></div>
+                            specify the value which should be mapped to 0.5:
+                            <div class="form-group"><input type="text" value="5"/></div>
                         </form>
                     </div>
                 </div>
@@ -229,8 +250,10 @@
                         <p>
                             [0, ∞) will be mapped to [0, 1).
                         </p>
+
                         <form class="form-inline">
-                            specify the value which should be mapped to 0.5 (unit of days): <div class="form-group"><input type="text" value="15" /></div>
+                            specify the value which should be mapped to 0.5 (unit of days):
+                            <div class="form-group"><input type="text" value="15"/></div>
                         </form>
                     </div>
                 </div>
@@ -250,10 +273,10 @@
                     </div>
                     <div class="col-sm-5">
                         <div>
-                            <label for="fileInput">Choose a file</label><br />
-                            <input type="file" id="fileInput" /><br />
-                            <label for="startShot">or use screenshooter</label><br />
-                            <input type="button" class="btn btn-default" id="startShot" value="Launch" />
+                            <label for="fileInput">Choose a file</label><br/>
+                            <input type="file" id="fileInput"/><br/>
+                            <label for="startShot">or use screenshooter</label><br/>
+                            <input type="button" class="btn btn-default" id="startShot" value="Launch"/>
                         </div>
                     </div>
                 </div>
@@ -312,11 +335,11 @@
     <div class="popover-content">
         <form>
             <div class="half">
-                <div class="radio"><label><input type="radio" name="race" /> Chinese </label></div>
-                <div class="radio"><label><input type="radio" name="race" /> Other Asian </label></div>
+                <div class="radio"><label><input type="radio" name="race"/> Chinese </label></div>
+                <div class="radio"><label><input type="radio" name="race"/> Other Asian </label></div>
             </div>
             <div class="half">
-                <div class="radio"><label><input type="radio" name="race" /> Other races </label></div>
+                <div class="radio"><label><input type="radio" name="race"/> Other races </label></div>
             </div>
             <div class="clearfix"></div>
             <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>
@@ -332,15 +355,15 @@
     <div class="popover-content">
         <form>
             <div class="half">
-                <div class="checkbox"><label><input type="checkbox" name="role" /> Vanilla </label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" /> M self </label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" /> F self </label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" /> M/m </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role"/> Vanilla </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role"/> M self </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role"/> F self </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role"/> M/m </label></div>
             </div>
             <div class="half">
-                <div class="checkbox"><label><input type="checkbox" name="role" /> M/f </label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" /> F/m </label></div>
-                <div class="checkbox"><label><input type="checkbox" name="role" /> F/f </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role"/> M/f </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role"/> F/m </label></div>
+                <div class="checkbox"><label><input type="checkbox" name="role"/> F/f </label></div>
             </div>
             <div class="clearfix"></div>
             <a href="javascript:void('cancel')" class="btn btn-default btn-sm">Cancel</a>

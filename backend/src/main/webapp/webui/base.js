@@ -3,6 +3,47 @@
 var ijkl = (function () {
     "use strict";
 
+    var LoadingManager = function () {
+        this.scripts = [];
+        this.registeredCallback = null;
+    };
+
+    LoadingManager.prototype.isAllLoaded = function () {
+        var i;
+        for (i = 0; i < this.scripts.length; i++) {
+            if (!this.scripts[i].loaded) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    LoadingManager.prototype.add = function (callback) {
+        var instance = this;
+        var closure = {loaded: false};
+        this.scripts.push(closure);
+        callback(function () {
+            closure.loaded = true;
+            if (instance.registeredCallback) {
+                if (instance.isAllLoaded()) {
+                    instance.registeredCallback();
+                }
+            }
+        });
+    };
+
+    LoadingManager.prototype.then = function (callback) {
+        if (this.isAllLoaded()) {
+            console.log("Cool! All scripts are loaded.");
+            callback();
+        } else {
+            console.log("Wait for some scripts to be loaded.");
+            this.registeredCallback = callback;
+        }
+    };
+
+    var polyfillManager = new LoadingManager();
+
     var Feature = function (name, detector, opt_polyfill) {
         this.detector = detector;
         this.tested = false;
@@ -27,14 +68,20 @@ var ijkl = (function () {
         }
     };
 
-    Feature.prototype.loadPolyfill = function () { // TODO: fix it later to ensure the polyfill IS LOADED before any scripts run!
-        var js = document.createElement('script');
-        js.src = this.polyfill;
-        var feature = this;
-        js.onerror = function () {
-            window.alert("Loading polyfill for feature [" + feature.name + "] failed. Some things will break up.");
-        };
-        document.getElementsByTagName('head')[0].appendChild(js);
+    Feature.prototype.loadPolyfill = function () {
+        var instance = this;
+        polyfillManager.add(function (resolve) {
+            var js = document.createElement('script');
+            js.src = instance.polyfill;
+            js.onerror = function () {
+                window.alert("Loading polyfill for feature [" + instance.name + "] failed. Some things will break up.");
+            };
+            js.onload = function () {
+                console.log("Polyfill " + instance.polyfill + " for [" + instance.name + "] loaded successfully.");
+                resolve();
+            };
+            document.getElementsByTagName('head')[0].appendChild(js);
+        });
     };
 
     // Available browser feature detections
@@ -85,21 +132,20 @@ var ijkl = (function () {
 
     var Module = function (factory, featureRequirements) {
         this.factory = factory;
-        this.featureRequirements = featureRequirements;
         this.instance = null;
+        var req, i;
+        for (i = 0; i < featureRequirements.length; i++) {
+            req = featureRequirements[i];
+            if (features.hasOwnProperty(req)) {
+                features[req].test();
+            } else {
+                window.alert("Feature " + req + " is never defined.");
+            }
+        }
     };
 
     Module.prototype.getInstance = function () {
-        var req, i;
         if (!this.instance) {
-            for (i = 0; i < this.featureRequirements.length; i++) {
-                req = this.featureRequirements[i];
-                if (features.hasOwnProperty(req)) {
-                    features[req].test();
-                } else {
-                    window.alert("Feature " + req + " is never defined.");
-                }
-            }
             this.instance = this.factory();
         }
         return this.instance;
@@ -107,14 +153,10 @@ var ijkl = (function () {
 
     var modules = {};
 
-    // For debug mode only, ugly
-    var debugLoadAll = function (firstModule, callback) {
-        var loadedScripts = {};
+    var moduleManager = new LoadingManager();
 
-        var checkIfProceed = function () {
-        };
-
-        var loadScript = function (name) {
+    var loadScript = function (name) {
+        moduleManager.add(function (resolve) {
             var js = document.createElement('script');
             js.src = 'js/' + name + '.js';
             js.onerror = function () {
@@ -122,50 +164,16 @@ var ijkl = (function () {
             };
             js.onload = function () {
                 console.log("Script " + name + " loaded successfully.");
-                loadedScripts[name].loaded = true;
-                checkIfProceed();
+                resolve();
             };
             document.getElementsByTagName('head')[0].appendChild(js);
-        };
+        });
+    };
 
-        var debugLoad = function (enterance, loadStack) {
-            if (loadStack.indexOf(enterance) >= 0) {
-                alert("Circular dependency detected: " + loadStack.join(' -> ') + ' -> ' + enterance);
-                return;
-            }
-            if (!loadedScripts.hasOwnProperty(enterance)) {
-                var request = new XMLHttpRequest();
-                request.open('get', 'js/' + enterance + '.js', false); // let's use synchronized request for simplicity
-                request.send(null);
-                loadedScripts[enterance] = {loaded: false, text: request.responseText};
-                loadScript(enterance);
-            }
-            var subModules = loadedScripts[enterance].text.match(/ijkl\('[a-z]+'\)/g);
-            if (!subModules) { // no submodules: might be null
-                return;
-            }
-            var i;
-            for (i = 0; i < subModules.length; i++) {
-                debugLoad(subModules[i].match(/ijkl\('([a-z]+)'\)/)[1], loadStack.concat([enterance]));
-            }
-        };
-
-        var checkAllLoaded = function () {
-            var i;
-            for (i in loadedScripts) {
-                if (loadedScripts.hasOwnProperty(i)) {
-                    if (!loadedScripts[i].loaded) {
-                        return false;
-                    }
-                }
-            }
-            callback();
-            return true;
-        };
-
-        debugLoad(firstModule, []);
-        if (!checkAllLoaded()) {
-            checkIfProceed = checkAllLoaded;
+    var productionLoad = function (scriptList) {
+        var i;
+        for (i = 0; i < scriptList.length; i++) {
+            loadScript(scriptList[i]);
         }
     };
 
@@ -177,10 +185,12 @@ var ijkl = (function () {
         window.alert("Module " + name + " is never defined.");
     };
 
-    // Debug mode load
-    require.load = function (name) {
-        debugLoadAll(name, function () {
-            require(name)();
+    require.load = function (name, moduleList) {
+        productionLoad(moduleList);
+        moduleManager.then(function () {
+            polyfillManager.then(function () {
+                require(name)();
+            });
         });
     };
 

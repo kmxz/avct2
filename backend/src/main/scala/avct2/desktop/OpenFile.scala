@@ -25,20 +25,37 @@ object OpenFile {
     if (os.startsWith("Windows")) {
       Seq("explorer", "/select,", file.getCanonicalPath).! == 0
     } else if (os.startsWith("Linux")) {
+      // XXX: maybe use DBus approach instead?
       if (nautilusInstalled) {
         Seq("nautilus", file.getCanonicalPath).! == 0
+      } else if (dolphinInstalled) {
+        Seq("dolphin", "--select", file.getCanonicalPath).! == 0
       } else {
         Seq("xdg-open", file.getParent).! == 0
       }
-    } else if (os.startsWith("Mac OS X")) { // though never actually needed
+    } else if (os.startsWith("Mac OS X")) {
+      // though never actually needed
       Seq("open", "-R", file.getCanonicalPath).! == 0
-    } else { // awt default
+    } else {
+      // awt default
       open(file.getParentFile)
     }
   }
 
   private lazy val nautilusInstalled = {
-     Seq("nautilus", "--version").! == 0
+    try {
+      Seq("nautilus", "--version").! == 0
+    } catch {
+      case _: IOException => false
+    }
   }
-  
+
+  private lazy val dolphinInstalled = {
+    try {
+      Seq("dolphin", "--version").! == 0
+    } catch {
+      case _: IOException => false
+    }
+  }
+
 }

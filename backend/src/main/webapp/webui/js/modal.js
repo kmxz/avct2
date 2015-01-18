@@ -18,7 +18,7 @@ ijkl.module('modal', ['querySelector', 'classList'], function () {
             func.toArray(mel.querySelectorAll('.modal-dialog')).forEach(function (m) {
                 m.style.display = 'none';
             });
-            el.style.display = '';
+            el.style.display = 'block';
             mel.classList.add('active');
             var closeBtn = el.querySelector('button.close');
             if (closeBtn) {

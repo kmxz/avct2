@@ -20,9 +20,9 @@ object Avct2Conf {
 
   def getVideoDir = properties.getProperty("videoDirectory")
 
-  def getPlayers:Seq[String] = {
+  def getPlayers: Seq[String] = {
     properties.getProperty("videoPlayers") match {
-      case text: String if (text.length > 0) => text.split(";")
+      case text: String if text.length > 0 => text.split(";")
       case _ => Seq[String]()
     }
   }
@@ -46,7 +46,7 @@ object Avct2Conf {
   def validPlayers(players: Seq[String]) = {
     players.map({ player =>
       new File(player).isFile
-    }).fold(true)(_ && _)
+    }).forall(identity)
   }
 
   def apply() = {
