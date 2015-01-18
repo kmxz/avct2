@@ -16,7 +16,7 @@ class DbConnection(file: String) {
   val database: HsqldbDriver.backend.DatabaseDef = Database.forDataSource(dataSource)
 
   database.withSession { implicit session =>
-    val ddl = Tables.tag.ddl ++ Tables.tagRelationship.ddl ++ Tables.studio.ddl ++ Tables.clip.ddl ++ Tables.clipTag.ddl ++ Tables.excludeFile.ddl ++ Tables.record.ddl
+    val ddl = Tables.tag.ddl ++ Tables.tagRelationship.ddl ++ Tables.studio.ddl ++ Tables.clip.ddl ++ Tables.clipTag.ddl ++ Tables.record.ddl
     if (MTable.getTables.list.isEmpty) {
       ddl.create
     }

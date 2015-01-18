@@ -272,13 +272,18 @@
     <h3 class="popover-title">Action <span></span></h3>
 
     <div class="popover-content">
-        <div class="btn-group">
-            <a class="btn btn-primary btn-sm" href="javascript:void('open')">Open</a><!-- fix inline block spacing (http://css-tricks.com/fighting-the-space-between-inline-block-elements/)
-     --><a class="btn btn-primary btn-sm dropdown-toggle" href="javascript:void(0)"><span class="caret"></span></a>
-            <ul class="dropdown-menu pull-right">
-            </ul>
+        <div id="content-when-file-exists">
+            <div class="btn-group">
+                <a class="btn btn-primary btn-sm" href="javascript:void('open')">Open</a><!-- fix inline block spacing (http://css-tricks.com/fighting-the-space-between-inline-block-elements/)
+         --><a class="btn btn-primary btn-sm dropdown-toggle" href="javascript:void(0)"><span class="caret"></span></a>
+                <ul class="dropdown-menu pull-right">
+                </ul>
+            </div>
+            <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
         </div>
-        <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
+        <div id="content-when-file-not-exists">
+            <a href="javascript:void('delete')" class="btn btn-danger btn-sm">Delete</a>
+        </div>
         <span id="filename"></span>
     </div>
 </div>

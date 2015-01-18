@@ -21,7 +21,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
     var quickJerkScoreUpdater = func.doNothing;
 
     var Clip = function (json) { // XXX: this is ugly
-        ['id', 'duration', 'file', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay'].forEach(function (key) {
+        ['id', 'duration', 'file', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay', 'fileExists'].forEach(function (key) {
             this[key] = json[key];
         }.bind(this));
         this.jerkScore = 0;
@@ -113,29 +113,49 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
         }),
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, this.file);
+            if (!this.fileExists) {
+                dom.append(td, dom('span', {className: ['label', 'label-warning']}, 'File not found!'));
+            }
         }, function (domFilter) {
             var fileOverlaySpan = fileOverlay.querySelector('#filename');
             var fileOverlayBtnGroup = fileOverlay.querySelector('.btn-group');
+            var existsGroup = document.getElementById('content-when-file-exists');
+            var notExistsGroup = document.getElementById('content-when-file-not-exists');
             var fo = po(fileOverlay);
             var foClose = function () {
                 fileOverlayBtnGroup.classList.remove('open');
                 fo.close();
             };
             fileOverlay.querySelector(asel('open')).addEventListener('click', function () {
-                api('clip/open', {"id": getParentTr(this).id});
+                api('clip/open', {"id": getParentTr(this).id}).then(func.doNothing, api.ALERT);
             });
             fileOverlay.querySelector(asel('folder')).addEventListener('click', function () {
-                api('clip/folder', {"id": getParentTr(this).id});
+                api('clip/folder', {"id": getParentTr(this).id}).then(func.doNothing, api.ALERT);
+            });
+            fileOverlay.querySelector(asel('delete')).addEventListener('click', function () {
+                var id = getParentTr(this).id;
+                api('clip/delete', {"id": id}).then(function () {
+                    var tr = actualClips[id].tr;
+                    tr.parentNode.removeChild(tr); // step 1: remove the element
+                    delete actualClips[id]; // step 2: remove the clip
+                    var tcel = document.getElementById('total-clips');
+                    tcel.innerHTML = parseInt(tcel.innerHTML, 10) - 1; // step 3: update the total count displayed (XXX: not graceful!)
+                    var scel = document.getElementById('shown-clips');
+                    scel.innerHTML = parseInt(scel.innerHTML, 10) - 1; // step 4: update the count displayed by QuickJerk (XXX: not graceful!)
+                }, api.ALERT);
             });
             fileOverlay.querySelector('.dropdown-toggle').addEventListener('click', function () {
                 fileOverlayBtnGroup.classList.toggle('open');
             });
             ed.container(fileOverlay, 'click', dom.match(asel('with')), function (el) {
-                api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path});
+                api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path}).then(func.doNothing, api.ALERT);
                 foClose();
             });
             ed.target(root, 'mouseover', domFilter, function (el) {
-                fileOverlaySpan.innerHTML = getParentTr(el).path;
+                var clip = getParentTr(el);
+                fileOverlaySpan.innerHTML = clip.path;
+                existsGroup.style.display = clip.fileExists ? '' : 'none';
+                notExistsGroup.style.display = clip.fileExists ? 'none' : '';
                 fo(el);
             });
             ed.target(root, 'mouseout', domFilter, function () {

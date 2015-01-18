@@ -95,7 +95,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   get("/clip/:id/thumb") {
-    contentType = "image/png" // override
+    contentType = "image/jpeg" // override
     val id = params("id").toInt
     db.withSession { implicit session =>
       Tables.clip.filter(_.clipId === id).map(_.thumb).firstOption match {
@@ -133,7 +133,21 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       if (!clipRow.exists.run) {
         terminate(404, "Clip does not exist.")
       }
-      clipRow.map(_.thumb).update(Some(inputStreamToBlob(fis)))
+      clipRow.map(_.thumb).update(Some(new SerialBlob(toJpeg(fis))))
+    }
+    JNull
+  }
+
+  post("/clip/:id/delete") {
+    val id = params("id").toInt
+    db.withSession { implicit session =>
+      val clipRow = Tables.clip.filter(_.clipId === id)
+      if (clipRow.map(_.fileExists).first) {
+        terminate(412, "File still exists.")
+      }
+      Tables.clipTag.filter(_.clipId === id).delete
+      Tables.record.filter(_.clipId === id).delete
+      clipRow.delete
     }
     JNull
   }

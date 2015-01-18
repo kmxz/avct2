@@ -19,7 +19,7 @@ class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
   def * = (studioId.?, name)
 }
 
-class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Boolean)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
   def file = column[String]("file")
   def studioId = column[Option[Int]]("studio_id")
@@ -29,15 +29,10 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
   def role = column[Role.ValueSet]("role")(Role.mct)
   def size = column[Long]("size")
   def length = column[Int]("length")
-  def sourceNote = column[String]("SOURCE_NOTES") // FIXME change it back to lowercase after debugging
+  def sourceNote = column[String]("source_note")
+  def fileExists = column[Boolean]("file_exists")
   index("index_file", file, unique = true)
-  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote)
-}
-
-
-class ExcludeFile(tag: T) extends Table[(String)](tag, "exclude_file") {
-  def file = column[String]("file", O.PrimaryKey)
-  def * = file
+  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote, fileExists)
 }
 
 class Record(tag: T) extends Table[(Int, Int)](tag, "record") {
@@ -73,6 +68,5 @@ object Tables {
   val studio = TableQuery[Studios]
   val clip = TableQuery[Clip]
   val clipTag = TableQuery[ClipTag]
-  val excludeFile = TableQuery[ExcludeFile]
   val record = TableQuery[Record]
 }

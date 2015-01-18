@@ -17,7 +17,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
         'players': {method: 'get', url: 'players'},
         // clip
         'clip/list': {method: 'get', url: 'clip'},
-        'clip/delete': {method: 'post', url: 'clip/$/delete'}, // NOT in use yet
+        'clip/delete': {method: 'post', url: 'clip/$/delete'},
         'clip/thumb': {method: 'get', url: 'clip/$/thumb', blob: true},
         'clip/saveshot': {method: 'post', url: 'clip/$/saveshot', params: ['file']},
         'clip/shot': {method: 'post', url: 'clip/$/shot', blob: true},

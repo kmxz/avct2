@@ -25,11 +25,22 @@ object Utilities {
 
   val STR_VA = "V/A" // compat with the original Java implementation
 
-  // this function is used to clean those orphan studios // TODO: haven't decided where to call
+  // clean those studios which have no clips
   def orphanStudioCleanup(implicit session: Session) = {
     (for {
       studio <- Tables.studio if !Tables.clip.filter(_.studioId === studio.studioId).exists
     } yield studio).delete
+  }
+
+  // clean those tags which has no clips or child tags
+  def orphanTagCleanup(implicit session: Session) = {
+    val tags = (for {
+      tag <- Tables.tag if (!Tables.clipTag.filter(_.tagId === tag.tagId).exists) && (!Tables.tagRelationship.filter(_.childTag === tag.tagId).exists)
+    } yield tag)
+    tags.map(_.tagId).list.foreach(tagId => {
+      Tables.tagRelationship.filter(_.childTag === tagId).delete
+    })
+    tags.delete
   }
 
   // fuck scala, i cannot use partial application and implicit parameter together, so have to stick with 3 params
