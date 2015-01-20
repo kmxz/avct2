@@ -4,7 +4,6 @@ import java.io._
 import java.util.Properties
 import javax.swing.UIManager
 
-import avct2.desktop.HintFrame
 import avct2.schema.DbConnection
 
 object Avct2Conf {
@@ -54,7 +53,9 @@ object Avct2Conf {
     if (initConfig()) {
       setUp()
     }
-    HintFrame()
+    println(">>>>>>>> Avct2 has started!")
+    println(">>>>>>>> Open the browser and browse localhost at the corresponding port please!")
+    println(">>>>>>>> To stop, just stop the process here!")
   }
 
   def initConfig() = {
