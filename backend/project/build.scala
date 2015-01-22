@@ -19,7 +19,11 @@ object Avct2Build extends Build {
       name := "avct2",
       version := new SimpleDateFormat("yyyyMMdd").format(Calendar.getInstance().getTime()),
       scalaVersion := "2.10.4",
-      resolvers += Classpaths.typesafeReleases,
+      javacOptions ++= Seq("-source", "1.7", "-target", "1.7"), // force using Java 7 instead of 8 as https://github.com/jai-imageio/jai-imageio-core/issues/6
+      resolvers ++= Seq(
+        Classpaths.typesafeReleases,
+        "myGrid Repository" at "http://www.mygrid.org.uk/maven/repository"
+      ),
 
       // let container include the wro4j target folder
       (webappResources in Compile) <+= (targetFolder in generateResources in Compile),
@@ -38,7 +42,9 @@ object Avct2Build extends Build {
         "com.typesafe.slick" %% "slick" % "2.1.0",
         "org.hsqldb" % "hsqldb" % "2.3.2",
         // disable logging
-        "org.slf4j" % "slf4j-nop" % "1.7.7"
+        "org.slf4j" % "slf4j-nop" % "1.7.7",
+        // jai image conversion
+        "net.java.dev.jai-imageio" % "jai-imageio-core-standalone" % "1.2-pre-dr-b04-2014-09-13"
       )
     )
   )

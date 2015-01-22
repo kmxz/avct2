@@ -199,10 +199,10 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         case "tags" =>
           val tags = json[Seq[Int]](value)
           Tables.clipTag.filter(_.clipId === id).delete // remove older ones first
-          if (!tags.map(tag => Tables.tag.filter(_.tagId === tag).exists.run).reduce(_ && _)) {
+          if (!tags.forall(tag => Tables.tag.filter(_.tagId === tag).exists.run)) {
             terminate(404, "Tag does not exist.")
           }
-          val tagsIncludingParents = tags.map(tag => getParentOrChildTags(tag, true, true) + tag).reduce(_ ++ _).toSeq // duplicates removed
+          val tagsIncludingParents = tags.map(tag => getParentOrChildTags(tag, true, true) + tag).fold(Set[Int]())(_ ++ _).toSeq // duplicates removed
           Tables.clipTag.map(row => (row.clipId, row.tagId)).insertAll(tagsIncludingParents.map(tag => (id, tag)): _*)
         case "sourceNote" =>
           clipRow.map(_.sourceNote).update(value)
@@ -247,10 +247,10 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       if (!Tables.tag.filter(_.tagId === id).exists.run) {
         terminate(404, "Child tag does not exist.")
       }
-      if (!parents.map(tag => Tables.tag.filter(_.tagId === tag).exists.run).forall(identity)) {
+      if (!parents.forall(tag => Tables.tag.filter(_.tagId === tag).exists.run)) {
         terminate(404, "Parent tag does not exist.")
       }
-      if (!parents.map(tag => legalTagParent(id, tag)).forall(identity)) {
+      if (!parents.forall(tag => legalTagParent(id, tag))) {
         terminate(409, "Forming cycles are not allowed.")
       }
       Tables.tagRelationship.filter(_.childTag === id).delete

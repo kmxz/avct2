@@ -1,6 +1,6 @@
 /*global ijkl*/
 
-ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
+ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     "use strict";
 
     var ac = ijkl('autocomplete');
@@ -292,10 +292,27 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                 return el;
             }));
         }, function (domFilter) {
+            var checkIfCanContinue = function (proposed) {
+                var tags = tm.getTags();
+                var warnings = [];
+                proposed.forEach(function (tagId) {
+                    var tag = tags[tagId];
+                    if (tag.children.length) { // it has children!
+                        if (tag.children.every(function (child) { return proposed.indexOf(child) < 0; })) {
+                            warnings.push(tag.name);
+                        }
+                    }
+                });
+                return warnings.length ? window.confirm("Tags " + warnings.join(", ") + " has no child tags selected! Continue?") : true;
+            };
             ed.target(root, 'mouseover', domFilter, updateHelper(function (el, clip, post) {
                 tm.selectTagOpen(el, function (newTagId, onSuccess, onReject) {
                     var proposed = clip.tags.concat([newTagId]);
-                    post('tags', proposed, onSuccess, onReject);
+                    if (checkIfCanContinue(proposed)) {
+                        post('tags', proposed, onSuccess, onReject);
+                    } else {
+                        onReject();
+                    }
                 });
             }, this));
             ed.target(root, 'mouseout', domFilter, tm.selectTagClose);
@@ -304,7 +321,9 @@ ijkl.module('clipobj', ['querySelector', 'dataset'], function () {
                     var proposed = clip.tags.filter(function (parentId) {
                         return parentId !== parseInt(el.dataset.id, 10);
                     });
-                    post('tags', proposed);
+                    if (checkIfCanContinue(proposed)) {
+                        post('tags', proposed);
+                    }
                 }
             }, this));
         }, function (clip) {

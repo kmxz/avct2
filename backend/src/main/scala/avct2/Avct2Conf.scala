@@ -43,9 +43,9 @@ object Avct2Conf {
   }
 
   def validPlayers(players: Seq[String]) = {
-    players.map({ player =>
+    players.forall({ player =>
       new File(player).isFile
-    }).forall(identity)
+    })
   }
 
   def apply() = {

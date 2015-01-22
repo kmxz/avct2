@@ -35,7 +35,7 @@ object Utilities {
   // clean those tags which has no clips or child tags
   def orphanTagCleanup(implicit session: Session) = {
     val tags = for {
-      tag <- Tables.tag if (!Tables.clipTag.filter(_.tagId === tag.tagId).exists) && (!Tables.tagRelationship.filter(_.childTag === tag.tagId).exists)
+      tag <- Tables.tag if (!Tables.clipTag.filter(_.tagId === tag.tagId).exists) && (!Tables.tagRelationship.filter(_.parentTag === tag.tagId).exists)
     } yield tag
     tags.map(_.tagId).list.foreach(tagId => {
       Tables.tagRelationship.filter(_.childTag === tagId).delete
