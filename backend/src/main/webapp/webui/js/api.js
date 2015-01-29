@@ -74,14 +74,16 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
                     resolve(xhr.response);
                 } else {
                     err = xhr.getResponseHeader("X-Error");
-                    if (window.confirm("The server rejected a request. Do you want to reload the program? Information: " + err)) {
+                    if (window.confirm("The server rejected request " + config.url + ". Do you want to reload the program? Information: " + err)) {
                         window.location.href = "/";
                     }
                     reject(err);
                 }
             };
             xhr.onerror = function (error) {
-                window.alert("Network error occurred. It's highly recommended to reload.");
+                if (window.confirm("Network error occurred for request " + config.url + ". Do you want to reload the program?")) {
+                    window.location.href = "/";
+                }
                 reject(error);
             };
             xhr.setRequestHeader('X-Db-Connection-Id', dbConnId);

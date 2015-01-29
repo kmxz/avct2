@@ -75,6 +75,7 @@ var ijkl = (function () {
             js.src = instance.polyfill;
             js.onerror = function () {
                 window.alert("Loading polyfill for feature [" + instance.name + "] failed. Some things will break up.");
+                resolve(); // still resolve after warning
             };
             js.onload = function () {
                 console.log("Polyfill " + instance.polyfill + " for [" + instance.name + "] loaded successfully.");

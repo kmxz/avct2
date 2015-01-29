@@ -92,6 +92,7 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
         popover(anchor, function (onSuccess, onReject) {
             onSubmit(it.value, onSuccess, onReject);
         });
+        it.focus();
     };
     start.isOpen = popover.isOpen;
     return start;
