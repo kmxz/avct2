@@ -52,7 +52,10 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
         var length = it.value.length;
         var allNodes = suggestionArray.filter(function (name) {
             return name.substring(0, length).toLowerCase() === it.value.toLowerCase();
-        }).sort().map(function (name) {
+        }).concat(suggestionArray.filter(function (name) {
+            var ivl = it.value.toLowerCase();
+            return (name.substring(0, length).toLowerCase() !== ivl) && (name.toLowerCase().indexOf(ivl) >= 0);
+        })).map(function (name) {
             var a = dom('a', {href: 'javascript:void(0)', className: 'list-group-item'}, name);
             a.addEventListener('click', clickListener);
             return a;

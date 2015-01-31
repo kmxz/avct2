@@ -19,6 +19,7 @@ object Avct2Build extends Build {
       name := "avct2",
       version := new SimpleDateFormat("yyyyMMdd").format(Calendar.getInstance().getTime()),
       scalaVersion := "2.10.4",
+      scalacOptions += "-target:jvm-1.7",
       javacOptions ++= Seq("-source", "1.7", "-target", "1.7"), // force using Java 7 instead of 8 as https://github.com/jai-imageio/jai-imageio-core/issues/6
       resolvers ++= Seq(
         Classpaths.typesafeReleases,

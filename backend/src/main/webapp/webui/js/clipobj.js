@@ -294,16 +294,10 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
         }, function (domFilter) {
             var checkIfCanContinue = function (proposed) {
                 var tags = tm.getTags();
-                var warnings = [];
-                proposed.forEach(function (tagId) {
-                    var tag = tags[tagId];
-                    if (tag.children.length) { // it has children!
-                        if (tag.children.every(function (child) { return proposed.indexOf(child) < 0; })) {
-                            warnings.push(tag.name);
-                        }
-                    }
-                });
-                return warnings.length ? window.confirm("Tags " + warnings.join(", ") + " has no child tags selected! Continue?") : true;
+                var warnings = proposed.map(function (tagId) { return tags[tagId]; }).filter(function (tag) {
+                    return tag.children.length && tag.children.every(function (child) { return proposed.indexOf(child.id) < 0; });
+                }).map(function (tag) { return tag.name; });
+                return warnings.length ? window.confirm("Tag(s)" + warnings.join(", ") + " has no child tags selected! Continue?") : true;
             };
             ed.target(root, 'mouseover', domFilter, updateHelper(function (el, clip, post) {
                 tm.selectTagOpen(el, function (newTagId, onSuccess, onReject) {
