@@ -1,12 +1,15 @@
 /*global ijkl*/
 
-ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
+ijkl.module('api', ['xhr2', 'es5Array'], function () {
     "use strict";
 
     var func = ijkl('function');
+    var Throttle = ijkl('throttle');
 
     var uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
     var dbConnId = window.location.search.substring(1);
+    var throttle = new Throttle(10); // only allow 10 parallel XHR requests to avoid Chrome fail
+
     if (!uuidRegex.test(dbConnId)) {
         window.location.href = '/';
     }
@@ -61,7 +64,7 @@ ijkl.module('api', ['xhr2', 'promise', 'es5Array'], function () {
                 });
             }
         }
-        return new Promise(function (resolve, reject) {
+        return throttle.add(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             xhr.open(config.method, '/serv/' + url);
             if (config.blob) {
