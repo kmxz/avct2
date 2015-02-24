@@ -10,6 +10,8 @@ import scala.slick.lifted.TableQuery
 
 case class EntryResult(name: String, rawScore: Double)
 
+case class Report(clipId: Int, entries: Seq[EntryResult], total: Double)
+
 abstract class AbstractEntry {
 
   val name: String
@@ -80,7 +82,9 @@ object SizeEntry extends AbstractEntry {
   final val weight = 0.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    exp((2 - (clipNew._5 / clipOld._5) - (clipOld._5 / clipNew._5)) * 1000)
+    if (clipOld._5 > 0 && clipNew._5 > 0) {
+      exp((2 - (clipNew._5 / clipOld._5) - (clipOld._5 / clipNew._5)) * 1000)
+    } else 0
   }
 
 }
@@ -92,8 +96,10 @@ object LengthEntry extends AbstractEntry {
   final val weight = 0.75
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    val diff = abs(clipNew._6 - clipOld._6)
-    Math.exp(-diff / E) * 0.75 + Math.exp(-diff / 30) * 0.25
+    if (clipOld._5 > 0 && clipNew._5 > 0) {
+      val diff = abs(clipNew._6 - clipOld._6)
+      Math.exp(-diff / E) * 0.75 + Math.exp(-diff / 30) * 0.25
+    } else 0
   }
 
 }
@@ -105,7 +111,7 @@ object TagsEntry extends AbstractEntry {
   final val weight = 1.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    CosineSimilarity(clipOld._7, clipNew._7)
+    CosineSimilarity(clipOld._8, clipNew._8)
   }
 
 }
@@ -114,20 +120,21 @@ object Difference {
 
   val entries = Seq(NameEntry, StudioEntry, RaceEntry, RoleEntry, SizeEntry, LengthEntry, TagsEntry)
 
-  // filename, studioId, race, role, size, length, tags
-  type ClipRow = (String, Option[Int], Race.Value, Role.ValueSet, Long, Int, Set[Int])
+  // filename, studioId, race, role, size, length, clipId, tags
+  type ClipRow = (String, Option[Int], Race.Value, Role.ValueSet, Long, Int, Int, Set[Int])
 
-  def getClipRows(clips: Query[Clip, _, Seq])(implicit session: Session) = {
+  private def getClipRows(clips: Query[Clip, _, Seq])(implicit session: Session) = {
     clips.map(row => (row.file, row.studioId, row.race, row.role, row.size, row.length, row.clipId)).list.map(row =>
-      (row._1, row._2, row._3, row._4, row._5, row._6, Tables.clipTag.filter(_.clipId === row._7).map(_.tagId).list.toSet)
+      (row._1, row._2, row._3, row._4, row._5, row._6, row._7, Tables.clipTag.filter(_.clipId === row._7).map(_.tagId).list.toSet)
     )
   }
 
   def scanAll(clipId: Int)(implicit session: Session) = {
     val target = getClipRows(Tables.clip.filter(_.clipId === clipId)).head
     getClipRows(Tables.clip.filter(_.clipId =!= clipId)).map({row =>
-      entries.map(entry => entry.getResult(target, row))
-    })
+      val acquiredResults = entries.map(entry => entry.getResult(target, row))
+      Report(row._7, acquiredResults.map(_._1), acquiredResults.map(_._2).reduce(_ + _))
+    }).sortBy(_.total)
   }
 
 }
@@ -135,7 +142,11 @@ object Difference {
 object CosineSimilarity {
 
   def apply[T](s1: Set[T], s2: Set[T]) = {
-    s1.intersect(s2).size / sqrt(s1.size * s2.size)
+    if (s1.isEmpty || s2.isEmpty) {
+      0
+    } else {
+      s1.intersect(s2).size / sqrt(s1.size * s2.size)
+    }
   }
 
 }

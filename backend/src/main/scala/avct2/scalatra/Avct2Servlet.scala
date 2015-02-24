@@ -7,6 +7,7 @@ import avct.{MpShooter, Output}
 import avct2.Avct2Conf
 import avct2.desktop.Autocrawl
 import avct2.desktop.OpenFile._
+import avct2.duplicate_detection.Difference
 import avct2.schema.Utilities._
 import avct2.schema._
 import org.json4s.JsonAST.JNull
@@ -142,6 +143,9 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     val id = params("id").toInt
     db().withSession { implicit session =>
       val clipRow = Tables.clip.filter(_.clipId === id)
+      if (!clipRow.exists.run) {
+        terminate(404, "Clip does not exist.")
+      }
       if (clipRow.map(_.fileExists).first) {
         terminate(412, "File still exists.")
       }
@@ -209,6 +213,16 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       }
       // render the new clip
       renderClip(queryClip(query => query.filter(_.clipId === id)).first)
+    }
+  }
+
+  get("/clip/:id/similar") {
+    val id = params("id").toInt
+    db().withSession { implicit session =>
+      if (!Tables.clip.filter(_.clipId === id).exists.run) {
+        terminate(404, "Clip does not exist.")
+      }
+      Difference.scanAll(id)
     }
   }
 

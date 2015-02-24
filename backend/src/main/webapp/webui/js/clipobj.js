@@ -163,6 +163,8 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             ed.target(root, 'mouseout', domFilter, function () {
                 foClose();
             });
+        }, function (clip) {
+            return !clip.fileExists;
         }),
         studio: new Column('c-studio', 'Studio', function (td) {
             dom.append(td, sm.getStudio(this.studio));
