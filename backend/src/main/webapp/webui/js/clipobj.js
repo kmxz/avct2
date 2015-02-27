@@ -149,6 +149,23 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             fileOverlay.querySelector('.dropdown-toggle').addEventListener('click', function () {
                 fileOverlayBtnGroup.classList.toggle('open');
             });
+
+            var similarEl = document.getElementById('similar');
+            var modalBody = similarEl.querySelector('.modal-body');
+            var loadingMark = dom('p', null, "The page is being loaded.");
+            fileOverlay.querySelector(asel('similar')).addEventListener('click', function () {
+                modalBody.replaceChild(loadingMark, modalBody.firstChild);
+                modal.show(similarEl);
+                api("clip/similar", {id: getParentTr(this).id}).then(function (entries) {
+                    var tbody = dom('tbody', null, entries.map(function (clip) {
+                        return dom('tr', null, func.map(clip, function (value) {
+                            return dom('td', null, value);
+                        }));
+                    }));
+                    var table = dom('table', {className: ['table', 'table-condensed', 'table-hover']}, tbody);
+                    modalBody.replaceChild(table, modalBody.firstChild);
+                });
+            });
             ed.container(fileOverlay, 'click', dom.match(asel('with')), function (el) {
                 api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path}).then(func.doNothing);
                 foClose();
@@ -333,21 +350,21 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             }
         }, function (domFilter) {
             var historyEl = document.getElementById('history');
-            var historyTable = historyEl.querySelector('table');
+            var modalBody = historyEl.querySelector('.modal-body');
+            var loadingMark = dom('p', null, "The page is being loaded.");
             var yyyymmdd = function (dateSec) {
                 var date = new Date(dateSec * 1000);
                 return date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
             };
             ed.container(root, 'click', domFilter, function (el) {
+                modalBody.replaceChild(loadingMark, modalBody.firstChild);
+                modal.show(historyEl);
                 api("clip/history", {id: getParentTr(el).id}).then(function (entries) {
-                    // show history info
                     var tbody = dom('tbody', null, entries.map(function (date) {
                         return dom('tr', null, dom('td', null, yyyymmdd(date)));
                     }));
                     var table = dom('table', {className: ['table', 'table-condensed', 'table-hover']}, tbody);
-                    historyTable.parentNode.replaceChild(table, historyTable);
-                    historyTable = table;
-                    modal.show(historyEl);
+                    modalBody.replaceChild(table, modalBody.firstChild);
                 });
             });
             return function (ts) {

@@ -9,6 +9,7 @@ ijkl.module('api', ['xhr2', 'es5Array'], function () {
     var uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
     var dbConnId = window.location.search.substring(1);
     var throttle = new Throttle(10); // only allow 10 parallel XHR requests to avoid Chrome fail
+    var toReload = false;
 
     if (!uuidRegex.test(dbConnId)) {
         window.location.href = '/';
@@ -78,15 +79,21 @@ ijkl.module('api', ['xhr2', 'es5Array'], function () {
                     resolve(xhr.response);
                 } else {
                     err = xhr.getResponseHeader("X-Error");
-                    if (window.confirm("The server rejected request " + config.url + ". Do you want to reload the program? Information: " + err)) {
-                        window.location.href = "/";
+                    if (!toReload) {
+                        if (window.confirm("The server rejected request " + config.url + ". Do you want to reload the program? Information: " + err)) {
+                            toReload = true; // prevent future alerts before redirecting is actually executed by the browser
+                            window.location.href = "/";
+                        }
                     }
                     reject(err);
                 }
             };
             xhr.onerror = function (error) {
-                if (window.confirm("Network error occurred for request " + config.url + ". Do you want to reload the program?")) {
-                    window.location.href = "/";
+                if (!toReload) {
+                    if (window.confirm("Network error occurred for request " + config.url + ". Do you want to reload the program?")) {
+                        toReload = true; // prevent future alerts before redirecting is actually executed by the browser
+                        window.location.href = "/";
+                    }
                 }
                 reject(error);
             };
@@ -95,7 +102,9 @@ ijkl.module('api', ['xhr2', 'es5Array'], function () {
         });
     };
     request.FATAL = function () {
-        window.alert("You just ignored a fatal error. The program will fail to function if you do not reload.");
+        if (!toReload) {
+            window.alert("You just ignored a fatal error. The program will fail to function if you do not reload.");
+        }
     };
     request.loadImage = function (response, opt_onload, opt_onerror) {
         var image = new Image();

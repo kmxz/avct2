@@ -93,7 +93,17 @@
                 <h4 class="modal-title">Clip watching history</h4>
             </div>
             <div class="modal-body">
-                <table></table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-dialog" id="similar">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close"><span>&times;</span></button>
+                <h4 class="modal-title">Similar clips</h4>
+            </div>
+            <div class="modal-body">
             </div>
         </div>
     </div>
@@ -154,7 +164,6 @@
                         <p>
                             A boolean value. 1 if any of selected roles are present.
                         </p>
-
                         <form class="form-inline">
                         </form>
                     </div>
@@ -165,7 +174,6 @@
                         <p>
                             A boolean value. 1 if matches the selected race.
                         </p>
-
                         <form class="form-inline">
                         </form>
                     </div>
@@ -176,7 +184,6 @@
                         <p>
                             A boolean value. 1 if any of selected tags are present.
                         </p>
-
                         <div class="tag-container">
                             Selected tags:
                         </div>
@@ -188,7 +195,6 @@
                         <p>
                             Linearly map grade [1, 5] to [0, 1].
                         </p>
-
                         <form class="form-inline">
                             for those without a grade, assume a grade of:
                             <div class="form-group"><input type="text" value="3"/></div>
@@ -201,7 +207,7 @@
                         <p>
                             A boolean value. 1 if matches the selected studio.
                         </p>
-                        <span id="studio-name"></span> <span class="label label-warning" id="studio-label">Not selected yet!</span>
+                        <span class="studio-name"></span> <span class="label label-warning studio-label">Not selected yet!</span>
                     </div>
                 </div>
                 <div class="panel panel-default template-random">
@@ -218,7 +224,6 @@
                         <p>
                             Separate keywords using spaces. Score will be given according to number of keywords matched.
                         </p>
-
                         <form class="form-inline">
                             <div class="form-group">
                                 <input type="text"/>
@@ -238,7 +243,6 @@
                         <p>
                             [0, ∞) will be mapped to [0, 1).
                         </p>
-
                         <form class="form-inline">
                             specify the value which should be mapped to 0.5:
                             <div class="form-group"><input type="text" value="5"/></div>
@@ -251,7 +255,6 @@
                         <p>
                             [0, ∞) will be mapped to [0, 1).
                         </p>
-
                         <form class="form-inline">
                             specify the value which should be mapped to 0.5 (unit of days):
                             <div class="form-group"><input type="text" value="15"/></div>
@@ -305,6 +308,7 @@
                 </ul>
             </div>
             <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
+            <a href="javascript:void('similar')" class="btn btn-default btn-sm">Similar</a>
         </div>
         <div id="content-when-file-not-exists">
             <a href="javascript:void('delete')" class="btn btn-danger btn-sm">Delete</a>

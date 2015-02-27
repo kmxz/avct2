@@ -83,7 +83,7 @@ object SizeEntry extends AbstractEntry {
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
     if (clipOld._5 > 0 && clipNew._5 > 0) {
-      exp((2 - (clipNew._5 / clipOld._5) - (clipOld._5 / clipNew._5)) * 1000)
+      exp((2 - (clipNew._5.toDouble / clipOld._5) - (clipOld._5.toDouble / clipNew._5)) * 1000)
     } else 0
   }
 
@@ -97,8 +97,8 @@ object LengthEntry extends AbstractEntry {
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
     if (clipOld._5 > 0 && clipNew._5 > 0) {
-      val diff = abs(clipNew._6 - clipOld._6)
-      Math.exp(-diff / E) * 0.75 + Math.exp(-diff / 30) * 0.25
+      val diff = abs(clipNew._6 - clipOld._6).toDouble
+      exp(-diff / E) * 0.75 + exp(-diff / 30) * 0.25
     } else 0
   }
 
@@ -143,7 +143,7 @@ object CosineSimilarity {
 
   def apply[T](s1: Set[T], s2: Set[T]) = {
     if (s1.isEmpty || s2.isEmpty) {
-      0
+      0.toDouble
     } else {
       s1.intersect(s2).size / sqrt(s1.size * s2.size)
     }

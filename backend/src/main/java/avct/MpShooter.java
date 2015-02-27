@@ -3,6 +3,8 @@ package avct;
 import avct2.Avct2Conf;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -33,7 +35,7 @@ public class MpShooter {
 
     private final String filePath;
 
-    private final File screenshotPath = new File(Avct2Conf.getVideoDirSubDir(), "screenshots");
+    private final File screenshotPath = Files.createTempDirectory("avct2_screenshots").toFile();
 
     private static final Pattern screenshot_fn_regex = Pattern.compile(".*screenshot \'([A-Za-z0-9.]+)\'.*");
 
@@ -67,7 +69,6 @@ public class MpShooter {
         command.add("-vf");
         command.add("screenshot");
         ProcessBuilder pb = new ProcessBuilder(command);
-        screenshotPath.mkdirs();
         pb.directory(screenshotPath);
         try {
             pr = pb.start();
@@ -88,9 +89,6 @@ public class MpShooter {
     }
 
     private void close(boolean force) throws IOException {
-        for (File file : screenshotPath.listFiles()) {
-            file.delete();
-        } // clear up the dir
         stdin.close();
         stderrin.close();
         if (force) {
@@ -158,14 +156,18 @@ public class MpShooter {
         while (true) {
             try {
                 FileInputStream fis = new FileInputStream(preview_img_file);
-                output.copy(fis);
-                close(false);
-                break;
-            } catch (FileNotFoundException e) {
-                if (System.currentTimeMillis() - startTime > 200) {
-                    log("A valid screenshot cannot be read within 200 ms.");
+                if (preview_img_file.length() >= 1024) {
+                    output.copy(fis);
+                    System.out.println("Copying " + preview_img_file.getCanonicalPath());
+                    close(false);
                     break;
                 }
+            } catch (FileNotFoundException e) {
+                // do nothing, proceed to following part
+            }
+            if (System.currentTimeMillis() - startTime > 200) {
+                log("A valid screenshot cannot be read within 200 ms.");
+                break;
             }
         }
     }

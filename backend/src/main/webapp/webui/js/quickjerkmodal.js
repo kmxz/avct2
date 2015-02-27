@@ -116,18 +116,18 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
             }
         },
         'studio': {
-            getCriterion: function () {
-                var studio = parseInt(document.getElementById('studio-name').dataset.id, 10);
+            getCriterion: function (el) {
+                var studio = parseInt(el.querySelector('.studio-name').dataset.id, 10);
                 if (isNaN(studio)) {
                     return null;
                 }
                 return new qjmech.builders.studio(studio);
             },
             init: function (el) {
-                var lb = el.querySelector('.label');
-                var sn = document.getElementById('studio-name');
+                var lb = el.querySelector('.studio-label');
+                var sn = el.querySelector('.studio-name');
                 lb.addEventListener('click', function () {
-                    sm.open(lb, sn.innerHTML, function (proposedStudio, onSuccess, onReject) {
+                    sm.open(lb, sn.innerHTML, function (proposedStudio, onSuccess) {
                         sn.dataset.id = proposedStudio;
                         lb.innerHTML = 'Click to modify';
                         lb.classList.remove('label-warning');
