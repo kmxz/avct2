@@ -33,7 +33,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                             }, [thead, tbody]);
                             var ftt = ft(table, func.toArray(cd));
                             thead.appendChild(ftt.yieldThs());
-                            func.forEach(clip.getClips(), function (clip) {
+                            func.forEach(clip.getClips, function (clip) {
                                 var tr = ftt.yieldTds();
                                 clip.setTrAndRender(tr);
                                 tbody.appendChild(tr);

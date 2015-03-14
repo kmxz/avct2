@@ -12,7 +12,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
     var el = document.getElementById('tag-manager');
     var selectTag = document.getElementById('select-tag');
     var tb = el.querySelector('table');
-    var actualTags = null;
+    var actualTags = [];
     var currentAllowTagCreation;
     var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
 
@@ -89,7 +89,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
     };
     var init = function () {
         return api('tag/list').then(function (json) {
-            actualTags = [];
+            actualTags.length = 0; // empty it
             json.forEach(function (tag) {
                 actualTags[tag.id] = new Tag(tag.id, tag.name);
             });
@@ -164,9 +164,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
             modal.show(el);
         },
         init: init,
-        getTags: function () {
-            return actualTags;
-        },
+        getTags: actualTags,
         selectTagClose: selectTagClose,
         selectTagOpen: selectTagOpen
     };

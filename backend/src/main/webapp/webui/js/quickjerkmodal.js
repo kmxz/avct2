@@ -51,7 +51,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
         },
         'tag': {
             getCriterion: function (el) {
-                var allTags = tm.getTags();
+                var allTags = tm.getTags;
                 var pickedTags = func.toArray(el.querySelectorAll('.tag')).map(function (tel) {
                     return allTags[tel.dataset.id];
                 });
@@ -64,7 +64,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
                 var ec = el.querySelector('.tag-container');
                 ec.addEventListener('mouseenter', function () {
                     tm.selectTagOpen(ec, function (newTagId, onSuccess, onReject) {
-                        var a = dom('a', {className: ['tag', 'removable']}, tm.getTags()[newTagId].name);
+                        var a = dom('a', {className: ['tag', 'removable']}, tm.getTags[newTagId].name);
                         a.dataset.id = newTagId;
                         ec.appendChild(a);
                         onSuccess();

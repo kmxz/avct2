@@ -161,7 +161,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
         };
         var voidFirstActivated = voidFirst.checked;
         var hide0Activated = hide0.checked;
-        var clips = clipobj.getClips();
+        var clips = clipobj.getClips;
         var shown = 0;
         func.forEach(clips, updater);
         clipobj.setQuickJerkScoreUpdater(updater);
@@ -170,8 +170,8 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
                 clip: clip,
                 random: Math.random()
             };
-        }).sort(function (x, y) {
-            return (voidFirstActivated && (y.clip.isVoid - x.clip.isVoid)) || (y.clip.jerkScore - x.clip.jerkScore) || (y.random - x.random);
+        }).sort(function (c1, c2) {
+            return (voidFirstActivated && (c2.clip.isVoid - c1.clip.isVoid)) || (c2.clip.jerkScore - c1.clip.jerkScore) || (c2.random - c1.random);
         }).forEach(function (mapped) {
             var item = mapped.clip;
             tbody.appendChild(item.tr);

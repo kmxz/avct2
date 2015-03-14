@@ -6,7 +6,7 @@
     <script type="text/javascript" language="javascript" src="base.js"></script>
     <title>Avct2</title>
 </head>
-<body onload="ijkl.load('app', ['actionselector', 'api', 'app', 'autocomplete', 'canvas', 'clipobj', 'delegation', 'dom', 'flextable', 'function', 'loading', 'modal', 'popover', 'quickjerkmechanism', 'quickjerkmodal', 'screenshooter', 'studiomanager', 'tagmanager', 'throttle']);">
+<body onload="ijkl.load('app', ['actionselector', 'api', 'app', 'autocomplete', 'canvas', 'clipobj', 'delegation', 'dom', 'flextable', 'function', 'loading', 'modal', 'popover', 'quickjerkmechanism', 'quickjerkmodal', 'screenshooter', 'similar', 'studiomanager', 'tagmanager', 'throttle']);">
 
 <div id="wrap">
 
@@ -314,6 +314,28 @@
             <a href="javascript:void('delete')" class="btn btn-danger btn-sm">Delete</a>
         </div>
         <span id="filename"></span>
+    </div>
+</div>
+
+
+<div id="similar-file-overlay" class="toolbox popover">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Action <span></span></h3>
+    <div class="popover-content">
+        <a href="javascript:void('norecord')" class="btn btn-default btn-sm">Open</a>
+        <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
+        <span id="similar-filename"></span>
+    </div>
+</div>
+
+<div id="similar-score-overlay" class="toolbox popover">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Score details <span></span></h3>
+    <div class="popover-content">
+        <table class="table table-condensed table-hover">
+            <tbody></tbody>
+        </table>
+        Each in [0, 1]
     </div>
 </div>
 

@@ -8,9 +8,7 @@ import scala.math._
 import scala.slick.driver.HsqldbDriver.simple._
 import scala.slick.lifted.TableQuery
 
-case class EntryResult(name: String, rawScore: Double)
-
-case class Report(clipId: Int, entries: Seq[EntryResult], total: Double)
+case class Report(clipId: Int, scores: Map[String, Double], total: Double)
 
 abstract class AbstractEntry {
 
@@ -22,7 +20,7 @@ abstract class AbstractEntry {
 
   def getResult(clipOld: ClipRow, clipNew: ClipRow) = {
     val score = getScore(clipOld, clipNew)
-    (EntryResult(name, score), weight * score)
+    ((name, score), weight * score)
   }
 
 }
@@ -133,7 +131,7 @@ object Difference {
     val target = getClipRows(Tables.clip.filter(_.clipId === clipId)).head
     getClipRows(Tables.clip.filter(_.clipId =!= clipId)).map({row =>
       val acquiredResults = entries.map(entry => entry.getResult(target, row))
-      Report(row._7, acquiredResults.map(_._1), acquiredResults.map(_._2).reduce(_ + _))
+      Report(row._7, acquiredResults.map(_._1).toMap, acquiredResults.map(_._2).reduce(_ + _))
     }).sortBy(_.total)
   }
 
@@ -157,14 +155,16 @@ object Levenshtein {
 
   private def distance(s1: String, s2: String) = {
     val dist = Array.tabulate(s2.length + 1, s1.length + 1) { (j, i)=>
-      if (j == 0) i else if (i == 0) j else 0 }
+      if (j == 0) i else if (i == 0) j else 0
+    }
 
-    for(j <- 1 to s2.length; i <- 1 to s1.length)
+    for (j <- 1 to s2.length; i <- 1 to s1.length) {
       dist(j)(i) = if (s2(j - 1) == s1(i - 1)) dist(j - 1)(i - 1) else minimum(dist(j - 1)(i) + 1, dist(j)(i - 1) + 1, dist(j - 1)(i - 1) + 1)
+    }
 
     dist(s2.length)(s1.length)
   }
 
-  def apply(s1: String, s2: String) = 1 - distance(s1, s2) / max(s1.length, s2.length)
+  def apply(s1: String, s2: String) = 1 - distance(s1, s2).toDouble / max(s1.length, s2.length)
 
 }

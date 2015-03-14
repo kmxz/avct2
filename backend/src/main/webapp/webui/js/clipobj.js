@@ -14,11 +14,13 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     var sm = ijkl('studiomanager');
     var ss = ijkl('screenshooter');
     var tm = ijkl('tagmanager');
+    var similar = ijkl('similar');
 
     var root = document.getElementById("root");
     var fileOverlay = document.getElementById('file-overlay');
-    var actualClips = null;
+    var actualClips = {};
     var quickJerkScoreUpdater = func.doNothing;
+    similar.init(actualClips);
 
     var Clip = function (json) { // XXX: this is ugly
         ['id', 'duration', 'file', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay', 'fileExists'].forEach(function (key) {
@@ -146,22 +148,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             fileOverlay.querySelector('.dropdown-toggle').addEventListener('click', function () {
                 fileOverlayBtnGroup.classList.toggle('open');
             });
-            var similarEl = document.getElementById('similar');
-            var modalBody = similarEl.querySelector('.modal-body');
-            var loadingMark = dom('p', null, "The page is being loaded.");
-            fileOverlay.querySelector(asel('similar')).addEventListener('click', function () {
-                modalBody.replaceChild(loadingMark, modalBody.firstChild);
-                modal.show(similarEl);
-                api("clip/similar", {id: getParentTr(this).id}).then(function (entries) {
-                    var tbody = dom('tbody', null, entries.map(function (clip) {
-                        return dom('tr', null, func.map(clip, function (value) {
-                            return dom('td', null, value);
-                        }));
-                    }));
-                    var table = dom('table', {className: ['table', 'table-condensed', 'table-hover']}, tbody);
-                    modalBody.replaceChild(table, modalBody.firstChild);
-                });
-            });
             ed.container(fileOverlay, 'click', dom.match(asel('with')), function (el) {
                 api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path}).then(func.doNothing);
                 foClose();
@@ -175,6 +161,10 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             });
             ed.target(root, 'mouseout', domFilter, function () {
                 foClose();
+            });
+            // similar file
+            fileOverlay.querySelector(asel('similar')).addEventListener('click', function () {
+                similar(getParentTr(this).id);
             });
         }, function (clip) {
             return !clip.fileExists;
@@ -299,7 +289,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             return clip.race === 'Unknown'; // XXX
         }),
         tags: new Column('c-tags', 'Tags', function (td) {
-            var tags = tm.getTags();
+            var tags = tm.getTags;
             dom.append(td, this.tags.map(function (tagId) {
                 var tag = tags[tagId];
                 var el = dom('a', {className: ['tag', 'removable'], title: "Click to remove"}, tag.name);
@@ -308,7 +298,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             }));
         }, function (domFilter) {
             var checkIfCanContinue = function (proposed) {
-                var tags = tm.getTags();
+                var tags = tm.getTags;
                 var warnings = proposed.map(function (tagId) { return tags[tagId]; }).filter(function (tag) {
                     return tag.children.length && tag.children.every(function (child) { return proposed.indexOf(child.id) < 0; });
                 }).map(function (tag) { return tag.name; });
@@ -456,7 +446,12 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     return {
         Clip: Clip,
         init: function (json, players) {
-            actualClips = {};
+            var id;
+            for (id in actualClips) {
+                if (actualClips.hasOwnProperty(id)) {
+                    delete actualClips[id];
+                }
+            }
             json.forEach(function (json) {
                 actualClips[json.id] = new Clip(json);
             });
@@ -469,9 +464,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                 dom.append(menu, dom('li', null, a));
             });
         },
-        getClips: function () {
-            return actualClips;
-        },
+        getClips: actualClips,
         columns: columns,
         setQuickJerkScoreUpdater: function (callback) {
             quickJerkScoreUpdater = callback;
