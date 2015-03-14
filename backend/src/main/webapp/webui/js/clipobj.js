@@ -112,9 +112,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
         }),
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, this.file);
-            if (!this.fileExists) {
-                dom.append(td, dom('span', {className: ['label', 'label-warning']}, 'File not found!'));
-            }
         }, function (domFilter) {
             var fileOverlaySpan = fileOverlay.querySelector('#filename');
             var fileOverlayBtnGroup = fileOverlay.querySelector('.btn-group');
@@ -149,7 +146,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             fileOverlay.querySelector('.dropdown-toggle').addEventListener('click', function () {
                 fileOverlayBtnGroup.classList.toggle('open');
             });
-
             var similarEl = document.getElementById('similar');
             var modalBody = similarEl.querySelector('.modal-body');
             var loadingMark = dom('p', null, "The page is being loaded.");

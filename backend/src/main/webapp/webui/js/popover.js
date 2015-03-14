@@ -34,26 +34,32 @@ ijkl.module('popover', ['querySelector', 'classList'], function () {
                 cb.classList.remove('disabled');
             }
         };
+        var close = function () {
+            if (locked) {
+                return;
+            }
+            hide();
+        };
+        var submit = function () {
+            if (locked) {
+                return;
+            }
+            lock();
+            currentOnSubmit(function () {
+                unlock();
+                hide();
+            }, unlock);
+        };
         if (sb) {
             sb.addEventListener('click', function (e) {
                 e.stopPropagation();
-                if (locked) {
-                    return;
-                }
-                lock();
-                currentOnSubmit(function () {
-                    unlock();
-                    hide();
-                }, unlock);
+                submit();
             });
         }
         if (cb) {
             cb.addEventListener('click', function (e) {
                 e.stopPropagation();
-                if (locked) {
-                    return;
-                }
-                hide();
+                close();
             });
         }
         // onSubmit should be a function accepting (newValue, onSuccess, onReject)
@@ -70,7 +76,8 @@ ijkl.module('popover', ['querySelector', 'classList'], function () {
         start.isOpen = function () {
             return editor.parentNode !== document.body;
         };
-        start.close = hide;
+        start.submit = submit;
+        start.close = close;
         return start;
     };
 });

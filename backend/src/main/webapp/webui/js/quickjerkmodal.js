@@ -38,7 +38,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
         },
         'role': {
             getCriterion: function (el) {
-                var allChecked = func.toArray(el.querySelectorAll('input[type=radio]')).filter(function (input) {
+                var allChecked = func.toArray(el.querySelectorAll('input[type=checkbox]')).filter(function (input) {
                     return input.checked;
                 });
                 if (!allChecked.length) {

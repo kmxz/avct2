@@ -11,17 +11,15 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
     var ul = editor.querySelector('div.list-group');
     var currentHighlightItem = null;
     var suggestionArray = null;
-    var notChanged = false;
-    var stop = false;
     var popover = po(editor);
+    var preventKeyup = false;
     var clear = function () {
-        if (stop) {
-            stop = false;
-            return;
-        }
         ul.innerHTML = '';
+        currentHighlightItem = null;
     };
-    editor.addEventListener('click', clear);
+    editor.addEventListener('click', function () {
+        clear();
+    });
     var updateActive = function (newItem) {
         if (currentHighlightItem) {
             currentHighlightItem.classList.remove('active');
@@ -33,21 +31,16 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
     };
     var selectActive = function () {
         it.value = currentHighlightItem.innerHTML;
-        currentHighlightItem = null;
         clear();
-        notChanged = true;
     };
     var clickListener = function (e) {
         e.stopPropagation();
+        it.focus(); // keep consistent with ENTER key behavior
         updateActive(this);
         selectActive();
     };
     var updateAc = function () {
-        clear();
-        if (notChanged) {
-            notChanged = false;
-            return;
-        }
+        if (preventKeyup) { preventKeyup = false; return; }
         var previousSelectedText = currentHighlightItem ? currentHighlightItem.innerHTML : null;
         var length = it.value.length;
         var allNodes = suggestionArray.filter(function (name) {
@@ -63,6 +56,7 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
         updateActive(allNodes.filter(function (el) {
             return el.innerHTML === previousSelectedText;
         })[0]);
+        ul.innerHTML = '';
         dom.append(ul, allNodes);
     };
     it.addEventListener('keydown', function (e) {
@@ -74,18 +68,24 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
                 updateActive((currentHighlightItem && currentHighlightItem.nextSibling) || ul.firstChild);
                 break;
             case 13: // enter
-                selectActive();
+                if (currentHighlightItem) {
+                    selectActive();
+                } else {
+                    popover.submit();
+                }
                 break;
             default:
                 return;
         }
+        preventKeyup = true;
         e.preventDefault();
     });
+    it.addEventListener('click', function (e) {
+        e.stopPropagation(); // prevent editor.onclick to be called
+    })
     it.addEventListener('keyup', updateAc);
     it.addEventListener('focus', function () {
         updateAc();
-        stop = true;
-        editor.addEventListener('click', clear);
     });
     // onSubmit should be a function accepting (newValue, onSuccess, onReject)
     // suggestions would be an array of text
@@ -95,6 +95,7 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
         popover(anchor, function (onSuccess, onReject) {
             onSubmit(it.value, onSuccess, onReject);
         });
+        clear();
         it.focus();
     };
     start.isOpen = popover.isOpen;

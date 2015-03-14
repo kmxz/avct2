@@ -8,12 +8,7 @@ ijkl.module('loading', ['classList'], function () {
     var mnb = document.getElementById('modal-notify-body');
 
     var wait = function (callback) {
-        // it's weird, but under Chrome, two levels of requestAnimationFrame will ensure the the fonts get loaded, one does not
-        window.requestAnimationFrame(function () {
-            window.requestAnimationFrame(function () {
-                callback();
-            });
-        });
+        setTimeout(callback, 0); // use this instead of the original requestAnimationFrame, as rAF will only be called when current tab is active, and thus make background loading impossible
     };
 
     var loaded = function () {
