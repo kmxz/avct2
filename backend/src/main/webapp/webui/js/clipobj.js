@@ -339,8 +339,9 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             var modalBody = historyEl.querySelector('.modal-body');
             var loadingMark = dom('p', null, "The page is being loaded.");
             var yyyymmdd = function (dateSec) {
+                var zerofill = function (num) { return ('0' + num).slice(-2); }
                 var date = new Date(dateSec * 1000);
-                return date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+                return date.getFullYear() + '-' + zerofill(date.getMonth() + 1) + '-' + zerofill(date.getDate()) + ' ' + zerofill(date.getHours()) + ':' + zerofill(date.getMinutes()) + ':' + zerofill(date.getSeconds());
             };
             ed.container(root, 'click', domFilter, function (el) {
                 modalBody.replaceChild(loadingMark, modalBody.firstChild);
