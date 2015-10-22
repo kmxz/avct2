@@ -9,33 +9,38 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
     var modal = ijkl('modal');
 
     var currentModalTable = null;
+    var currentModalExtable = null;
     var modalEl = document.getElementById('column-selector');
     var form = modalEl.querySelector('form');
     var close = function () {
         modal.close(modalEl);
         form.innerHTML = ''; // dirty method to free some resources
     };
-    var show = function (table, className, shown) {
-        func.toArray(table.querySelectorAll('.' + className)).forEach(function (td) {
+    var show = function (table, extable, className, shown) {
+        var handleTr = function (tr) {
+            var td = tr.querySelector('.' + className);
+            if (!td) { return; }
             if (shown) {
                 td.classList.remove('hidden');
             } else {
                 td.classList.add('hidden');
             }
-        });
+        };
+        handleTr(table.querySelector('tr')); // th
+        extable.pool.forEach(handleTr);
     };
     modalEl.querySelector(asel('cancel')).addEventListener('click', close);
     modalEl.querySelector(asel('apply')).addEventListener('click', function () {
         func.toArray(form.querySelectorAll('input[type=checkbox]')).forEach(function (cb) {
             if (cb.checked) {
-                show(currentModalTable, cb.name, true);
+                show(currentModalTable, currentModalExtable, cb.name, true);
             } else {
-                show(currentModalTable, cb.name, false);
+                show(currentModalTable, currentModalExtable, cb.name, false);
             }
         });
         close();
     });
-    return function (table, columns) {
+    return function (table, columns, extable) {
         var insertBefore = null;
         var currentDrag = null;
         var currentDragover = null;
@@ -59,11 +64,12 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
         };
         var columnSel = function () {
             currentModalTable = table;
+            currentModalExtable = extable;
             var checkboxes = columns.map(function (info) {
                 return {
                     name: info.className,
                     text: info.text, // XXX: this is UGLY!
-                    shown: !table.querySelector('.' + info.className).classList.contains('hidden')
+                    shown: !table.querySelector('.' + info.className).classList.contains('hidden') // from th
                 };
             }).map(function (item) {
                 var properties = {type: 'checkbox', name: item.name};
@@ -85,9 +91,11 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
             return dom('div', {className: 'resize-handle', draggable: true});
         };
         var fastMoveCurrentItems = function (source, target) {
-            func.toArray(table.querySelectorAll('tr')).forEach(function (tr) {
+            var handleTr = function (tr) {
                 tr.insertBefore(tr.querySelector('.' + source), target ? tr.querySelector('.' + target) : null);
-            });
+            };
+            handleTr(table.querySelector('tr')); // th
+            extable.pool.forEach(handleTr);
         };
         var dragOverListener = function (ev) {
             ev.preventDefault(); // i don't know why but this line seems to be necessary
@@ -159,7 +167,7 @@ ijkl.module('flextable', ['dragEvents', 'querySelector', 'es5Array', 'classList'
         return {
             columnSel: columnSel,
             showColumn: function (className, shown) {
-                show(table, className, shown);
+                show(table, extable, className, shown);
             },
             yieldThs: function () {
                 return dom('tr', null, columns.map(function (info) {

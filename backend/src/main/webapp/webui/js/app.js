@@ -7,6 +7,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
     var asel = ijkl('actionselector');
     var clip = ijkl('clipobj');
     var dom = ijkl('dom');
+    var extable = ijkl('extable');
     var ft = ijkl('flextable');
     var func = ijkl('function');
     var loaded = ijkl('loading');
@@ -24,30 +25,33 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                 clip.init(results[0], results[1]);
                 document.getElementById('total-clips').innerHTML = results[0].length;
                 loaded.appendThen("Clips loaded. Rendering...", function () {
+                    var root = document.getElementById("root");
                     var thead = dom('thead');
                     var tbody = dom('tbody');
                     var table = dom('table', {
                         className: ['table', 'table-hover'],
                         'width': '100%'
                     }, [thead, tbody]);
-                    var ftt = ft(table, func.toArray(cd));
+                    var ext = extable(tbody, root);
+                    var ftt = ft(table, func.toArray(cd), ext);
                     thead.appendChild(ftt.yieldThs());
                     func.forEach(clip.getClips, function (clip) {
                         var tr = ftt.yieldTds();
                         clip.setTrAndRender(tr);
-                        tbody.appendChild(tr);
+                        ext.pool.push(tr);
                     });
                     ftt.showColumn(cd.duration.className, false);
                     ftt.showColumn(cd.size.className, false);
-                    document.getElementById("root").appendChild(table);
+                    root.appendChild(table);
                     document.querySelector(asel('columns')).addEventListener('click', function () {
                         ftt.columnSel();
                     });
                     document.querySelector(asel('tags')).addEventListener('click', tm.open.bind(tm));
                     document.getElementById('quickjerk-btn').addEventListener('click', qjmodal.show);
-                    qjmech.init(tbody);
+                    qjmech.init(ext);
                     qjmodal.init();
                     loaded();
+                    ext.reRender();
                 });
             }, api.FATAL);
         });

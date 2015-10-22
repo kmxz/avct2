@@ -11,7 +11,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
     var voidFirst = document.getElementById('voidFirst');
     var hide0 = document.getElementById('hide0');
     var shownClipsSpan = document.getElementById('shown-clips');
-    var tbody;
+    var extable;
     var lastCriteria;
 
     var ResultEntry = function (criterion, score, message) {
@@ -165,6 +165,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
         var shown = 0;
         func.forEach(clips, updater);
         clipobj.setQuickJerkScoreUpdater(updater);
+        extable.pool.splice(0, extable.pool.length);
         func.toArray(clips).map(function (clip) {
             return {
                 clip: clip,
@@ -174,7 +175,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
             return (voidFirstActivated && (c2.clip.isVoid - c1.clip.isVoid)) || (c2.clip.jerkScore - c1.clip.jerkScore) || (c2.random - c1.random);
         }).forEach(function (mapped) {
             var item = mapped.clip;
-            tbody.appendChild(item.tr);
+            extable.pool.push(item.tr);
             if (hide0Activated && item.jerkScore <= 0) {
                 item.tr.style.display = 'none';
             } else {
@@ -182,14 +183,15 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
                 shown++;
             }
         });
+        extable.reRender();
         shownClipsSpan.innerHTML = shown;
     };
 
     return {
         builders: builders,
         runCriteria: runCriteria,
-        init: function (theTbody) {
-            tbody = theTbody;
+        init: function (theExtable) {
+            extable = theExtable;
             var initListener = function (suffix, criterion) {
                 document.getElementById('quickjerk-btn-' + suffix).addEventListener('click', function () {
                     runCriteria([criterion]);
