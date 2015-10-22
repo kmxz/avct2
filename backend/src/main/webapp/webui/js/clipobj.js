@@ -159,9 +159,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                 notExistsGroup.style.display = clip.fileExists ? 'none' : '';
                 fo(el);
             });
-            ed.target(root, 'mouseout', domFilter, function () {
-                foClose();
-            });
+            ed.target(root, 'mouseout', domFilter, foClose);
             // similar file
             fileOverlay.querySelector(asel('similar')).addEventListener('click', function () {
                 similar(getParentTr(this).id);
@@ -280,9 +278,11 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                     }
                 });
                 rs(el, function (onSuccess, onReject) {
-                    post('race', allRaceInputs.filter(function (single) {
+                    var selected = allRaceInputs.filter(function (single) {
                         return single.element.checked;
-                    })[0].value, onSuccess, onReject);
+                    });
+                    if (!selected.length) { return; }
+                    post('race', selected[0].value, onSuccess, onReject);
                 });
             }, this));
         }, function (clip) {
@@ -302,7 +302,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                 var warnings = proposed.map(function (tagId) { return tags[tagId]; }).filter(function (tag) {
                     return tag.children.length && tag.children.every(function (child) { return proposed.indexOf(child.id) < 0; });
                 }).map(function (tag) { return tag.name; });
-                return warnings.length ? window.confirm("Tag(s)" + warnings.join(", ") + " has no child tags selected! Continue?") : true;
+                return warnings.length ? window.confirm("Tag(s) " + warnings.join(", ") + " has no child tags selected! Continue?") : true;
             };
             ed.target(root, 'mouseover', domFilter, updateHelper(function (el, clip, post) {
                 tm.selectTagOpen(el, function (newTagId, onSuccess, onReject) {
