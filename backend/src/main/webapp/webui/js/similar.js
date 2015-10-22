@@ -47,7 +47,7 @@ ijkl.module('similar', ['querySelector', 'dataset', 'es5Array'], function () {
                 var clip =  actualClips[entry.clipId];
                 var fileTd = dom('td', null, clip.file);
                 fileTd.addEventListener('mouseenter', function () {
-                    currentTargetClipId = clipId;
+                    currentTargetClipId = entry.clipId;
                     fileOverlaySpan.innerHTML = clip.path;
                     sfo(this);
                 });

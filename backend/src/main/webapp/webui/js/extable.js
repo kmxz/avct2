@@ -7,7 +7,6 @@ ijkl.module('extable', [], function () {
         var pool = [];
         var currTill = -1; // this first index that is NOT shown
         var tryLayout = function () {
-            //debugger;
             if (currTill >= pool.length) { return; } // already fully loaded
             var end = Math.min(currTill + 10, pool.length);
             if (scrollable.scrollHeight - scrollable.scrollTop < 2 * scrollable.offsetHeight) {
