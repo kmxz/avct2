@@ -175,15 +175,13 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
             return (voidFirstActivated && (c2.clip.isVoid - c1.clip.isVoid)) || (c2.clip.jerkScore - c1.clip.jerkScore) || (c2.random - c1.random);
         }).forEach(function (mapped) {
             var item = mapped.clip;
-            extable.pool.push(item.tr);
-            if (hide0Activated && item.jerkScore <= 0) {
-                item.tr.style.display = 'none';
-            } else {
-                item.tr.style.display = ''; // default
+            if (!(hide0Activated && item.jerkScore <= 0)) {
+                extable.pool.push(item.tr);
                 shown++;
             }
         });
         extable.reRender();
+        console.log(extable.pool.length);
         shownClipsSpan.innerHTML = shown;
     };
 

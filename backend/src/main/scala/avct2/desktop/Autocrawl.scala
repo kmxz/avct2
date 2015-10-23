@@ -8,6 +8,8 @@ import avct2.schema.{Race, Role, Tables, Utilities}
 
 import scala.slick.driver.HsqldbDriver.simple._
 
+case class Changes(added: Iterable[String], disappeared: Iterable[String])
+
 object Autocrawl {
 
   private final val excludeFileTypes = Set[String]("", "jpg", "jpeg", "doc", "docx", "odt", "bmp", "html", "html", "mht", "lnk", "torrent", "csv", "mp3", "url", "wma", "pdf", "png", "gif", "txt", "rar", "tar", "zip", "gz", "bz2", "7z", "tgz")
@@ -39,31 +41,27 @@ object Autocrawl {
     base.toURI.relativize(path.toURI).getPath
   }
 
-  private def fileExistInDbAndMark(path: String)(implicit session: Session) = {
-    val clipRow = Tables.clip.filter(_.file === path)
-    if (clipRow.exists.run) {
-      clipRow.map(_.fileExists).update(true)
-      true
-    } else false
+  private def fileExistInDbAndMark(path: String, paths: scala.collection.mutable.Set[String]) = {
+    paths.remove(path)
   }
 
-  private def getNewFilesAndMark(implicit session: Session) = {
+  private def getNewFilesAndMark(paths: scala.collection.mutable.Set[String]) = {
     val videoDir = new File(Avct2Conf.getVideoDir)
-    recursiveListFiles(videoDir).map(file => (file, relativePath(videoDir, file))).filter(tuple => !fileExistInDbAndMark(tuple._2)).filter(_._1.length > 65535) // a size of 64 KB is required
+    recursiveListFiles(videoDir).map(file => (file, relativePath(videoDir, file))).filter(tuple => !fileExistInDbAndMark(tuple._2, paths)).filter(_._1.length > 65535) // a size of 64 KB is required
   }
 
   private def addTo(f: (File, String))(implicit session: Session) = f match {
     case (file, path) =>
       val duration = IdentifyVideo.getDuration(file, Avct2Conf.getMPlayer)
-      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote, row.fileExists)).insert((path, file.length, duration, Race.unknown, 0, Role.ValueSet.empty, "", true))
+      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote)).insert((path, file.length, duration, Race.unknown, 0, Role.ValueSet.empty, ""))
   }
 
-  def apply(implicit session: Session): Seq[String] = this.synchronized {
+  def apply(implicit session: Session): Changes = this.synchronized {
+    val paths = scala.collection.mutable.Set(Tables.clip.map(_.file).run: _*)
     Utilities.orphanStudioCleanup
     Utilities.orphanTagCleanup
-    Tables.clip.map(_.fileExists).update(false)
-    val newFiles = getNewFilesAndMark
+    val newFiles = getNewFilesAndMark(paths)
     newFiles.foreach(addTo)
-    newFiles.map(_._2)
+    Changes(newFiles.map(_._2), paths)
   }
 }

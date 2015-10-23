@@ -55,15 +55,29 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                 });
             }, api.FATAL);
         });
-        api('clip/autocrawl').then(function (newClips) {
-            if (!newClips.length) {
+        api('clip/autocrawl').then(function (changes) {
+            if ((!changes.added.length) && (!changes.disappeared.length)) {
                 return;
             }
-            var modalContainer = document.getElementById('new-clips');
-            var modalBody = historyEl.querySelector('.modal-body');
-            modalBody.appendChild(dom('table', {className: ['table', 'table-condensed', 'table-hover']}, dom('tbody', null, newClips.map(function (clip) {
-                return dom('tr', null, dom('td', null, clip));
-            }))));
+            var modalContainer = document.getElementById('crawl-report');
+            var modalBody = modalContainer.querySelector('.modal-body');
+            if (changes.added.length) {
+                modalBody.appendChild(dom('h4', {className: 'modal-title'}, 'New clips found'));
+                modalBody.appendChild(dom('table', {className: ['table', 'table-condensed', 'table-hover']}, dom('tbody', null, changes.added.map(function (clip) {
+                    return dom('tr', null, dom('td', null, clip));
+                }))));
+            }
+            if (changes.disappeared.length) {
+                modalBody.appendChild(dom('h4', {className: 'modal-title'}, 'Clips disappeared'));
+                modalBody.appendChild(dom('table', {className: ['table', 'table-condensed', 'table-hover']}, dom('tbody', null, changes.disappeared.map(function (clip) {
+                    return dom('tr', null, dom('td', null, clip));
+                }))));
+                func.toArray(clip.getClips).filter(function (clip) {
+                    return changes.disappeared.indexOf(clip.path) >= 0;
+                }).forEach(function (clip) {
+                    clip.fileExists = false;
+                });
+            }
             modal.show(modalContainer);
         }, api.FATAL);
     };

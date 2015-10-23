@@ -23,9 +23,11 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     similar.init(actualClips);
 
     var Clip = function (json) { // XXX: this is ugly
-        ['id', 'duration', 'file', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay', 'fileExists'].forEach(function (key) {
+        ['id', 'duration', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay'].forEach(function (key) {
             this[key] = json[key];
         }.bind(this));
+        this.file = this.path.split('/').pop();
+        this.fileExists = true; // by default set to true, unless later reset
         this.jerkScore = 0;
         this.jerkEntries = [];
         this.tr = null;

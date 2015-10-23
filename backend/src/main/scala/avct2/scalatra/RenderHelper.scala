@@ -34,18 +34,17 @@ trait RenderHelper {
   // to be used with renderClip
   def queryClip(filter: TableQuery[Clip] => Query[Clip, _, Seq])(implicit session: Session) = {
     // actually I should fill the second type parameter of return type, instead of leaving _. but it's too long so I ignored that
-    filter(Tables.clip).map(row => (row.clipId, row.file, row.studioId, row.race, row.grade, row.role, row.size, row.length, row.thumb.isNotNull, row.sourceNote, row.fileExists))
+    filter(Tables.clip).map(row => (row.clipId, row.file, row.studioId, row.race, row.grade, row.role, row.size, row.length, row.thumb.isNotNull, row.sourceNote))
   }
 
   // to be used with queryClip
-  def renderClip(tuple: (Int, String, Option[Int], Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Boolean))(implicit session: Session) = tuple match {
-    case (clipId, file, studio, race, grade, role, size, length, thumbSet, sourceNote, fileExists) =>
+  def renderClip(tuple: (Int, String, Option[Int], Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String))(implicit session: Session) = tuple match {
+    case (clipId, file, studio, race, grade, role, size, length, thumbSet, sourceNote) =>
       val tags = Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list
       val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp)
       val record = (ts.length, ts.max).shaped.run
-      val f = new File(file)
       // caution: lastPlay may be void
-      Map("id" -> clipId, "path" -> f.getPath, "file" -> f.getName, "studio" -> studio, "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote, "fileExists" -> fileExists) // Enum-s must be toString-ed, otherwise json4s will fuck things up
+      Map("id" -> clipId, "path" -> file, "studio" -> studio, "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote) // Enum-s must be toString-ed, otherwise json4s will fuck things up
   }
 
   def openFile(id: Int, opener: (File => Boolean))(implicit session: Session) = {
@@ -66,7 +65,7 @@ trait RenderHelper {
       otherClips.foreach { race =>
         map.update(race, map.getOrElse(race, 0) + 1)
       }
-      var length = otherClips.length
+      val length = otherClips.length
       map.maxBy(_._2) match {
         case (race, count) =>
           if (count * 2 > length) {

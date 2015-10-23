@@ -24,7 +24,7 @@ class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
   def * = (studioId.?, name)
 }
 
-class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Boolean)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
 
   def file = column[String]("file")
@@ -45,11 +45,9 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
 
   def sourceNote = column[String]("source_note")
 
-  def fileExists = column[Boolean]("file_exists")
-
   index("index_file", file, unique = true)
 
-  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote, fileExists)
+  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote)
 }
 
 class Record(tag: T) extends Table[(Int, Int)](tag, "record") {
