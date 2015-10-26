@@ -30,7 +30,7 @@ ijkl.module('autocomplete', ['querySelector', 'classList'], function () {
         currentHighlightItem = newItem;
     };
     var selectActive = function () {
-        it.value = currentHighlightItem.innerHTML;
+        it.value = currentHighlightItem.textContent;
         clear();
     };
     var clickListener = function (e) {
