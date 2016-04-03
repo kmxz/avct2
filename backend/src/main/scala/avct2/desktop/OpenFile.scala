@@ -7,7 +7,7 @@ import scala.sys.process._
 
 object OpenFile {
 
-  val open = (file: File) => {
+  private def awtOpen (file: File): Boolean = {
     try {
       Desktop.getDesktop.open(file)
       true
@@ -16,31 +16,49 @@ object OpenFile {
     }
   }
 
+  private def switch (windows: File => Boolean, linux: File => Boolean, mac: File => Boolean, default: File => Boolean): File => Boolean = {
+    if (os.startsWith("Windows")) {
+      windows
+    } else if (os.startsWith("Linux")) {
+      linux
+    } else if (os.startsWith("Mac OS X")) {
+      mac // though never actually needed
+    } else {
+      default
+    }
+  }
+
+  lazy val open = switch(file => {
+    Seq("explorer", file.getCanonicalPath).! == 0
+  }, file => {
+    Seq("xdg-open", file.getCanonicalPath).! == 0
+  }, file => {
+    Seq("open", file.getCanonicalPath).! == 0
+  }, file => {
+    awtOpen(file.getParentFile)
+  })
+
+  lazy val openInFolder = switch(file => {
+    Seq("explorer", "/select,", file.getCanonicalPath).! == 0
+  }, file => { // XXX: maybe use DBus approach instead?
+    if (nautilusInstalled) {
+      Seq("nautilus", file.getCanonicalPath).! == 0
+    } else if (dolphinInstalled) {
+      Seq("dolphin", "--select", file.getCanonicalPath).! == 0
+    } else {
+      Seq("xdg-open", file.getParent).! == 0
+    }
+  }, file => {
+    Seq("open", "-R", file.getCanonicalPath).! == 0
+  }, file => {
+    awtOpen(file.getParentFile)
+  })
+
   val openWith = (file: File, player: File) => {
     Seq(player.getCanonicalPath, file.getCanonicalPath).! == 0
   }
 
-  val openInFolder = (file: File) => {
-    val os: String = System.getProperty("os.name")
-    if (os.startsWith("Windows")) {
-      Seq("explorer", "/select,", file.getCanonicalPath).! == 0
-    } else if (os.startsWith("Linux")) {
-      // XXX: maybe use DBus approach instead?
-      if (nautilusInstalled) {
-        Seq("nautilus", file.getCanonicalPath).! == 0
-      } else if (dolphinInstalled) {
-        Seq("dolphin", "--select", file.getCanonicalPath).! == 0
-      } else {
-        Seq("xdg-open", file.getParent).! == 0
-      }
-    } else if (os.startsWith("Mac OS X")) {
-      // though never actually needed
-      Seq("open", "-R", file.getCanonicalPath).! == 0
-    } else {
-      // awt default
-      open(file.getParentFile)
-    }
-  }
+  private lazy val os: String = System.getProperty("os.name")
 
   private lazy val nautilusInstalled = {
     try {

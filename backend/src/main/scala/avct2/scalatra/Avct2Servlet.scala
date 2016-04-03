@@ -7,7 +7,7 @@ import avct.{MpShooter, Output}
 import avct2.Avct2Conf
 import avct2.desktop.Autocrawl
 import avct2.desktop.OpenFile._
-import avct2.duplicate_detection.Difference
+import avct2.modules.Difference
 import avct2.schema.Utilities._
 import avct2.schema._
 import org.json4s.JsonAST.JNull

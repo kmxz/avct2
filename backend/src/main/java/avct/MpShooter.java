@@ -123,7 +123,7 @@ public class MpShooter {
                         syncCheck();
                     }
                 }
-            } catch (IOException e) {
+            } catch (IOException|InterruptedException e) {
                 log(e.getMessage());
             }
         }
@@ -151,12 +151,19 @@ public class MpShooter {
         }
     }
 
-    private void syncCheck() throws IOException {
+    private void syncCheck() throws IOException, InterruptedException {
         long startTime = System.currentTimeMillis();
+        long lastSize = 0;
         while (true) {
+            Thread.sleep(20);
             try {
                 FileInputStream fis = new FileInputStream(preview_img_file);
-                if (preview_img_file.length() >= 1024) {
+                long size = preview_img_file.length();
+                if (size >= 1024) {
+                    if (size > lastSize) {
+                        lastSize = size;
+                        continue;
+                    }
                     output.copy(fis);
                     System.out.println("Copying " + preview_img_file.getCanonicalPath());
                     close(false);
@@ -165,8 +172,8 @@ public class MpShooter {
             } catch (FileNotFoundException e) {
                 // do nothing, proceed to following part
             }
-            if (System.currentTimeMillis() - startTime > 200) {
-                log("A valid screenshot cannot be read within 200 ms.");
+            if (System.currentTimeMillis() - startTime > 500) {
+                log("A valid screenshot cannot be read within 500 ms.");
                 break;
             }
         }

@@ -7,6 +7,7 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
     var asel = ijkl('actionselector');
     var clip = ijkl('clipobj');
     var dom = ijkl('dom');
+    var ed = ijkl('delegation');
     var extable = ijkl('extable');
     var ft = ijkl('flextable');
     var func = ijkl('function');
@@ -20,9 +21,37 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
     var cd = clip.columns;
 
     return function () {
+        ed.container(document.body, 'submit', dom.match('form'), function (el, event) {
+            event.preventDefault(); // to prevent forms get submitted when enter key pressed
+        });
         loaded.appendThen("Script loaded...", function () {
             Promise.all([api('clip/list'), api('players'), sm.init(), tm.init()]).then(function (results) {
                 clip.init(results[0], results[1]);
+                api('clip/autocrawl').then(function (changes) {
+                    if ((!changes.added.length) && (!changes.disappeared.length)) {
+                        return;
+                    }
+                    var modalContainer = document.getElementById('crawl-report');
+                    var modalBody = modalContainer.querySelector('.modal-body');
+                    if (changes.added.length) {
+                        modalBody.appendChild(dom('h4', {className: 'modal-title'}, 'New clips found'));
+                        modalBody.appendChild(dom('table', {className: ['table', 'table-condensed', 'table-hover']}, dom('tbody', null, changes.added.map(function (clip) {
+                            return dom('tr', null, dom('td', null, clip));
+                        }))));
+                    }
+                    if (changes.disappeared.length) {
+                        modalBody.appendChild(dom('h4', {className: 'modal-title'}, 'Clips disappeared'));
+                        modalBody.appendChild(dom('table', {className: ['table', 'table-condensed', 'table-hover']}, dom('tbody', null, changes.disappeared.map(function (clip) {
+                            return dom('tr', null, dom('td', null, clip));
+                        }))));
+                        func.toArray(clip.getClips).filter(function (clip) {
+                            return changes.disappeared.indexOf(clip.path) >= 0;
+                        }).forEach(function (clip) {
+                            clip.fileExists = false;
+                        });
+                    }
+                    modal.show(modalContainer);
+                }, api.FATAL);
                 document.getElementById('total-clips').innerHTML = results[0].length;
                 loaded.appendThen("Clips loaded. Rendering...", function () {
                     var root = document.getElementById("root");
@@ -55,30 +84,5 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                 });
             }, api.FATAL);
         });
-        api('clip/autocrawl').then(function (changes) {
-            if ((!changes.added.length) && (!changes.disappeared.length)) {
-                return;
-            }
-            var modalContainer = document.getElementById('crawl-report');
-            var modalBody = modalContainer.querySelector('.modal-body');
-            if (changes.added.length) {
-                modalBody.appendChild(dom('h4', {className: 'modal-title'}, 'New clips found'));
-                modalBody.appendChild(dom('table', {className: ['table', 'table-condensed', 'table-hover']}, dom('tbody', null, changes.added.map(function (clip) {
-                    return dom('tr', null, dom('td', null, clip));
-                }))));
-            }
-            if (changes.disappeared.length) {
-                modalBody.appendChild(dom('h4', {className: 'modal-title'}, 'Clips disappeared'));
-                modalBody.appendChild(dom('table', {className: ['table', 'table-condensed', 'table-hover']}, dom('tbody', null, changes.disappeared.map(function (clip) {
-                    return dom('tr', null, dom('td', null, clip));
-                }))));
-                func.toArray(clip.getClips).filter(function (clip) {
-                    return changes.disappeared.indexOf(clip.path) >= 0;
-                }).forEach(function (clip) {
-                    clip.fileExists = false;
-                });
-            }
-            modal.show(modalContainer);
-        }, api.FATAL);
     };
 });

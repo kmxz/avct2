@@ -181,7 +181,6 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
             }
         });
         extable.reRender();
-        console.log(extable.pool.length);
         shownClipsSpan.innerHTML = shown;
     };
 

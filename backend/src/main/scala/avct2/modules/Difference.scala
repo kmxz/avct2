@@ -1,6 +1,6 @@
-package avct2.duplicate_detection
+package avct2.modules
 
-import avct2.duplicate_detection.Difference.ClipRow
+import avct2.modules.Difference.ClipRow
 import avct2.schema.{Tables, Race, Role, Clip}
 
 import scala.collection.immutable.Set

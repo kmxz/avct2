@@ -32,7 +32,7 @@ ijkl.module('delegation', [], function () {
                 var el = e.target;
                 while (el && el !== element) { // check el is NOT null, as callback may change DOM
                     if (filter(el)) {
-                        callback(el);
+                        callback(el, e);
                     }
                     el = el.parentNode;
                 }
@@ -42,7 +42,7 @@ ijkl.module('delegation', [], function () {
             element.addEventListener(type, function (e) {
                 var ansMatch = oneOfAncestorsMatches(filter, e.target);
                 if (ansMatch && !isAncestor(e.relatedTarget, ansMatch)) {
-                    callback(ansMatch);
+                    callback(ansMatch, e);
                 }
             });
         }

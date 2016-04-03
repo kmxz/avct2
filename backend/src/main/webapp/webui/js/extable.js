@@ -12,7 +12,6 @@ ijkl.module('extable', [], function () {
             if (scrollable.scrollHeight - scrollable.scrollTop < 2 * scrollable.offsetHeight) {
                 // load 10 elements a time
                 while ((++currTill) < end) {
-                    console.log("adding ", currTill);
                     tbody.appendChild(pool[currTill]);
                 }
                 // setTimeout(tryLayout, 0);
