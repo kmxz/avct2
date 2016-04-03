@@ -7,7 +7,7 @@ import avct.{MpShooter, Output}
 import avct2.Avct2Conf
 import avct2.desktop.Autocrawl
 import avct2.desktop.OpenFile._
-import avct2.modules.Difference
+import avct2.modules.{ClipTagCheck, Difference}
 import avct2.schema.Utilities._
 import avct2.schema._
 import org.json4s.JsonAST.JNull
@@ -273,6 +273,20 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       Tables.tagRelationship.filter(_.childTag === id).delete
       Tables.tagRelationship.map(row => (row.parentTag, row.childTag)).insertAll(parents.toSeq.map(parent => (parent, id)): _*)
       JNull // nothing to return
+    }
+  }
+
+  post("/tag/auto") {
+    val dryRun = params("dry").toBoolean
+    db().withSession { implicit session =>
+      val clips = Tables.clip.map(clip => (clip.clipId, clip.file)).list
+      clips.map(entry => {
+        val tagIds = ClipTagCheck.check(entry._1)
+        if (!dryRun) {
+          ClipTagCheck.actualRun(entry._1, tagIds)
+        }
+        new ClipTagCheck(entry._2, ClipTagCheck.tagNames(tagIds))
+      }).filter(_.problematicTags.length > 0)
     }
   }
 

@@ -143,6 +143,14 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                         init().then(function () {
                             onSuccess();
                             render();
+                            api('tag/auto', {'dry': true}).then(function (response) {
+                                var message = response.map(function (clip) {
+                                    return clip.clip + ' will have the following added:' + clip.problematicTags.join(', ');
+                                }).join('\n');
+                                if (window.confirm(message)) {
+                                    api('tag/auto', {'dry': false});
+                                }
+                            });
                         }); // do thing on fail, as init() will take care of it
                     }, onReject);
                 });
