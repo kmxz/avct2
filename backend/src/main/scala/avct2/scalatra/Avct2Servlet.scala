@@ -235,7 +235,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   get("/tag") {
     db().withSession { implicit session =>
-      Tables.tag.map(tag => (tag.tagId, tag.name)).list.map(tag => Map("id" -> tag._1, "name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false)))
+      Tables.tag.map(tag => (tag.tagId, tag.name, tag.description)).list.map(tag => Map("id" -> tag._1, "name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false), "description" -> tag._3))
     }
   }
 
@@ -253,6 +253,21 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         terminate(409, "Tag name already exists.")
       }
       Tables.tag.filter(_.tagId === id).map(_.name).update(name)
+      JNull // nothing to return
+    }
+  }
+
+  post("/tag/:id/description") {
+    val id = params("id").toInt
+    val description = params("description")
+    if (description.length < 1) {
+      terminate(400, "description too short.")
+    }
+    db().withSession { implicit session =>
+      if (!Tables.tag.filter(_.tagId === id).exists.run) {
+        terminate(404, "Tag does not exist.")
+      }
+      Tables.tag.filter(_.tagId === id).map(_.description).update(Some(description))
       JNull // nothing to return
     }
   }
@@ -308,7 +323,20 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   post("/tag/create") {
-    createHelper(name => Tables.tag.filter(_.name === name), Tables.tag returning Tables.tag)
+    val name = params("name")
+    if (name.length < 1) {
+      terminate(400, "Name too short.")
+    }
+    db().withSession { implicit session =>
+      if (Tables.tag.filter(_.name === name).exists.run) {
+        terminate(409, "Name already exists.")
+      }
+      ((Tables.tag returning Tables.tag) +=(None, name, None)) match {
+        case (Some(id), _, _) => Map("id" -> id)
+        case _ => terminate(500, "Insertion failed.")
+      }
+    }
+
   }
 
   get("/studio") {
@@ -318,7 +346,19 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   post("/studio/create") {
-    createHelper(name => Tables.studio.filter(_.name === name), Tables.studio returning Tables.studio)
+    val name = params("name")
+    if (name.length < 1) {
+      terminate(400, "Name too short.")
+    }
+    db().withSession { implicit session =>
+      if (Tables.studio.filter(_.name === name).exists.run) {
+        terminate(409, "Name already exists.")
+      }
+      ((Tables.studio returning Tables.studio) +=(None, name)) match {
+        case (Some(id), _) => Map("id" -> id)
+        case _ => terminate(500, "Insertion failed.")
+      }
+    }
   }
 
 }

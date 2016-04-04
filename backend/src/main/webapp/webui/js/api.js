@@ -39,6 +39,7 @@ ijkl.module('api', ['xhr2', 'es5Array'], function () {
         'tag/create': {method: 'post', url: 'tag/create', params: ['name']},
         'tag/parent': {method: 'post', url: 'tag/$/parent', params: ['parent']},
         'tag/edit': {method: 'post', url: 'tag/$/edit', params: ['name']},
+        'tag/description': {method: 'post', url: 'tag/$/description', params: ['description']},
         'tag/auto': {method: 'post', url: 'tag/auto', params: ['dry']}
     };
     var request = function (api, opt_params) {

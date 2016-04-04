@@ -16,9 +16,10 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
     var currentAllowTagCreation;
     var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
 
-    var Tag = function (id, name) {
+    var Tag = function (id, name, description) {
         this.id = id;
         this.name = name;
+        this.description = description;
         this.children = [];
         this.parent = [];
         this.tr = null;
@@ -51,7 +52,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                 if (currentAllowTagCreation) {
                     if (window.confirm("Such tag does not exist. Create one?")) {
                         api('tag/create', {'name': newTagName}).then(function (ret) {
-                            actualTags[ret.id] = new Tag(ret.id, newTagName); // manually append
+                            actualTags[ret.id] = new Tag(ret.id, newTagName, ''); // manually append
                             currentSelectTagCallback(ret.id, onSuccessNc, onReject);
                         }, onReject);
                     } else {
@@ -73,16 +74,17 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
         func.forEach(func.toArray(actualTags).sort(function (t1, t2) {
             return t1.name.localeCompare(t2.name);
         }), function (tag) {
-            var tds = [dom('td'), dom('td'), dom('td')];
+            var tds = [dom('td'), dom('td'), dom('td'), dom('td')];
             var tr = dom('tr', null, tds);
             tag.renderName(tds[0]);
             tag.renderParent(tds[1]);
             tag.renderChildren(tds[2]);
+            tag.renderDescription(tds[3]);
             tag.tr = tr;
             tbody.appendChild(tr);
         });
         var table = dom('table', {className: ['table', 'table-condensed', 'table-hover']}, [dom('thead', null, dom('tr', null, [
-            dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children')
+            dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children'), dom('th', null, 'Description')
         ])), tbody]);
         tb.parentNode.replaceChild(table, tb);
         tb = table;
@@ -91,7 +93,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
         return api('tag/list').then(function (json) {
             actualTags.length = 0; // empty it
             json.forEach(function (tag) {
-                actualTags[tag.id] = new Tag(tag.id, tag.name);
+                actualTags[tag.id] = new Tag(tag.id, tag.name, tag.description || '');
             });
             json.forEach(function (tag) {
                 actualTags[tag.id].parent = tag.parent.map(function (tagId) {
@@ -144,6 +146,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                             onSuccess();
                             render();
                             api('tag/auto', {'dry': true}).then(function (response) {
+                                if (!response.length) { return; }
                                 var message = response.map(function (clip) {
                                     return clip.clip + ' will have the following added:' + clip.problematicTags.join(', ');
                                 }).join('\n');
@@ -163,6 +166,20 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
             dom.append(td, this.children.map(function (tag) {
                 return dom('a', {className: 'tag'}, tag.name);
             }));
+        },
+        renderDescription: function (td) {
+            dom.append(td, this.description);
+            td.addEventListener('click', function () {
+                ac(td, this.description, function (newDescription, onSuccess, onReject) {
+                    if (newDescription.trim().length) {
+                        api('tag/description', {'id': this.id, 'description': newDescription}).then(function () {
+                            onSuccess();
+                            this.description = newDescription;
+                            render(); // this one does not require reload
+                        }.bind(this), onReject);
+                    }
+                }.bind(this), []);
+            }.bind(this));
         }
     };
 

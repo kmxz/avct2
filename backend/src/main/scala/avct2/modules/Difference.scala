@@ -6,7 +6,6 @@ import avct2.schema.{Tables, Race, Role, Clip}
 import scala.collection.immutable.Set
 import scala.math._
 import scala.slick.driver.HsqldbDriver.simple._
-import scala.slick.lifted.TableQuery
 
 case class Report(clipId: Int, scores: Map[String, Double], total: Double)
 
@@ -65,7 +64,7 @@ object RoleEntry extends AbstractEntry {
 
   final val name = "Role"
 
-  final val weight = 0.25
+  final val weight = 0.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
     CosineSimilarity(clipOld._4, clipNew._4)
@@ -77,11 +76,11 @@ object SizeEntry extends AbstractEntry {
 
   final val name = "Size"
 
-  final val weight = 0.5
+  final val weight = 2.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
     if (clipOld._5 > 0 && clipNew._5 > 0) {
-      exp((2 - (clipNew._5.toDouble / clipOld._5) - (clipOld._5.toDouble / clipNew._5)) * 1000)
+      exp((2 - (clipNew._5.toDouble / clipOld._5) - (clipOld._5.toDouble / clipNew._5)) * 1000000)
     } else 0
   }
 
@@ -96,7 +95,7 @@ object LengthEntry extends AbstractEntry {
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
     if (clipOld._5 > 0 && clipNew._5 > 0) {
       val diff = abs(clipNew._6 - clipOld._6).toDouble
-      exp(-diff / E) * 0.75 + exp(-diff / 30) * 0.25
+      exp(-diff)
     } else 0
   }
 

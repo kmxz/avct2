@@ -5,13 +5,14 @@ import java.sql.Blob
 import scala.slick.driver.HsqldbDriver.simple._
 import scala.slick.lifted.{TableQuery, Tag => T}
 
-class Tags(tag: T) extends Table[(Option[Int], String)](tag, "tag") {
+class Tags(tag: T) extends Table[(Option[Int], String, Option[String])](tag, "tag") {
   def tagId = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
 
-  def name = column[String]("name") // meta tag no longer needed. yet there will be auto-insert when selecting tags
+  def name = column[String]("name")
+  def description = column[Option[String]]("description")
   index("index_name", name, unique = true)
 
-  def * = (tagId.?, name)
+  def * = (tagId.?, name, description)
 }
 
 class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
