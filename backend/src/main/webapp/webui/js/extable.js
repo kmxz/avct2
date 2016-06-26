@@ -8,9 +8,8 @@ ijkl.module('extable', [], function () {
         var currTill = -1; // this first index that is NOT shown
         var tryLayout = function () {
             if (currTill >= pool.length) { return; } // already fully loaded
-            var end = Math.min(currTill + 10, pool.length);
+            var end = Math.min(currTill + ((scrollable.scrollHeight <= scrollable.offsetHeight) ? 30 : 10), pool.length); // load 30 elements at beginning, but 10 each time afterwards
             if (scrollable.scrollHeight - scrollable.scrollTop < 2 * scrollable.offsetHeight) {
-                // load 10 elements a time
                 while ((++currTill) < end) {
                     tbody.appendChild(pool[currTill]);
                 }

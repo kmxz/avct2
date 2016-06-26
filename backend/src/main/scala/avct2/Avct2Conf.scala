@@ -2,7 +2,6 @@ package avct2
 
 import java.io._
 import java.util.Properties
-import javax.swing.UIManager
 
 import avct2.schema.DbConnection
 
@@ -49,7 +48,6 @@ object Avct2Conf {
   }
 
   def apply() = {
-    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName) // will fail under GTK
     if (initConfig()) {
       setUp()
     }

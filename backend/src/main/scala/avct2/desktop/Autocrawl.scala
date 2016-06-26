@@ -12,7 +12,7 @@ case class Changes(added: Iterable[String], disappeared: Iterable[String])
 
 object Autocrawl {
 
-  private final val excludeFileTypes = Set[String]("", "jpg", "jpeg", "doc", "docx", "odt", "bmp", "html", "html", "mht", "lnk", "torrent", "csv", "mp3", "url", "wma", "pdf", "png", "gif", "txt", "rar", "tar", "zip", "gz", "bz2", "7z", "tgz")
+  private final val excludeFileTypes = Set[String]("jpg", "jpeg", "doc", "docx", "odt", "bmp", "html", "html", "mht", "lnk", "torrent", "csv", "mp3", "url", "wma", "pdf", "png", "gif", "txt", "rar", "tar", "zip", "gz", "bz2", "7z", "tgz")
 
   private def getFileExtension(file: File) = {
     val name = file.getName
@@ -64,4 +64,5 @@ object Autocrawl {
     newFiles.foreach(addTo)
     Changes(newFiles.map(_._2), paths)
   }
+
 }
