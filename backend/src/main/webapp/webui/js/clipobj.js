@@ -31,7 +31,6 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
         this.jerkScore = 0;
         this.jerkEntries = [];
         this.tr = null;
-        this.isVoid = this.isAnyVoid();
     };
 
     var getParentTr = function (el) {

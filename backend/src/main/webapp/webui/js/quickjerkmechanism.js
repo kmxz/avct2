@@ -172,7 +172,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
                 random: Math.random()
             };
         }).sort(function (c1, c2) {
-            return (voidFirstActivated && (c2.clip.isVoid - c1.clip.isVoid)) || (c2.clip.jerkScore - c1.clip.jerkScore) || (c2.random - c1.random);
+            return (voidFirstActivated && (c2.clip.isAnyVoid() - c1.clip.isAnyVoid())) || (c2.clip.jerkScore - c1.clip.jerkScore) || (c2.random - c1.random);
         }).forEach(function (mapped) {
             var item = mapped.clip;
             if (!(hide0Activated && item.jerkScore <= 0)) {
