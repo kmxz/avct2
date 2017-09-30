@@ -25,7 +25,7 @@ object Autocrawl {
   }
 
   private def notExcludedFile(f: File) = {
-    !excludeFileTypes.contains(getFileExtension(f))
+    !excludeFileTypes.contains(getFileExtension(f).toLowerCase)
   }
 
   private def recursiveListFiles(f: File): Array[File] = {

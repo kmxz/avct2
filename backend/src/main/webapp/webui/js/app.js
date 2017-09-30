@@ -46,8 +46,9 @@ ijkl.module('app', ['promise', 'classList', 'dataset', 'querySelector'], functio
                         }))));
                         func.toArray(clip.getClips).filter(function (clip) {
                             return changes.disappeared.indexOf(clip.path) >= 0;
-                        }).forEach(function (clip) {
-                            clip.fileExists = false;
+                        }).forEach(function (theClip) {
+                            theClip.fileExists = false;
+                            theClip.renderColumn(clip.columns.file);
                         });
                     }
                     modal.show(modalContainer);

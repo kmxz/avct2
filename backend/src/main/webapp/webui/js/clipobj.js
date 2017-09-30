@@ -167,7 +167,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             });
         }, function (clip) {
             return !clip.fileExists;
-        }),
+        }, true),
         studio: new Column('c-studio', 'Studio', function (td) {
             dom.append(td, sm.getStudio(this.studio));
         }, function (domFilter) {
