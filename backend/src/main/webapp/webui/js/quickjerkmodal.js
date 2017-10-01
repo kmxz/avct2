@@ -16,6 +16,7 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
     var tp = document.getElementById('templates');
     var mb = qm.querySelector('.modal-body');
 
+    var lb = qm.querySelector(asel('clear'));
     var cb = qm.querySelector(asel('cancel'));
     var sb = qm.querySelector(asel('apply'));
 
@@ -205,6 +206,12 @@ ijkl.module('quickjerkmodal', ['querySelector', 'mouseEnterLeave', 'dataset', 'c
             });
         }
     };
+
+    lb.addEventListener('click', function () {
+        func.toArray(mb.children).filter(function (el) { return el.classList.contains('panel'); }).forEach(function (el) {
+            mb.removeChild(el);
+        });
+    });
 
     cb.addEventListener('click', function () {
         modal.close();
