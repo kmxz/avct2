@@ -23,7 +23,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     similar.init(actualClips);
 
     var Clip = function (json) { // XXX: this is ugly
-        ['id', 'duration', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay'].forEach(function (key) {
+        ['id', 'duration', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay', 'resolution'].forEach(function (key) {
             this[key] = json[key];
         }.bind(this));
         this.file = this.path.split('/').pop();
@@ -114,7 +114,10 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             return !clip.thumbSet;
         }),
         file: new Column('c-file', 'Name', function (td) {
-            dom.append(td, this.file);
+            dom.append(td, [
+                dom('span', {className: 'resolution-indicator', style: {backgroundColor: this.resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (this.resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000'}}),
+                this.file
+            ]);
         }, function (domFilter) {
             var fileOverlaySpan = fileOverlay.querySelector('#filename');
             var fileOverlayBtnGroup = fileOverlay.querySelector('.btn-group');
@@ -152,6 +155,9 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             ed.container(fileOverlay, 'click', dom.match(asel('with')), function (el) {
                 api('clip/openwith', {"id": getParentTr(el).id, "player": el.dataset.path}).then(func.doNothing);
                 foClose();
+            });
+            ed.container(root, 'click', dom.match('.resolution-indicator'), function (el) {
+                modal.show(document.getElementById('resolution'));
             });
             ed.target(root, 'mouseover', domFilter, function (el) {
                 var clip = getParentTr(el);
