@@ -5,6 +5,16 @@ ijkl.module('canvas', ['bloburls'], function () {
 
     return {
         loadImgToCover: function (img, ctx) {
+            if (img.width >= 720 && img.height >= 480) {
+                ctx.canvas.width = 720; ctx.canvas.height = 480;
+                ctx.canvas.style.transform = 'scale(' + 360 / 720 + ')';
+            } else if (img.width >= 540 && img.height >= 360) {
+                ctx.canvas.width = 540; ctx.canvas.height = 360;
+                ctx.canvas.style.transform = 'scale(' + 360 / 540 + ')';
+            } else {
+                ctx.canvas.width = 300; ctx.canvas.height = 200;
+                ctx.canvas.style.transform = 'scale(' + 360 / 300 + ')';
+            }
             var cw = ctx.canvas.width;
             var ch = ctx.canvas.height;
             var ar = cw / ch;
