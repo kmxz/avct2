@@ -25,7 +25,7 @@ class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
   def * = (studioId.?, name)
 }
 
-class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Dimensions)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
 
   def file = column[String]("file")
@@ -44,11 +44,13 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
 
   def length = column[Int]("length")
 
+  def dimensions = column[Dimensions]("dimensions")(Dimensions.mct)
+
   def sourceNote = column[String]("source_note")
 
   index("index_file", file, unique = true)
 
-  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote)
+  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote, dimensions)
 }
 
 class Record(tag: T) extends Table[(Int, Int)](tag, "record") {

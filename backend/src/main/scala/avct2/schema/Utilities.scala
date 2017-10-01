@@ -21,6 +21,14 @@ object Race extends Enumeration {
   val mct = MappedColumnType.base[Value, Int](_.id, apply)
 }
 
+case class Dimensions(width: Int, height: Int) {
+  def min = Math.min(width, height)
+}
+
+object Dimensions {
+  val mct = MappedColumnType.base[Dimensions, Int](dim => dim.width * 32768 + dim.height, int => new Dimensions(int / 32768, int % 32768))
+}
+
 object Utilities {
 
   val STR_VA = "V/A" // compat with the original Java implementation

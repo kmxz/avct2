@@ -9,7 +9,13 @@ import java.util.HashMap;
 
 public class IdentifyVideo {
 
-    private static HashMap<String, String> identify(File fp, String mpCommand) throws IOException, InterruptedException {
+    private HashMap<String, String> hm;
+
+    private IdentifyVideo(HashMap<String, String> parsed) {
+        hm = parsed;
+    }
+
+    public static IdentifyVideo identify(File fp, String mpCommand) throws IOException, InterruptedException {
         HashMap<String, String> output = new HashMap<>();
         String[] command = {mpCommand, "-vo", "null", "-ao", "null", "-really-quiet", "-frames", "0", "-identify", fp.getCanonicalPath()};
         Process pr = new ProcessBuilder(command).start();
@@ -25,13 +31,26 @@ public class IdentifyVideo {
             }
             line = bufferedReader.readLine();
         }
-        return output;
+        return new IdentifyVideo(output);
     }
 
-    public static int getDuration(File fp, String mpCommand) throws IOException, InterruptedException {
-        HashMap<String, String> hm = identify(fp, mpCommand);
+    public int getDuration() {
         if (hm.containsKey("LENGTH")) {
             return Math.round(Float.parseFloat(hm.get("LENGTH")));
+        }
+        return 0;
+    }
+
+    public int getWidth() {
+        if (hm.containsKey("VIDEO_WIDTH")) {
+            return Integer.parseInt(hm.get("VIDEO_WIDTH"));
+        }
+        return 0;
+    }
+
+    public int getHeight() {
+        if (hm.containsKey("VIDEO_HEIGHT")) {
+            return Integer.parseInt(hm.get("VIDEO_HEIGHT"));
         }
         return 0;
     }

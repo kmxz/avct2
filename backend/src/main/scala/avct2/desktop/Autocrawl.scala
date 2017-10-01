@@ -4,7 +4,7 @@ import java.io.File
 
 import avct.IdentifyVideo
 import avct2.Avct2Conf
-import avct2.schema.{Race, Role, Tables, Utilities}
+import avct2.schema.{Race, Role, Tables, Utilities, Dimensions}
 
 import scala.slick.driver.HsqldbDriver.simple._
 
@@ -52,8 +52,8 @@ object Autocrawl {
 
   private def addTo(f: (File, String))(implicit session: Session) = f match {
     case (file, path) =>
-      val duration = IdentifyVideo.getDuration(file, Avct2Conf.getMPlayer)
-      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote)).insert((path, file.length, duration, Race.unknown, 0, Role.ValueSet.empty, ""))
+      val identifiedInfo = IdentifyVideo.identify(file, Avct2Conf.getMPlayer)
+      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote, row.dimensions)).insert((path, file.length, identifiedInfo.getDuration, Race.unknown, 0, Role.ValueSet.empty, "", new Dimensions(identifiedInfo.getWidth, identifiedInfo.getHeight)))
   }
 
   def apply(implicit session: Session): Changes = this.synchronized {
