@@ -137,7 +137,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
         },
         playCount: function (valueMappingToHalf) {
             var reduceRatio = getReduceRatio(valueMappingToHalf);
-            return new Criterion("Total play (half: " + valueMappingToHalf.toFixed(3), ", ratio: " + reduceRatio.toFixed(3), function (clip) {
+            return new Criterion("Total play (half: " + valueMappingToHalf.toFixed(3) + ", ratio: " + reduceRatio.toFixed(3), function (clip) {
                 return { score: mapFrom0Infto01(clip.totalPlay, reduceRatio), message: "total play: " + clip.totalPlay };
             });
         },
