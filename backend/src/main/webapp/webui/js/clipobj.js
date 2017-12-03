@@ -21,8 +21,10 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     var fileOverlay = document.getElementById('file-overlay');
     var actualClips = {};
     var quickJerkScoreUpdater = func.doNothing;
+
+    cto.setClipsRef(actualClips);
     tm.setClipsRef(actualClips);
-    similar.init(actualClips);
+    similar.setClipsRef(actualClips);
 
     var Clip = function (json) { // XXX: this is ugly
         ['id', 'duration', 'grade', 'lastPlay', 'path', 'race', 'role', 'size', 'sourceNote', 'studio', 'tags', 'thumbSet', 'totalPlay', 'resolution'].forEach(function (key) {
@@ -30,6 +32,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
         }.bind(this));
         this.file = this.path.split('/').pop();
         this.fileExists = true; // by default set to true, unless later reset
+        this.thumbImgPromise = null; // an Promise to an "<img/> object, if thumbSet is true. otherwise null
         this.jerkScore = 0;
         this.jerkEntries = [];
         this.tr = null;
@@ -98,11 +101,12 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
 
     var columns = {
         thumb: new Column('c-thumb', 'Thumb', function (td) {
-            api('clip/thumb', {"id": this.id}).then(function (response) {
+            this.thumbImgPromise = api('clip/thumb', {"id": this.id}).then(function (response) {
                 var img = api.loadImage(response);
                 img.className = 'clip-thumb';
                 td.innerHTML = '';
                 td.appendChild(img);
+                return img;
             });
         }, function (domFilter) {
             var thisColumn = this;
@@ -311,6 +315,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                 return el;
             }.bind(this)));
         }, function (domFilter) {
+            var thisColumn = this;
             var checkIfCanContinue = function (proposed) {
                 var tags = tm.getTags;
                 var warnings = proposed.map(function (tagId) { return tags[tagId]; }).filter(function (tag) {
@@ -340,7 +345,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                             post('tags', proposed);
                         }
                     }
-                }, clip.id, tagId);
+                }, function () { clip.renderColumn(thisColumn); }, clip.id, tagId);
             }));
             ed.target(root, 'mouseout', dom.match('.tag'), cto.close);
         }, function (clip) {

@@ -60,7 +60,7 @@ ijkl.module('similar', ['querySelector', 'dataset', 'es5Array'], function () {
         });
     };
 
-    main.init = function (clips) {
+    main.setClipsRef = function (clips) {
         actualClips = clips;
     };
 

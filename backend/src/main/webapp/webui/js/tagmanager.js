@@ -187,8 +187,8 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
             }.bind(this));
         },
         renderBestClip: function (td) {
-            if (!this.best) { return; }
-            var clip = actualClips[this.best];
+            if (!this.bestClip) { return; }
+            var clip = actualClips[this.bestClip];
             dom.append(td, clip.file);
             td.addEventListener('mouseenter', function () {
                 sfoo.open(this, clip.id, clip.path);
@@ -210,6 +210,9 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
         selectTagOpen: selectTagOpen,
         setClipsRef: function (clipsRef) {
             actualClips = clipsRef;
+        },
+        notifyBestClipSet: function (tagId, clipId) {
+            actualTags[tagId].bestClip = clipId;
         }
     };
 });

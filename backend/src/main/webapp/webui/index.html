@@ -312,6 +312,32 @@
         </div>
     </div>
 
+    <div class="modal-dialog" id="best-clip-of-tag">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close"><span>&times;</span></button>
+                <h4 class="modal-title">Setting best clip of tag</h4>
+            </div>
+            <div class="modal-body">
+                <p>You are setting the clip as "best clip of tag". There can only be one best clip per tag. It is recommended to compare this clip and previous "best clip of tag" before continue.</p>
+                <div class="row">
+                    <div class="col-sm-6" id="old-g">
+                        <p class="text-center"><b>Previous clip</b><br /><span id="old-t"></span></p>
+                        <div class="img-thumbnail"><canvas id="old-i" width="240" height="160"></canvas></div>
+                    </div>
+                    <div class="col-sm-6" id="new-g">
+                        <p class="text-center"><b>Proposed clip</b><br /><span id="new-t"></span></p>
+                        <div class="img-thumbnail"><canvas id="new-i" width="240" height="160"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="javascript:void('cancel')" class="btn btn-default">Cancel</a>
+                <a href="javascript:void('update')" class="btn btn-primary">Update</a>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-dialog" id="resolution">
         <div class="modal-content">
             <div class="modal-header">
