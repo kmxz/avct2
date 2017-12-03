@@ -19,11 +19,11 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
     var currentAllowTagCreation;
     var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
 
-    var Tag = function (id, name, description, best) {
+    var Tag = function (id, name, description, bestClip) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.best = best;
+        this.bestClip = bestClip;
         this.children = [];
         this.parent = [];
         this.tr = null;

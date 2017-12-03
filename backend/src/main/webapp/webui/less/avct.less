@@ -29,10 +29,11 @@
     display: inline-block;
     margin: 0 5px 5px 0;
     color: inherit;
-    background: #F0F0FF;
+    background: #F3F3F3;
     padding: 0 5px;
+    position: relative;
     .table-hover tr:hover & {
-        background: #E0E0FF;
+        background: #E9E9E9;
     }
     &:hover {
         text-decoration: none;
@@ -40,6 +41,12 @@
     }
     &.removable {
         cursor: pointer;
+    }
+    &.best {
+        background: #FCF6D9;
+    }
+    .table-hover tr:hover &.best {
+        background: #F3ECD0;
     }
 }
 
@@ -113,10 +120,16 @@ nav.navbar {
     &.right {
         left: 50%;
         right: auto;
+        &.popover-edge {
+            left: 100%;
+        }
     }
     &.left {
         right: 50%;
         left: auto;
+        &.popover-edge {
+            right: 100%;
+        }
     }
     top: 50%;
     transform: translateY(-50%);

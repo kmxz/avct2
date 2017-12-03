@@ -6,6 +6,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     var ac = ijkl('autocomplete');
     var api = ijkl('api');
     var asel = ijkl('actionselector');
+    var cto = ijkl('cliptagoperation');
     var dom = ijkl('dom');
     var ed = ijkl('delegation');
     var func = ijkl('function');
@@ -300,10 +301,15 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
             var tags = tm.getTags;
             dom.append(td, this.tags.map(function (tagId) {
                 var tag = tags[tagId];
-                var el = dom('a', {className: ['tag', 'removable'], title: "Click to remove"}, tag.name);
+                var props = {className: ['tag', 'removable']};
+                if (tag.bestClip === this.id) {
+                    props.className.push('best');
+                    props.title = 'Best clip of tag';
+                }
+                var el = dom('a', props, tag.name);
                 el.dataset.id = tag.id;
                 return el;
-            }));
+            }.bind(this)));
         }, function (domFilter) {
             var checkIfCanContinue = function (proposed) {
                 var tags = tm.getTags;
@@ -323,16 +329,20 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                 });
             }, this));
             ed.target(root, 'mouseout', domFilter, tm.selectTagClose);
-            ed.container(root, 'click', dom.match('.tag.removable'), updateHelper(function (el, clip, post) {
-                if (window.confirm('Remove this tag from this clip\'s tag list?')) {
-                    var proposed = clip.tags.filter(function (parentId) {
-                        return parentId !== parseInt(el.dataset.id, 10);
-                    });
-                    if (checkIfCanContinue(proposed)) {
-                        post('tags', proposed);
+            ed.target(root, 'mouseover', dom.match('.tag'), updateHelper(function (el, clip, post) {
+                var tagId = parseInt(el.dataset.id, 10);
+                cto.open(el, function () {
+                    if (window.confirm('Remove this tag from the clip\'s tag list?')) {
+                        var proposed = clip.tags.filter(function (parentId) {
+                            return parentId !== tagId;
+                        });
+                        if (checkIfCanContinue(proposed)) {
+                            post('tags', proposed);
+                        }
                     }
-                }
-            }, this));
+                }, clip.id, tagId);
+            }));
+            ed.target(root, 'mouseout', dom.match('.tag'), cto.close);
         }, function (clip) {
             return !clip.tags.length;
         }),

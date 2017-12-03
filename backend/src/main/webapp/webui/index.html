@@ -6,7 +6,7 @@
     <script type="text/javascript" language="javascript" src="base.js"></script>
     <title>Avct2</title>
 </head>
-<body onload="ijkl.load('app', ['actionselector', 'api', 'app', 'autocomplete', 'canvas', 'clipobj', 'delegation', 'dom', 'extable', 'flextable', 'function', 'loading', 'modal', 'popover', 'quickjerkmechanism', 'quickjerkmodal', 'screenshooter', 'similar', 'simplefileopeningoverlay', 'studiomanager', 'tagmanager', 'throttle']);">
+<body onload="ijkl.load('app', ['actionselector', 'api', 'app', 'autocomplete', 'canvas', 'clipobj', 'cliptagoperation', 'delegation', 'dom', 'extable', 'flextable', 'function', 'loading', 'modal', 'popover', 'quickjerkmechanism', 'quickjerkmodal', 'screenshooter', 'similar', 'simplefileopeningoverlay', 'studiomanager', 'tagmanager', 'throttle']);">
 
 <div id="wrap">
 
@@ -380,6 +380,16 @@
 </div>
 
 <span class="glyphicon glyphicon-plus toolbox" id="select-tag"></span>
+
+<div class="toolbox popover popover-edge" id="clip-tag-operation">
+    <div class="arrow"></div>
+    <h3 class="popover-title">Tag operation <span></span></h3>
+
+    <div class="popover-content">
+        <a href="javascript:void('remove')" class="btn btn-default btn-sm">Remove tag</a>
+        <a href="javascript:void('setasbest')" class="btn btn-default btn-sm">Set as best</a>
+    </div>
+</div>
 
 <div class="toolbox popover" id="auto-complete">
     <div class="arrow"></div>

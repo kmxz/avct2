@@ -239,7 +239,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     }
   }
 
-  post("/tag/:id/setBest") {
+  post("/tag/:id/setbest") {
     val id = params("id").toInt
     val clip = params("clip").toInt
     db().withSession { implicit session =>
