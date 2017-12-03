@@ -6,7 +6,7 @@
     <script type="text/javascript" language="javascript" src="base.js"></script>
     <title>Avct2</title>
 </head>
-<body onload="ijkl.load('app', ['actionselector', 'api', 'app', 'autocomplete', 'canvas', 'clipobj', 'delegation', 'dom', 'extable', 'flextable', 'function', 'loading', 'modal', 'popover', 'quickjerkmechanism', 'quickjerkmodal', 'screenshooter', 'similar', 'studiomanager', 'tagmanager', 'throttle']);">
+<body onload="ijkl.load('app', ['actionselector', 'api', 'app', 'autocomplete', 'canvas', 'clipobj', 'delegation', 'dom', 'extable', 'flextable', 'function', 'loading', 'modal', 'popover', 'quickjerkmechanism', 'quickjerkmodal', 'screenshooter', 'similar', 'simplefileopeningoverlay', 'studiomanager', 'tagmanager', 'throttle']);">
 
 <div id="wrap">
 
@@ -340,9 +340,9 @@
         <div id="content-when-file-exists">
             <div class="btn-group">
                 <a class="btn btn-primary btn-sm" href="javascript:void('open')">Open</a><!-- fix inline block spacing (http://css-tricks.com/fighting-the-space-between-inline-block-elements/)
-         --><a class="btn btn-primary btn-sm dropdown-toggle" href="javascript:void(0)"><span class="caret"></span></a>
+             --><a class="btn btn-primary btn-sm dropdown-toggle" href="javascript:void(0)"><span class="caret"></span></a>
                 <ul class="dropdown-menu pull-right">
-                    <li><a href="javascript:void('norecord')">(without recording)</a></li>
+                    <li><a href="javascript:void('norecord')">(w/o recording)</a></li>
                 </ul>
             </div>
             <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
@@ -355,13 +355,13 @@
     </div>
 </div>
 
-
-<div id="similar-file-overlay" class="toolbox popover">
+<div id="simple-file-opening-overlay" class="toolbox popover">
     <div class="arrow"></div>
     <h3 class="popover-title">Action <span></span></h3>
     <div class="popover-content">
         <div>
-            <a href="javascript:void('norecord')" class="btn btn-default btn-sm">Open</a>
+            <a href="javascript:void('record')" class="btn btn-default btn-sm">Open with recording</a>
+            <a href="javascript:void('norecord')" class="btn btn-default btn-sm">Open w/o recording</a>
             <a href="javascript:void('folder')" class="btn btn-default btn-sm">Folder</a>
         </div>
         <span id="similar-filename"></span>

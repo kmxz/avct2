@@ -20,6 +20,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
     var fileOverlay = document.getElementById('file-overlay');
     var actualClips = {};
     var quickJerkScoreUpdater = func.doNothing;
+    tm.setClipsRef(actualClips);
     similar.init(actualClips);
 
     var Clip = function (json) { // XXX: this is ugly

@@ -8,6 +8,9 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
     var dom = ijkl('dom');
     var func = ijkl('function');
     var modal = ijkl('modal');
+    var sfoo = ijkl('simplefileopeningoverlay');
+
+    var actualClips;
 
     var el = document.getElementById('tag-manager');
     var selectTag = document.getElementById('select-tag');
@@ -16,10 +19,11 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
     var currentAllowTagCreation;
     var currentSelectTagCallback = null; // a function taking a newParent, onSuccess, and onReject
 
-    var Tag = function (id, name, description) {
+    var Tag = function (id, name, description, best) {
         this.id = id;
         this.name = name;
         this.description = description;
+        this.best = best;
         this.children = [];
         this.parent = [];
         this.tr = null;
@@ -74,17 +78,18 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
         func.forEach(func.toArray(actualTags).sort(function (t1, t2) {
             return t1.name.localeCompare(t2.name);
         }), function (tag) {
-            var tds = [dom('td'), dom('td'), dom('td'), dom('td')];
+            var tds = [dom('td'), dom('td'), dom('td'), dom('td'), dom('td')];
             var tr = dom('tr', null, tds);
             tag.renderName(tds[0]);
             tag.renderParent(tds[1]);
             tag.renderChildren(tds[2]);
             tag.renderDescription(tds[3]);
+            tag.renderBestClip(tds[4]);
             tag.tr = tr;
             tbody.appendChild(tr);
         });
         var table = dom('table', {className: ['table', 'table-condensed', 'table-hover']}, [dom('thead', null, dom('tr', null, [
-            dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children'), dom('th', null, 'Description')
+            dom('th', null, 'Name'), dom('th', null, 'Parents'), dom('th', null, 'Children'), dom('th', null, 'Description'), dom('th', null, 'Best Clip')
         ])), tbody]);
         tb.parentNode.replaceChild(table, tb);
         tb = table;
@@ -93,7 +98,7 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
         return api('tag/list').then(function (json) {
             actualTags.length = 0; // empty it
             json.forEach(function (tag) {
-                actualTags[tag.id] = new Tag(tag.id, tag.name, tag.description || '');
+                actualTags[tag.id] = new Tag(tag.id, tag.name, tag.description || '', tag.best);
             });
             json.forEach(function (tag) {
                 actualTags[tag.id].parent = tag.parent.map(function (tagId) {
@@ -180,6 +185,17 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
                     }
                 }.bind(this), []);
             }.bind(this));
+        },
+        renderBestClip: function (td) {
+            if (!this.best) { return; }
+            var clip = actualClips[this.best];
+            dom.append(td, clip.file);
+            td.addEventListener('mouseenter', function () {
+                sfoo.open(this, clip.id, clip.path);
+            });
+            td.addEventListener('mouseleave', function () {
+                sfoo.close();
+            });
         }
     };
 
@@ -191,6 +207,9 @@ ijkl.module('tagmanager', ['querySelector', 'es5Array', 'dataset', 'promise', 'm
         init: init,
         getTags: actualTags,
         selectTagClose: selectTagClose,
-        selectTagOpen: selectTagOpen
+        selectTagOpen: selectTagOpen,
+        setClipsRef: function (clipsRef) {
+            actualClips = clipsRef;
+        }
     };
 });

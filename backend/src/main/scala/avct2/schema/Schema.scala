@@ -5,14 +5,15 @@ import java.sql.Blob
 import scala.slick.driver.HsqldbDriver.simple._
 import scala.slick.lifted.{TableQuery, Tag => T}
 
-class Tags(tag: T) extends Table[(Option[Int], String, Option[String])](tag, "tag") {
+class Tags(tag: T) extends Table[(Option[Int], String, Option[String], Option[Int])](tag, "tag") {
   def tagId = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
 
   def name = column[String]("name")
   def description = column[Option[String]]("description")
+  def bestOfTag = column[Option[Int]]("best_of_tag")
   index("index_name", name, unique = true)
 
-  def * = (tagId.?, name, description)
+  def * = (tagId.?, name, description, bestOfTag)
 }
 
 class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {

@@ -235,7 +235,22 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   get("/tag") {
     db().withSession { implicit session =>
-      Tables.tag.map(tag => (tag.tagId, tag.name, tag.description)).list.map(tag => Map("id" -> tag._1, "name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false), "description" -> tag._3))
+      Tables.tag.map(tag => (tag.tagId, tag.name, tag.description, tag.bestOfTag)).list.map(tag => Map("id" -> tag._1, "name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false), "description" -> tag._3, "best" -> tag._4))
+    }
+  }
+
+  post("/tag/:id/setBest") {
+    val id = params("id").toInt
+    val clip = params("clip").toInt
+    db().withSession { implicit session =>
+      if (!Tables.tag.filter(_.tagId === id).exists.run) {
+        terminate(404, "Tag does not exist.")
+      }
+      if (!Tables.clipTag.filter(row => (row.tagId === id) && (row.clipId === clip)).exists.run) {
+        terminate(409, "Clip does not belong to such tag.")
+      }
+      Tables.tag.filter(_.tagId === id).map(_.bestOfTag).update(Some(clip))
+      JNull // nothing to return
     }
   }
 
@@ -331,8 +346,8 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       if (Tables.tag.filter(_.name === name).exists.run) {
         terminate(409, "Name already exists.")
       }
-      ((Tables.tag returning Tables.tag) +=(None, name, None)) match {
-        case (Some(id), _, _) => Map("id" -> id)
+      ((Tables.tag returning Tables.tag) +=(None, name, None, None)) match {
+        case (Some(id), _, _, _) => Map("id" -> id)
         case _ => terminate(500, "Insertion failed.")
       }
     }

@@ -10,6 +10,7 @@ ijkl.module('similar', ['querySelector', 'dataset', 'es5Array'], function () {
     var func = ijkl('function');
     var modal = ijkl('modal');
     var po = ijkl('popover');
+    var sfoo = ijkl('simplefileopeningoverlay');
 
     var actualClips;
 
@@ -20,18 +21,6 @@ ijkl.module('similar', ['querySelector', 'dataset', 'es5Array'], function () {
         dom('th', null, 'File'),
         dom('th', null, 'Score')
     ]));
-
-    var currentTargetClipId = null;
-
-    var similarFileOverlay = document.getElementById('similar-file-overlay');
-    var sfo = po(similarFileOverlay);
-    similarFileOverlay.querySelector(asel('norecord')).addEventListener('click', function () {
-        api('clip/open', {"id": currentTargetClipId, "record": false});
-    });
-    similarFileOverlay.querySelector(asel('folder')).addEventListener('click', function () {
-        api('clip/folder', {"id": currentTargetClipId});
-    });
-    var fileOverlaySpan = similarFileOverlay.querySelector('#similar-filename');
 
     var similarScoreOverlay = document.getElementById('similar-score-overlay');
     var sso = po(similarScoreOverlay);
@@ -44,15 +33,13 @@ ijkl.module('similar', ['querySelector', 'dataset', 'es5Array'], function () {
             var tbody = dom('tbody', null, entries.sort(function (e1, e2) {
                 return e2.total - e1.total;
             }).map(function (entry) {
-                var clip =  actualClips[entry.clipId];
+                var clip = actualClips[entry.clipId];
                 var fileTd = dom('td', null, clip.file);
                 fileTd.addEventListener('mouseenter', function () {
-                    currentTargetClipId = entry.clipId;
-                    fileOverlaySpan.innerHTML = clip.path;
-                    sfo(this);
+                    sfoo.open(this, entry.clipId, clip.path);
                 });
                 fileTd.addEventListener('mouseleave', function () {
-                    sfo.close();
+                    sfoo.close();
                 });
                 var scoreTd = dom('td', null, entry.total.toFixed(3));
                 scoreTd.addEventListener('mouseenter', function () {
