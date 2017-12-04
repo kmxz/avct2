@@ -11,17 +11,15 @@ ijkl.module('studiomanager', [], function () {
 
     var VA_STR = 'V/A';
 
-    var open = function (anchor, currentVal, callback, includeVAAndAllowCreation) {
+    var open = function (anchor, currentVal, callback, allowCreation) {
         if (ac.isOpen()) {
             return;
         }
         var studios = func.toArray(actualStudios);
-        if (includeVAAndAllowCreation) {
-            studios.unshift(VA_STR);
-        }
+        studios.unshift(VA_STR);
         ac(anchor, currentVal, function (newStudioName, onSuccess, onReject) {
             var proposedStudio;
-            if (includeVAAndAllowCreation && newStudioName === VA_STR) {
+            if (newStudioName === VA_STR) {
                 proposedStudio = 0;
             } else {
                 proposedStudio = func.filter(actualStudios, function (name) {
@@ -29,7 +27,7 @@ ijkl.module('studiomanager', [], function () {
                 })[0] || -1;
             }
             if (proposedStudio < 0) {
-                if (includeVAAndAllowCreation) {
+                if (allowCreation) {
                     if (window.confirm("Such studio does not exist. Create one?")) {
                         api('studio/create', {'name': newStudioName}).then(function (ret) {
                             actualStudios[ret.id] = newStudioName; // manually append
