@@ -15,7 +15,7 @@ import scala.collection.mutable.Map
 import scala.slick.driver.HsqldbDriver.simple._
 
 trait JsonSupport extends NativeJsonSupport {
-  protected implicit val jsonFormats = DefaultFormats
+  protected implicit lazy val jsonFormats = DefaultFormats
 
   def renderJNull: RenderPipeline = {
     case JNull => writeJson(JNull, response.writer)
