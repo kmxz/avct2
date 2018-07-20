@@ -121,7 +121,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
         }),
         file: new Column('c-file', 'Name', function (td) {
             dom.append(td, [
-                dom('span', {className: 'resolution-indicator', style: {backgroundColor: this.resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (this.resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000'}}),
+                dom('span', {className: 'resolution-indicator', style: {backgroundColor: this.resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (this.resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000'}, title: this.resolution ? this.resolution + 'px' : 'Video invalid'}),
                 this.file
             ]);
         }, function (domFilter) {
@@ -334,7 +334,7 @@ ijkl.module('clipobj', ['querySelector', 'dataset', 'es5Array'], function () {
                 });
             }, this));
             ed.target(root, 'mouseout', domFilter, tm.selectTagClose);
-            ed.target(root, 'mouseover', dom.match('.tag'), updateHelper(function (el, clip, post) {
+            ed.target(root, 'mouseover', dom.match('.tag.removable'), updateHelper(function (el, clip, post) {
                 var tagId = parseInt(el.dataset.id, 10);
                 cto.open(el, function () {
                     if (window.confirm('Remove this tag from the clip\'s tag list?')) {
