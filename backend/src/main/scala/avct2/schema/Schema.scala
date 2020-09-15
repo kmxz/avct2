@@ -5,33 +5,22 @@ import java.sql.Blob
 import scala.slick.driver.HsqldbDriver.simple._
 import scala.slick.lifted.{TableQuery, Tag => T}
 
-class Tags(tag: T) extends Table[(Option[Int], String, Option[String], Option[Int])](tag, "tag") {
+class Tags(tag: T) extends Table[(Option[Int], String, Option[String], Option[Int], TagType.Value)](tag, "tag") {
   def tagId = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
 
   def name = column[String]("name")
   def description = column[Option[String]]("description")
   def bestOfTag = column[Option[Int]]("best_of_tag")
+  def tagType: Column[TagType.Value] = column[TagType.Value]("type")(TagType.mct)
   index("index_name", name, unique = true)
 
-  def * = (tagId.?, name, description, bestOfTag)
+  def * = (tagId.?, name, description, bestOfTag, tagType)
 }
 
-class Studios(tag: T) extends Table[(Option[Int], String)](tag, "studio") {
-  def studioId = column[Int]("studio_id", O.PrimaryKey, O.AutoInc)
-
-  def name = column[String]("name")
-
-  index("index_name", name, unique = true)
-
-  def * = (studioId.?, name)
-}
-
-class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Dimensions)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Dimensions)](tag, "clip") {
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
 
   def file = column[String]("file")
-
-  def studioId = column[Option[Int]]("studio_id")
 
   def race = column[Race.Value]("race")(Race.mct)
 
@@ -51,7 +40,7 @@ class Clip(tag: T) extends Table[(Option[Int], String, Option[Int], Race.Value, 
 
   index("index_file", file, unique = true)
 
-  def * = (clipId.?, file, studioId, race, thumb, grade, role, size, length, sourceNote, dimensions)
+  def * = (clipId.?, file, race, thumb, grade, role, size, length, sourceNote, dimensions)
 }
 
 class Record(tag: T) extends Table[(Int, Int)](tag, "record") {
@@ -64,7 +53,7 @@ class Record(tag: T) extends Table[(Int, Int)](tag, "record") {
   def * = (timestamp, clipId)
 }
 
-// interralation tables, no type class
+// interrelation tables, no type class
 
 class TagRelationship(tag: T) extends Table[(Int, Int)](tag, "tag_relationship") {
   def parentTag = column[Int]("parent_tag")
@@ -93,7 +82,6 @@ class ClipTag(tag: T) extends Table[(Int, Int)](tag, "clip_tag") {
 object Tables {
   val tag = TableQuery[Tags]
   val tagRelationship = TableQuery[TagRelationship]
-  val studio = TableQuery[Studios]
   val clip = TableQuery[Clip]
   val clipTag = TableQuery[ClipTag]
   val record = TableQuery[Record]

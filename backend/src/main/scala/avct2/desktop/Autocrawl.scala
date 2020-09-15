@@ -58,7 +58,6 @@ object Autocrawl {
 
   def apply(implicit session: Session): Changes = this.synchronized {
     val paths = scala.collection.mutable.Set(Tables.clip.map(_.file).run: _*)
-    Utilities.orphanStudioCleanup
     Utilities.orphanTagCleanup
     val newFiles = getNewFilesAndMark(paths)
     newFiles.foreach(addTo)

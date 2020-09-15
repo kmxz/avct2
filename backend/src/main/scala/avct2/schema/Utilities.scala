@@ -21,6 +21,14 @@ object Race extends Enumeration {
   val mct = MappedColumnType.base[Value, Int](_.id, apply)
 }
 
+object TagType extends Enumeration {
+  Value("Special")
+  val studio = Value("Studio")
+  Value("Content")
+  Value("Format")
+  val mct = MappedColumnType.base[Value, Int](_.id, apply)
+}
+
 case class Dimensions(width: Int, height: Int) {
   def min = Math.min(width, height)
 }
@@ -33,13 +41,6 @@ object Utilities {
 
   val STR_VA = "V/A" // compat with the original Java implementation
 
-  // clean those studios which have no clips
-  def orphanStudioCleanup(implicit session: Session) = {
-    (for {
-      studio <- Tables.studio if !Tables.clip.filter(_.studioId === studio.studioId).exists
-    } yield studio).delete
-  }
-
   // clean those tags which has no clips or child tags
   def orphanTagCleanup(implicit session: Session) = {
     val tags = for {
@@ -51,7 +52,7 @@ object Utilities {
     tags.delete
   }
 
-  // fuck scala, i cannot use partial application and implicit parameter together, so have to stick with 3 params
+  // oops, i cannot use partial application and implicit parameter together, so have to stick with 3 params
   def getParentOrChildTags(from: Int, parent: Boolean, recursive: Boolean)(implicit session: Session): Set[Int] = {
     val results = Tables.tagRelationship.filter(row => (if (parent) row.childTag else row.parentTag) === from).map(if (parent) _.parentTag else _.childTag).list
     if (recursive) {
@@ -62,7 +63,9 @@ object Utilities {
   }
 
   def legalTagParent(self: Int, proposedParent: Int)(implicit session: Session) = {
-    !((self == proposedParent) || getParentOrChildTags(self, false, true).contains(proposedParent))
+    val parentType = Tables.tag.filter(_.tagId === proposedParent).map(_.tagType).first
+    val selfType = Tables.tag.filter(_.tagId === self).map(_.tagType).first
+    (parentType == selfType) && !((self == proposedParent) || getParentOrChildTags(self, false, true).contains(proposedParent))
   }
 
 }

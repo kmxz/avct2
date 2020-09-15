@@ -1,7 +1,7 @@
 package avct2.modules
 
 import avct2.modules.Difference.ClipRow
-import avct2.schema.{Tables, Race, Role, Clip}
+import avct2.schema.{Clip, Race, Role, Tables, TagType}
 
 import scala.collection.immutable.Set
 import scala.math._
@@ -31,7 +31,7 @@ object NameEntry extends AbstractEntry {
   final val weight = 1.0
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    Levenshtein(clipOld._1, clipNew._1)
+    Levenshtein(clipOld.filename, clipNew.filename)
   }
 
 }
@@ -43,7 +43,7 @@ object StudioEntry extends AbstractEntry {
   final val weight = 1.0
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    if (clipOld._2 == clipNew._2) 1 else 0
+    CosineSimilarity(clipOld.studioId, clipNew.studioId)
   }
 
 }
@@ -55,7 +55,7 @@ object RaceEntry extends AbstractEntry {
   final val weight = 0.25
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    if (clipOld._3 == clipNew._3) 1 else 0
+    if (clipOld.race == clipNew.race) 1 else 0
   }
 
 }
@@ -67,7 +67,7 @@ object RoleEntry extends AbstractEntry {
   final val weight = 0.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    CosineSimilarity(clipOld._4, clipNew._4)
+    CosineSimilarity(clipOld.role, clipNew.role)
   }
 
 }
@@ -79,8 +79,8 @@ object SizeEntry extends AbstractEntry {
   final val weight = 2.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    if (clipOld._5 > 0 && clipNew._5 > 0) {
-      exp((2 - (clipNew._5.toDouble / clipOld._5) - (clipOld._5.toDouble / clipNew._5)) * 1000000)
+    if (clipOld.size > 0 && clipNew.size > 0) {
+      exp((2 - (clipNew.size.toDouble / clipOld.size) - (clipOld.size.toDouble / clipNew.size)) * 1000000)
     } else 0
   }
 
@@ -93,8 +93,8 @@ object LengthEntry extends AbstractEntry {
   final val weight = 0.75
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    if (clipOld._5 > 0 && clipNew._5 > 0) {
-      val diff = abs(clipNew._6 - clipOld._6).toDouble
+    if (clipOld.length > 0 && clipNew.length > 0) {
+      val diff = abs(clipNew.length - clipOld.length).toDouble
       exp(-diff)
     } else 0
   }
@@ -108,7 +108,7 @@ object TagsEntry extends AbstractEntry {
   final val weight = 1.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    CosineSimilarity(clipOld._8, clipNew._8)
+    CosineSimilarity(clipOld.tags, clipNew.tags)
   }
 
 }
@@ -117,20 +117,21 @@ object Difference {
 
   val entries = Seq(NameEntry, StudioEntry, RaceEntry, RoleEntry, SizeEntry, LengthEntry, TagsEntry)
 
-  // filename, studioId, race, role, size, length, clipId, tags
-  type ClipRow = (String, Option[Int], Race.Value, Role.ValueSet, Long, Int, Int, Set[Int])
+  case class ClipRow(filename: String, studioId: Set[Int], race: Race.Value, role: Role.ValueSet, size: Long, length: Int, clipId: Int, tags: Set[Int])
 
-  private def getClipRows(clips: Query[Clip, _, Seq])(implicit session: Session) = {
-    clips.map(row => (row.file, row.studioId, row.race, row.role, row.size, row.length, row.clipId)).list.map(row =>
-      (row._1, row._2, row._3, row._4, row._5, row._6, row._7, Tables.clipTag.filter(_.clipId === row._7).map(_.tagId).list.toSet)
-    )
+  private def getClipRows(clips: Query[Clip, _, Seq], tagTypes: Map[Int, TagType.Value])(implicit session: Session): List[ClipRow] = {
+    clips.map(row => (row.file, row.race, row.role, row.size, row.length, row.clipId)).list.map({ row =>
+      val allTags = Tables.clipTag.filter(_.clipId === row._6).map(_.tagId).list
+      ClipRow(row._1, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet, row._2, row._3, row._4, row._5, row._6,  allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet)
+    })
   }
 
   def scanAll(clipId: Int)(implicit session: Session) = {
-    val target = getClipRows(Tables.clip.filter(_.clipId === clipId)).head
-    getClipRows(Tables.clip.filter(_.clipId =!= clipId)).map({row =>
+    val allTags = Tables.tag.map(tag => (tag.tagId, tag.tagType)).list.toMap
+    val target = getClipRows(Tables.clip.filter(_.clipId === clipId), allTags).head
+    getClipRows(Tables.clip.filter(_.clipId =!= clipId), allTags).map({row =>
       val acquiredResults = entries.map(entry => entry.getResult(target, row))
-      Report(row._7, acquiredResults.map(_._1).toMap, acquiredResults.map(_._2).reduce(_ + _))
+      Report(row.clipId, acquiredResults.map(_._1).toMap, acquiredResults.map(_._2).reduce(_ + _))
     }).sortBy(_.total)
   }
 

@@ -49,7 +49,9 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   get("/clip") {
     db.withSession { implicit session =>
-      queryClip(identity).list.map(renderClip)
+      val allTags = Tables.tag.map(tag => (tag.tagId, tag.tagType)).list.toMap
+      val allClipTags = Tables.clipTag.list.groupBy(_._1).mapValues(_.map(_._2).toSet) // https://stackoverflow.com/a/7210015
+      queryClip(identity).list.map(clip => renderClip(clip, Option(allTags), Option(allClipTags)))
     }
   }
 
@@ -160,6 +162,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   post("/clip/:id/edit") {
+    implicit val mct = TagType.mct
     val id = params("id").toInt
     val value = params("value")
     db().withSession { implicit session =>
@@ -171,7 +174,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         case "studio" =>
           val studio = value.toInt
           if (studio != 0) {
-            if (!Tables.studio.filter(_.studioId === studio).exists.run) {
+            if (!Tables.tag.filter(row => (row.tagId === studio) && (row.tagType === TagType.studio)).exists.run) {
               terminate(404, "Studio does not exist.")
             }
             if (clipRow.map(_.race).first == Race.unknown) {
@@ -181,7 +184,8 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
               updateRolesAutomaticallyAccordingToStudio(id, studio)
             }
           }
-          clipRow.map(_.studioId).update(Some(studio))
+          Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType === TagType.studio).map(_.tagId))).delete
+          Tables.clipTag.map(row => (row.clipId, row.tagId)).insert((id, studio))
         case "race" =>
           try {
             val race = Race.withName(value)
@@ -205,7 +209,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
           clipRow.map(_.length).update(length)
         case "tags" =>
           val tags = json[Seq[Int]](value)
-          Tables.clipTag.filter(_.clipId === id).delete // remove older ones first
+          Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType =!= TagType.studio).map(_.tagId))).delete // remove older ones first
           if (!tags.forall(tag => Tables.tag.filter(_.tagId === tag).exists.run)) {
             terminate(404, "Tag does not exist.")
           }
@@ -215,7 +219,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
           clipRow.map(_.sourceNote).update(value)
       }
       // render the new clip
-      renderClip(queryClip(query => query.filter(_.clipId === id)).first)
+      renderClip(queryClip(query => query.filter(_.clipId === id)).first, Option.empty, Option.empty)
     }
   }
 
@@ -298,7 +302,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         terminate(404, "Parent tag does not exist.")
       }
       if (!parents.forall(tag => legalTagParent(id, tag))) {
-        terminate(409, "Forming cycles are not allowed.")
+        terminate(409, "Forming cycles or different types are not allowed.")
       }
       Tables.tagRelationship.filter(_.childTag === id).delete
       Tables.tagRelationship.map(row => (row.parentTag, row.childTag)).insertAll(parents.toSeq.map(parent => (parent, id)): _*)
@@ -339,6 +343,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   post("/tag/create") {
     val name = params("name")
+    val tagType = TagType.withName(params("type"))
     if (name.length < 1) {
       terminate(400, "Name too short.")
     }
@@ -346,8 +351,8 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       if (Tables.tag.filter(_.name === name).exists.run) {
         terminate(409, "Name already exists.")
       }
-      ((Tables.tag returning Tables.tag) +=(None, name, None, None)) match {
-        case (Some(id), _, _, _) => Map("id" -> id)
+      ((Tables.tag returning Tables.tag) +=(None, name, None, None, tagType)) match {
+        case (Some(id), _, _, _, _) => Map("id" -> id)
         case _ => terminate(500, "Insertion failed.")
       }
     }
@@ -355,8 +360,9 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   get("/studio") {
+    implicit val mct = TagType.mct
     db().withSession { implicit session =>
-      Tables.studio.map(studio => (studio.studioId, studio.name)).list.map(studio => (studio._1.toString, studio._2)).toMap
+      Tables.tag.filter(_.tagType === TagType.studio).map(tag => (tag.tagId, tag.name)).list.map(tag => (tag._1.toString, tag._2)).toMap
     }
   }
 
@@ -366,11 +372,11 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       terminate(400, "Name too short.")
     }
     db().withSession { implicit session =>
-      if (Tables.studio.filter(_.name === name).exists.run) {
+      if (Tables.tag.filter(_.name === name).exists.run) {
         terminate(409, "Name already exists.")
       }
-      ((Tables.studio returning Tables.studio) +=(None, name)) match {
-        case (Some(id), _) => Map("id" -> id)
+      ((Tables.tag returning Tables.tag) += (None, name, None, None, TagType.studio)) match {
+        case (Some(id), _, _, _, _) => Map("id" -> id)
         case _ => terminate(500, "Insertion failed.")
       }
     }

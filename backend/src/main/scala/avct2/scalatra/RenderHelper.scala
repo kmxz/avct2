@@ -11,7 +11,6 @@ import org.json4s.JsonAST.JNull
 import org.scalatra.RenderPipeline
 import org.scalatra.json.NativeJsonSupport
 
-import scala.collection.mutable.Map
 import scala.slick.driver.HsqldbDriver.simple._
 
 trait JsonSupport extends NativeJsonSupport {
@@ -34,17 +33,18 @@ trait RenderHelper {
   // to be used with renderClip
   def queryClip(filter: TableQuery[Clip] => Query[Clip, _, Seq])(implicit session: Session) = {
     // actually I should fill the second type parameter of return type, instead of leaving _. but it's too long so I ignored that
-    filter(Tables.clip).map(row => (row.clipId, row.file, row.studioId, row.race, row.grade, row.role, row.size, row.length, row.thumb.isNotNull, row.sourceNote, row.dimensions))
+    filter(Tables.clip).map(row => (row.clipId, row.file, row.race, row.grade, row.role, row.size, row.length, row.thumb.isDefined, row.sourceNote, row.dimensions))
   }
 
-  // to be used with queryClip
-  def renderClip(tuple: (Int, String, Option[Int], Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions))(implicit session: Session) = tuple match {
-    case (clipId, file, studio, race, grade, role, size, length, thumbSet, sourceNote, dimensions) =>
-      val tags = Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list
+  // to be used with queryClip; latter two params for performance improvement only
+  def renderClip(tuple: (Int, String, Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions), tagTypesOptional: Option[Map[Int, TagType.Value]], clipTagsOptional: Option[Map[Int, Set[Int]]])(implicit session: Session) = tuple match {
+    case (clipId, file, race, grade, role, size, length, thumbSet, sourceNote, dimensions) =>
+      val allTags = clipTagsOptional.map(_(clipId)).getOrElse(Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list)
+      val tagTypes = tagTypesOptional.getOrElse(Tables.tag.filter(_.tagId.inSet(allTags)).map(tag => (tag.tagId, tag.tagType)).list.toMap)
       val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp)
       val record = (ts.length, ts.max).shaped.run
       // caution: lastPlay may be void
-      Map("id" -> clipId, "path" -> file, "studio" -> studio, "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> tags, "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote, "resolution" -> dimensions.min) // Enum-s must be toString-ed, otherwise json4s will fuck things up
+      Map("id" -> clipId, "path" -> file, "studio" -> allTags.filter(tag => tagTypes(tag) == TagType.studio).headOption.getOrElse(0), "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> allTags.filter(tag => tagTypes(tag) != TagType.studio), "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote, "resolution" -> dimensions.min) // Enum-s must be toString-ed, otherwise json4s will fuck things up
   }
 
   def openFile(id: Int, opener: (File => Boolean))(implicit session: Session) = {
@@ -58,10 +58,10 @@ trait RenderHelper {
     }
   }
 
-  def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioId: Int)(implicit session: Session) = {
-    val otherClips = Tables.clip.filter(_.studioId === studioId).map(_.race).list
+  def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit session: Session) = {
+    val otherClips = Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.race).list
     if (otherClips.nonEmpty) {
-      val map = Map[Race.Value, Int]()
+      val map = scala.collection.mutable.Map[Race.Value, Int]()
       otherClips.foreach { race =>
         map.update(race, map.getOrElse(race, 0) + 1)
       }
@@ -75,10 +75,10 @@ trait RenderHelper {
     }
   }
 
-  def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioId: Int)(implicit session: Session) = {
-    val otherClips = Tables.clip.filter(_.studioId === studioId).map(_.role).list
+  def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit session: Session) = {
+    val otherClips = Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.role).list
     if (otherClips.nonEmpty) {
-      val map = Map[Role.Value, Int]()
+      val map = scala.collection.mutable.Map[Role.Value, Int]()
       otherClips.foreach { roles =>
         roles.foreach(role => {
           map.update(role, map.getOrElse(role, 0) + 1)
