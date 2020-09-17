@@ -1,6 +1,11 @@
 package avct2.schema
 
-import scala.slick.driver.HsqldbDriver.simple._
+import slick.jdbc.HsqldbProfile.api._
+
+import MctImplicits._
+import scala.async.Async.{async, await}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object Role extends Enumeration {
   Value("Vanilla")
@@ -10,7 +15,7 @@ object Role extends Enumeration {
   Value("M/f")
   Value("F/m")
   Value("F/f")
-  val mct = MappedColumnType.base[ValueSet, Int](_.toBitMask(0).toInt, int => ValueSet.fromBitMask(Array(int.toLong)))
+  def mct = MappedColumnType.base[ValueSet, Int](_.toBitMask(0).toInt, int => ValueSet.fromBitMask(Array(int.toLong)))
 }
 
 object Race extends Enumeration {
@@ -18,15 +23,15 @@ object Race extends Enumeration {
   Value("Chinese")
   Value("Other Asian")
   Value("Other races")
-  val mct = MappedColumnType.base[Value, Int](_.id, apply)
+  def mct = MappedColumnType.base[Value, Int](_.id, apply)
 }
 
 object TagType extends Enumeration {
-  Value("Special")
+  val special = Value("Special")
   val studio = Value("Studio")
   Value("Content")
   Value("Format")
-  val mct = MappedColumnType.base[Value, Int](_.id, apply)
+  def mct = MappedColumnType.base[Value, Int](_.id, apply)
 }
 
 case class Dimensions(width: Int, height: Int) {
@@ -34,7 +39,14 @@ case class Dimensions(width: Int, height: Int) {
 }
 
 object Dimensions {
-  val mct = MappedColumnType.base[Dimensions, Int](dim => dim.width * 32768 + dim.height, int => new Dimensions(int / 32768, int % 32768))
+  def mct = MappedColumnType.base[Dimensions, Int](dim => dim.width * 32768 + dim.height, int => new Dimensions(int / 32768, int % 32768))
+}
+
+object MctImplicits {
+  implicit def roleMct = Role.mct
+  implicit def raceMct = Race.mct
+  implicit def tagTypeMct = TagType.mct
+  implicit def dimensionsMct = Dimensions.mct
 }
 
 object Utilities {
@@ -42,30 +54,31 @@ object Utilities {
   val STR_VA = "V/A" // compat with the original Java implementation
 
   // clean those tags which has no clips or child tags
-  def orphanTagCleanup(implicit session: Session) = {
+  def orphanTagCleanup(db: Database) = async {
     val tags = for {
       tag <- Tables.tag if (!Tables.clipTag.filter(_.tagId === tag.tagId).exists) && (!Tables.tagRelationship.filter(_.parentTag === tag.tagId).exists)
     } yield tag
-    tags.map(_.tagId).list.foreach(tagId => {
+    val tagIds = await(db.run(tags.map(_.tagId).result))
+    await(db.run(DBIO.seq(tagIds.map(tagId => {
       Tables.tagRelationship.filter(_.childTag === tagId).delete
-    })
-    tags.delete
+    }): _*)))
+    await(db.run(tags.delete))
   }
 
   // oops, i cannot use partial application and implicit parameter together, so have to stick with 3 params
-  def getParentOrChildTags(from: Int, parent: Boolean, recursive: Boolean)(implicit session: Session): Set[Int] = {
-    val results = Tables.tagRelationship.filter(row => (if (parent) row.childTag else row.parentTag) === from).map(if (parent) _.parentTag else _.childTag).list
+  def getParentOrChildTags(from: Int, parent: Boolean, recursive: Boolean)(implicit db: Database): Future[Set[Int]] = async {
+    val results = await(db.run((if (parent) Tables.tagRelationship.filter(row => row.childTag=== from).map( _.parentTag) else Tables.tagRelationship.filter(row => row.parentTag === from).map(_.childTag)).result))
     if (recursive) {
-      results.map(single => getParentOrChildTags(single, parent, true) + single).fold(Set[Int]())(_ ++ _)
+      await(Future.sequence(results.map(single => getParentOrChildTags(single, parent, true).map(_ + single)))).fold(Set[Int]())(_ ++ _)
     } else {
       results.toSet
     }
   }
 
-  def legalTagParent(self: Int, proposedParent: Int)(implicit session: Session) = {
-    val parentType = Tables.tag.filter(_.tagId === proposedParent).map(_.tagType).first
-    val selfType = Tables.tag.filter(_.tagId === self).map(_.tagType).first
-    (parentType == selfType) && !((self == proposedParent) || getParentOrChildTags(self, false, true).contains(proposedParent))
+  def legalTagParent(self: Int, proposedParent: Int)(implicit db: Database): Future[Boolean] = async {
+    val parentType = await(db.run(Tables.tag.filter(_.tagId === proposedParent).map(_.tagType).result.head))
+    val selfType = await(db.run(Tables.tag.filter(_.tagId === self).map(_.tagType).result.head))
+    (parentType == selfType) && !((self == proposedParent) || await(getParentOrChildTags(self, false, true)).contains(proposedParent))
   }
 
 }

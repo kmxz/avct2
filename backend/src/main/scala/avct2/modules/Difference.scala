@@ -2,10 +2,15 @@ package avct2.modules
 
 import avct2.modules.Difference.ClipRow
 import avct2.schema.{Clip, Race, Role, Tables, TagType}
+import avct2.schema.MctImplicits._
 
 import scala.collection.immutable.Set
 import scala.math._
-import scala.slick.driver.HsqldbDriver.simple._
+import slick.jdbc.HsqldbProfile.api._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.async.Async.{async, await}
+import scala.concurrent.Future
 
 case class Report(clipId: Int, scores: Map[String, Double], total: Double)
 
@@ -119,19 +124,20 @@ object Difference {
 
   case class ClipRow(filename: String, studioId: Set[Int], race: Race.Value, role: Role.ValueSet, size: Long, length: Int, clipId: Int, tags: Set[Int])
 
-  private def getClipRows(clips: Query[Clip, _, Seq], tagTypes: Map[Int, TagType.Value])(implicit session: Session): List[ClipRow] = {
-    clips.map(row => (row.file, row.race, row.role, row.size, row.length, row.clipId)).list.map({ row =>
-      val allTags = Tables.clipTag.filter(_.clipId === row._6).map(_.tagId).list
-      ClipRow(row._1, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet, row._2, row._3, row._4, row._5, row._6,  allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet)
-    })
-  }
+  private def getClipRows(clips: Query[Clip, _, Seq], tagTypes: Map[Int, TagType.Value])(implicit db: Database): Future[Seq[ClipRow]] =
+    db.run(clips.map(row => (row.file, row.race, row.role, row.size, row.length, row.clipId)).result)
+      .flatMap(clips => Future.sequence(clips.map(row =>
+        db.run(Tables.clipTag.filter(_.clipId === row._6).map(_.tagId).result).map(allTags =>
+          ClipRow(row._1, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet, row._2, row._3, row._4, row._5, row._6, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet)
+        )
+      )))
 
-  def scanAll(clipId: Int)(implicit session: Session) = {
-    val allTags = Tables.tag.map(tag => (tag.tagId, tag.tagType)).list.toMap
-    val target = getClipRows(Tables.clip.filter(_.clipId === clipId), allTags).head
-    getClipRows(Tables.clip.filter(_.clipId =!= clipId), allTags).map({row =>
+  def scanAll(clipId: Int)(implicit db: Database): Future[Seq[Report]] = async {
+    val allTags = await(db.run(Tables.tag.map(tag => (tag.tagId, tag.tagType)).result)).toMap
+    val target = await(getClipRows(Tables.clip.filter(_.clipId === clipId), allTags)).head
+    await(getClipRows(Tables.clip.filter(_.clipId =!= clipId), allTags)).map({row =>
       val acquiredResults = entries.map(entry => entry.getResult(target, row))
-      Report(row.clipId, acquiredResults.map(_._1).toMap, acquiredResults.map(_._2).reduce(_ + _))
+      Report(row.clipId, acquiredResults.map(_._1).toMap, acquiredResults.map(_._2).sum)
     }).sortBy(_.total)
   }
 

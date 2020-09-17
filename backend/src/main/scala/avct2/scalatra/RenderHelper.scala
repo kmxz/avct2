@@ -2,16 +2,21 @@ package avct2.scalatra
 
 import java.awt.image.BufferedImage
 import java.io._
+
 import javax.imageio.ImageIO
 
+import scala.async.Async.{async, await}
+import scala.concurrent.ExecutionContext.Implicits.global
 import avct2.Avct2Conf
 import avct2.schema._
+import avct2.schema.MctImplicits._
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST.JNull
 import org.scalatra.RenderPipeline
 import org.scalatra.json.NativeJsonSupport
+import slick.jdbc.HsqldbProfile.api._
 
-import scala.slick.driver.HsqldbDriver.simple._
+import scala.concurrent.Future
 
 trait JsonSupport extends NativeJsonSupport {
   protected implicit lazy val jsonFormats = DefaultFormats
@@ -30,25 +35,39 @@ trait JsonSupport extends NativeJsonSupport {
 
 trait RenderHelper {
 
-  // to be used with renderClip
-  def queryClip(filter: TableQuery[Clip] => Query[Clip, _, Seq])(implicit session: Session) = {
-    // actually I should fill the second type parameter of return type, instead of leaving _. but it's too long so I ignored that
-    filter(Tables.clip).map(row => (row.clipId, row.file, row.race, row.grade, row.role, row.size, row.length, row.thumb.isDefined, row.sourceNote, row.dimensions))
+  // for performance debugging
+  def timeFuture[T](label: String, future: Future[T]): Future[T] = {
+    val start = System.currentTimeMillis()
+    future.onComplete({
+      case _ => println(s"Future ${label} took ${System.currentTimeMillis() - start} ms")
+    })
+    future
   }
+
+  // to be used with renderClip
+  def queryClip(filter: TableQuery[Clip] => Query[Clip, _, Seq])(implicit db: Database) =
+    // actually I should fill the second type parameter of return type, instead of leaving _. but it's too long so I ignored that
+    db.run(filter(Tables.clip).map(row => (row.clipId, row.file, row.race, row.grade, row.role, row.size, row.length, row.thumb.isDefined, row.sourceNote, row.dimensions)).result)
+
+  def queryRecords(baseQuery: Query[Record, _, Seq])(implicit db: Database): Future[Map[Int, (Int, Int)]] =
+    db.run(baseQuery
+      .groupBy(_.clipId)
+      .map { case (clipId, group) => (clipId, group.map(_.timestamp).length, group.map(_.timestamp).max) }
+      .result).map(list => list.map(row => (row._1, (row._2, row._3.getOrElse(0)))).toMap)
 
   // to be used with queryClip; latter two params for performance improvement only
-  def renderClip(tuple: (Int, String, Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions), tagTypesOptional: Option[Map[Int, TagType.Value]], clipTagsOptional: Option[Map[Int, Set[Int]]])(implicit session: Session) = tuple match {
+  def renderClip(tuple: (Int, String, Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions), tagTypesOptional: Option[Map[Int, TagType.Value]], clipTagsOptional: Option[Map[Int, Set[Int]]], recordsOptional: Option[Map[Int, (Int, Int)]])(implicit db: Database) = async { tuple match {
     case (clipId, file, race, grade, role, size, length, thumbSet, sourceNote, dimensions) =>
-      val allTags = clipTagsOptional.map(_(clipId)).getOrElse(Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).list)
-      val tagTypes = tagTypesOptional.getOrElse(Tables.tag.filter(_.tagId.inSet(allTags)).map(tag => (tag.tagId, tag.tagType)).list.toMap)
-      val ts = Tables.record.filter(_.clipId === clipId).map(_.timestamp)
-      val record = (ts.length, ts.max).shaped.run
+      val allTags = await(clipTagsOptional.map(_(clipId)).map(Future.successful).getOrElse(db.run(Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).result)))
+      val tagTypesFuture = tagTypesOptional.map(Future.successful).getOrElse(db.run(Tables.tag.filter(_.tagId.inSet(allTags)).map(tag => (tag.tagId, tag.tagType)).result).map(_.toMap))
+      val record = await(recordsOptional.map(Future.successful).getOrElse(queryRecords(Tables.record.filter(_.clipId === clipId)))).getOrElse(clipId, (0, 0))
+      val tagTypes = await(tagTypesFuture)
       // caution: lastPlay may be void
-      Map("id" -> clipId, "path" -> file, "studio" -> allTags.filter(tag => tagTypes(tag) == TagType.studio).headOption.getOrElse(0), "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> allTags.filter(tag => tagTypes(tag) != TagType.studio), "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote, "resolution" -> dimensions.min) // Enum-s must be toString-ed, otherwise json4s will fuck things up
-  }
+      Map("id" -> clipId, "path" -> file, "studio" -> allTags.find(tag => tagTypes(tag) == TagType.studio).getOrElse(0), "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> allTags.filter(tag => tagTypes(tag) != TagType.studio), "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote, "resolution" -> dimensions.min) // Enum-s must be toString-ed, otherwise json4s will fuck things up
+  }}
 
-  def openFile(id: Int, opener: (File => Boolean))(implicit session: Session) = {
-    Tables.clip.filter(_.clipId === id).map(_.file).firstOption match {
+  def openFile(id: Int, opener: (File => Boolean))(implicit db: Database) = async {
+    await(db.run(Tables.clip.filter(_.clipId === id).map(_.file).result.headOption)) match {
       case Some(fileName) =>
         val f = new File(new File(Avct2Conf.getVideoDir), fileName)
         if (f.isFile) {
@@ -58,8 +77,8 @@ trait RenderHelper {
     }
   }
 
-  def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit session: Session) = {
-    val otherClips = Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.race).list
+  def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit db: Database) = async {
+    val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.race).result))
     if (otherClips.nonEmpty) {
       val map = scala.collection.mutable.Map[Race.Value, Int]()
       otherClips.foreach { race =>
@@ -69,14 +88,14 @@ trait RenderHelper {
       map.maxBy(_._2) match {
         case (race, count) =>
           if (count * 2 > length) {
-            Tables.clip.filter(_.clipId === clipId).map(_.race).update(race)
+            await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.race).update(race)))
           }
       }
     }
   }
 
-  def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit session: Session) = {
-    val otherClips = Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.role).list
+  def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit db: Database) = async {
+    val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.role).result))
     if (otherClips.nonEmpty) {
       val map = scala.collection.mutable.Map[Role.Value, Int]()
       otherClips.foreach { roles =>
@@ -86,7 +105,7 @@ trait RenderHelper {
       }
       val length = otherClips.length
       val newRoles = Role.ValueSet(map.filter(_._2 * 2 > length).keys.toSeq: _*)
-      Tables.clip.filter(_.clipId === clipId).map(_.role).update(newRoles)
+      await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.role).update(newRoles)))
     }
   }
 

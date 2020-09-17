@@ -2,41 +2,45 @@ package avct2.schema
 
 import java.sql.Blob
 
-import scala.slick.driver.HsqldbDriver.simple._
-import scala.slick.lifted.{TableQuery, Tag => T}
+import slick.jdbc.HsqldbProfile.api._
+import slick.lifted.{TableQuery, Tag => T}
 
 class Tags(tag: T) extends Table[(Option[Int], String, Option[String], Option[Int], TagType.Value)](tag, "tag") {
+  import MctImplicits._
+
   def tagId = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
 
   def name = column[String]("name")
   def description = column[Option[String]]("description")
   def bestOfTag = column[Option[Int]]("best_of_tag")
-  def tagType: Column[TagType.Value] = column[TagType.Value]("type")(TagType.mct)
+  def tagType = column[TagType.Value]("type")
   index("index_name", name, unique = true)
 
   def * = (tagId.?, name, description, bestOfTag, tagType)
 }
 
 class Clip(tag: T) extends Table[(Option[Int], String, Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Dimensions)](tag, "clip") {
+  import MctImplicits._
+
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
 
   def file = column[String]("file")
 
-  def race = column[Race.Value]("race")(Race.mct)
+  def race = column[Race.Value]("race")
 
   def thumb = column[Option[Blob]]("thumb")
 
   def grade = column[Int]("grade")
 
-  def role = column[Role.ValueSet]("role")(Role.mct)
+  def role = column[Role.ValueSet]("role")
 
   def size = column[Long]("size")
 
   def length = column[Int]("length")
 
-  def dimensions = column[Dimensions]("dimensions")(Dimensions.mct)
-
   def sourceNote = column[String]("source_note")
+
+  def dimensions = column[Dimensions]("dimensions")
 
   index("index_file", file, unique = true)
 

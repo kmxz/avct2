@@ -1,10 +1,7 @@
 package avct2.schema
 
 import org.hsqldb.jdbc.JDBCPool
-
-import scala.slick.driver.HsqldbDriver
-import scala.slick.driver.HsqldbDriver.simple._
-import scala.slick.jdbc.meta.MTable
+import slick.jdbc.HsqldbProfile.api._
 
 class DbConnection(file: String) {
 
@@ -13,14 +10,7 @@ class DbConnection(file: String) {
   val dataSource = new JDBCPool()
   dataSource.setDatabase("jdbc:hsqldb:file:" + file + ";shutdown=true;hsqldb.write_delay=false;default_schema=true")
 
-  val database: HsqldbDriver.backend.DatabaseDef = Database.forDataSource(dataSource)
-
-  database.withSession { implicit session =>
-    val ddl = Tables.tag.ddl ++ Tables.tagRelationship.ddl ++ Tables.clip.ddl ++ Tables.clipTag.ddl ++ Tables.record.ddl
-    if (MTable.getTables.list.isEmpty) {
-      ddl.create
-    }
-  }
+  val database = Database.forDataSource(dataSource, Option(4))
 
   def close() = {
     dataSource.close(0)

@@ -8,8 +8,23 @@ ijkl.module('api', ['xhr2', 'es5Array'], function () {
 
     var uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
     var dbConnId = window.location.search.substring(1);
-    var throttle = new Throttle(10); // only allow 10 parallel XHR requests to avoid Chrome fail
+    var throttle = new Throttle(8); // only allow 10 parallel XHR requests to avoid Chrome fail
     var toReload = false;
+    var muted = false;
+    var errorCount = 0;
+
+    var countError = function () {
+        if (muted || (++errorCount < 3)) { return; }
+        if (window.confirm('Mute errors for 30 seconds?')) {
+            muted = true;
+            setTimeout(function () {
+                muted = false;
+                errorCount = 0;
+            }, 30 * 1000);
+        } else {
+            errorCount = 0;
+        }
+    }
 
     if (!uuidRegex.test(dbConnId)) {
         window.location.href = '/';
@@ -82,7 +97,8 @@ ijkl.module('api', ['xhr2', 'es5Array'], function () {
                     resolve(xhr.response);
                 } else {
                     err = xhr.getResponseHeader("X-Error");
-                    if (!toReload) {
+                    countError();
+                    if (!(toReload || muted)) {
                         if (window.confirm("The server rejected request " + config.url + ". Do you want to reload the program? Information: " + err)) {
                             toReload = true; // prevent future alerts before redirecting is actually executed by the browser
                             window.location.href = "/";
@@ -92,7 +108,8 @@ ijkl.module('api', ['xhr2', 'es5Array'], function () {
                 }
             };
             xhr.onerror = function (error) {
-                if (!toReload) {
+                countError();
+                if (!(toReload || muted)) {
                     if (window.confirm("Network error occurred for request " + config.url + ". Do you want to reload the program?")) {
                         toReload = true; // prevent future alerts before redirecting is actually executed by the browser
                         window.location.href = "/";

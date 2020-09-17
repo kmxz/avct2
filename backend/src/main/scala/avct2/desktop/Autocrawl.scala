@@ -5,8 +5,12 @@ import java.io.File
 import avct.IdentifyVideo
 import avct2.Avct2Conf
 import avct2.schema.{Race, Role, Tables, Utilities, Dimensions}
+import avct2.schema.MctImplicits._
 
-import scala.slick.driver.HsqldbDriver.simple._
+import slick.jdbc.HsqldbProfile.api._
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.async.Async.{async, await}
 
 case class Changes(added: Iterable[String], disappeared: Iterable[String])
 
@@ -50,18 +54,18 @@ object Autocrawl {
     recursiveListFiles(videoDir).map(file => (file, relativePath(videoDir, file))).filter(tuple => !fileExistInDbAndMark(tuple._2, paths)).filter(_._1.length > 65535) // a size of 64 KB is required
   }
 
-  private def addTo(f: (File, String))(implicit session: Session) = f match {
+  private def addTo(f: (File, String)) = f match {
     case (file, path) =>
       val identifiedInfo = IdentifyVideo.identify(file, Avct2Conf.getMPlayer)
-      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote, row.dimensions)).insert((path, file.length, identifiedInfo.getDuration, Race.unknown, 0, Role.ValueSet.empty, "", new Dimensions(identifiedInfo.getWidth, identifiedInfo.getHeight)))
+      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote, row.dimensions)) += (path, file.length, identifiedInfo.getDuration, Race.unknown, 0, Role.ValueSet.empty, "", Dimensions(identifiedInfo.getWidth, identifiedInfo.getHeight))
   }
 
-  def apply(implicit session: Session): Changes = this.synchronized {
-    val paths = scala.collection.mutable.Set(Tables.clip.map(_.file).run: _*)
-    Utilities.orphanTagCleanup
+  def apply(db: Database): Future[Changes] = this.synchronized (async {
+    val paths = scala.collection.mutable.Set(await(db.run(Tables.clip.map(_.file).result)): _*)
+    Utilities.orphanTagCleanup(db)
     val newFiles = getNewFilesAndMark(paths)
-    newFiles.foreach(addTo)
+    await(db.run(DBIO.seq(newFiles.map(addTo): _*)))
     Changes(newFiles.map(_._2), paths)
-  }
+  })
 
 }

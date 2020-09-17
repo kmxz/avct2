@@ -1,30 +1,32 @@
 package avct2.scalatra
 
 import java.io.{File, InputStream}
-import javax.sql.rowset.serial.SerialBlob
 
+import scala.async.Async.{async, await}
 import avct.{MpShooter, Output}
 import avct2.Avct2Conf
 import avct2.desktop.Autocrawl
 import avct2.desktop.OpenFile._
 import avct2.modules.{ClipTagCheck, Difference}
+import avct2.schema.MctImplicits._
 import avct2.schema.Utilities._
 import avct2.schema._
+import javax.sql.rowset.serial.SerialBlob
 import org.json4s.JsonAST.JNull
+import org.scalatra.FutureSupport
 import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
+import slick.jdbc.HsqldbProfile.api._
 
 import scala.compat.Platform
-import scala.slick.driver.HsqldbDriver.ReturningInsertInvokerDef
-import scala.slick.driver.HsqldbDriver.simple._
-import scala.slick.lifted
+import scala.concurrent.Future
 
-class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with RenderHelper {
+class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with FutureSupport with RenderHelper {
+
+  protected implicit def executor = scala.concurrent.ExecutionContext.Implicits.global
 
   configureMultipartHandling(MultipartConfig())
 
-  def db() = {
-    Avct2Conf.dbConnection.get.database
-  }
+  def withDb[T](f: Database => Future[T]): Future[T] = f(Avct2Conf.dbConnection.get.database)
 
   def terminate(status: Int, message: String) = {
     halt(status, headers = Map("X-Error" -> message))
@@ -48,30 +50,32 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   get("/clip") {
-    db.withSession { implicit session =>
-      val allTags = Tables.tag.map(tag => (tag.tagId, tag.tagType)).list.toMap
-      val allClipTags = Tables.clipTag.list.groupBy(_._1).mapValues(_.map(_._2).toSet) // https://stackoverflow.com/a/7210015
-      queryClip(identity).list.map(clip => renderClip(clip, Option(allTags), Option(allClipTags)))
+    withDb { implicit db =>
+      for {
+        allTags <- timeFuture("allTags", db.run(Tables.tag.map(tag => (tag.tagId, tag.tagType)).result))
+        allClipTags <- timeFuture("allClipTags", db.run(Tables.clipTag.result))
+        records <- timeFuture("records", queryRecords(Tables.record))
+        clips <- timeFuture("clips", queryClip(identity))
+      } yield Future.sequence(clips.map(
+        clip => renderClip(clip, Option(allTags.toMap), Option(allClipTags.groupBy(_._1).mapValues(_.map(_._2).toSet)), Option(records))
+      ))
     }
   }
 
   get("/clip/:id/history") {
     val id = params("id").toInt
-    db().withSession { implicit session =>
-      Tables.record.filter(_.clipId === id).map(_.timestamp).list
-    }
+    withDb(_.run(Tables.record.filter(_.clipId === id).map(_.timestamp).result))
   }
 
   def openFileHelper(opener: (File => Boolean), record: Boolean) = {
     val id = params("id").toInt
-    db().withSession { implicit session =>
-      openFile(id, opener) match {
+    withDb { implicit db =>
+      openFile(id, opener).flatMap {
         case Some(err) => terminate(err._1, err._2)
         case None =>
           if (record) {
-            Tables.record.map(row => (row.clipId, row.timestamp)).insert((id, (Platform.currentTime / 1000).toInt))
-          }
-          JNull // nothing to return
+            db.run(Tables.record.map(row => (row.clipId, row.timestamp)) += ((id, (Platform.currentTime / 1000).toInt))).map(_ => Unit)
+          } else Future.successful(Unit) // nothing to return
       }
     }
   }
@@ -100,24 +104,19 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   get("/clip/:id/thumb") {
     contentType = "image/jpeg" // override
     val id = params("id").toInt
-    db().withSession { implicit session =>
-      Tables.clip.filter(_.clipId === id).map(_.thumb).firstOption match {
-        case Some(Some(thumb)) => org.scalatra.util.io.copy(thumb.getBinaryStream, response.getOutputStream)
-        case Some(None) => terminate(503, "Image not set.")
-        case None => terminate(404, "Clip does not exist.")
-      }
+    withDb(_.run(Tables.clip.filter(_.clipId === id).map(_.thumb).result.headOption)).map {
+      case Some(Some(thumb)) => thumb.getBinaryStream
+      case Some(None) => terminate(503, "Image not set.")
+      case None => terminate(404, "Clip does not exist.")
     }
   }
 
   post("/clip/:id/shot") {
     contentType = "image/png" // override
     val id = params("id").toInt
-    db().withSession { implicit session =>
-      val clipRow = Tables.clip.filter(_.clipId === id)
-      if (!clipRow.exists.run) {
-        terminate(404, "Clip does not exist.")
-      }
-      val fileName = clipRow.map(_.file).first
+    for {
+      fileName <- withDb(_.run(Tables.clip.filter(_.clipId === id).map(_.file).result.head))
+    } yield {
       val file = new File(new File(Avct2Conf.getVideoDir), fileName)
       if (!file.isFile) {
         terminate(503, "File does not exist.")
@@ -131,30 +130,27 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   post("/clip/:id/saveshot") {
     val id = params("id").toInt
     val fis = fileParams("file").getInputStream
-    db().withSession { implicit session =>
-      val clipRow = Tables.clip.filter(_.clipId === id)
-      if (!clipRow.exists.run) {
-        terminate(404, "Clip does not exist.")
-      }
-      clipRow.map(_.thumb).update(Some(new SerialBlob(toJpeg(fis))))
-      JNull
-    }
+    withDb(_.run(Tables.clip.filter(_.clipId === id).map(_.thumb).update(Some(new SerialBlob(toJpeg(fis))))).map({
+      case 1 => JNull
+      case _ => terminate(404, "No single clip updated.")
+    }))
   }
 
   post("/clip/:id/delete") {
     val id = params("id").toInt
-    db().withSession { implicit session =>
+    withDb { db =>
       val clipRow = Tables.clip.filter(_.clipId === id)
-      clipRow.map(_.file).firstOption match {
+      db.run(clipRow.map(_.file).result.headOption).map {
         case Some(fileName) =>
           val f = new File(new File(Avct2Conf.getVideoDir), fileName)
           if (f.exists()) {
             terminate(412, "File still exists.")
           } else {
-            Tables.clipTag.filter(_.clipId === id).delete
-            Tables.record.filter(_.clipId === id).delete
-            clipRow.delete
-            JNull
+            db.run(DBIO.seq(
+              Tables.clipTag.filter(_.clipId === id).delete,
+              Tables.record.filter(_.clipId === id).delete,
+              clipRow.delete
+            )).map(_ => JNull)
           }
         case None => terminate(404, "Clip does not exist.")
       }
@@ -162,99 +158,107 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   }
 
   post("/clip/:id/edit") {
-    implicit val mct = TagType.mct
     val id = params("id").toInt
     val value = params("value")
-    db().withSession { implicit session =>
-      val clipRow = Tables.clip.filter(_.clipId === id)
-      if (!clipRow.exists.run) {
-        terminate(404, "Clip does not exist.")
-      }
-      params("key") match {
-        case "studio" =>
-          val studio = value.toInt
-          if (studio != 0) {
-            if (!Tables.tag.filter(row => (row.tagId === studio) && (row.tagType === TagType.studio)).exists.run) {
-              terminate(404, "Studio does not exist.")
-            }
-            if (clipRow.map(_.race).first == Race.unknown) {
-              updateRaceAutomaticallyAccordingToStudio(id, studio)
-            }
-            if (clipRow.map(_.role).first.isEmpty) {
-              updateRolesAutomaticallyAccordingToStudio(id, studio)
-            }
+    withDb { implicit db =>
+      val clipRowQuery = Tables.clip.filter(_.clipId === id)
+      db.run(clipRowQuery.map(clip => (clip.race, clip.role)).result.head)
+        .flatMap(clipRow => {
+          params("key") match {
+            case "studio" =>
+              val studio = value.toInt
+              (if (studio != 0) db.run(Tables.tag.filter(row => (row.tagId === studio) && (row.tagType === TagType.studio)).exists.result).map(exists => {
+                if (!exists) {
+                  terminate(404, "Studio does not exist.")
+                }
+              })
+              else Future.successful(Unit)).flatMap(_ =>
+                db.run(Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType === TagType.studio).map(_.tagId))).delete)
+              ).flatMap(_ =>
+                for {
+                  _ <- db.run(Tables.clipTag.map(row => (row.clipId, row.tagId)) += (id, studio))
+                  _ <- if (clipRow._1 == Race.unknown) updateRaceAutomaticallyAccordingToStudio(id, studio).map(_ => Unit) else Future.successful(Unit)
+                  _ <- if (clipRow._2.isEmpty) updateRolesAutomaticallyAccordingToStudio(id, studio).map(_ => Unit) else Future.successful(Unit)
+                } yield Unit
+              )
+            case "race" =>
+              val race = try {
+                Race.withName(value)
+              } catch {
+                case _: NoSuchElementException => terminate(404, "Race does not exist.")
+              }
+              db.run(clipRowQuery.map(_.race).update(race))
+            case "role" =>
+              val roles = json[Seq[String]](value)
+              val roleSet = try {
+                Role.ValueSet(roles.map(Role.withName): _*)
+              } catch {
+                case _: NoSuchElementException => terminate(404, "Role does not exist.")
+              }
+              db.run(clipRowQuery.map(_.role).update(roleSet))
+            case "grade" =>
+              val grade = value.toInt
+              db.run(clipRowQuery.map(_.grade).update(grade))
+            case "duration" =>
+              val length = value.toInt
+              db.run(clipRowQuery.map(_.length).update(length))
+            case "tags" =>
+              val tags = json[Seq[Int]](value)
+              db.run(Tables.tag.filter(_.tagId inSet tags).length.result).map(cnt => {
+                if (cnt < tags.size) {
+                  terminate(404, "Tag does not exist.")
+                }
+              }).flatMap(_ => db.run(Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType =!= TagType.studio).map(_.tagId))).delete))
+                .flatMap(_ => for {
+                  _ <- db.run(Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType =!= TagType.studio).map(_.tagId))).delete)
+                  tagsIncludingParents <- Future.sequence(tags.map(tag => getParentOrChildTags(tag, true, true))).map(_.fold(Set[Int]())(_ ++ _) ++ tags) // duplicates removed
+                } yield tagsIncludingParents)
+                .flatMap(tagsIncludingParents =>
+                  db.run(Tables.clipTag.map(row => (row.clipId, row.tagId)) ++= tagsIncludingParents.map(tag => (id, tag)))
+                )
+            case "sourceNote" =>
+              db.run(clipRowQuery.map(_.sourceNote).update(value))
           }
-          Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType === TagType.studio).map(_.tagId))).delete
-          Tables.clipTag.map(row => (row.clipId, row.tagId)).insert((id, studio))
-        case "race" =>
-          try {
-            val race = Race.withName(value)
-            clipRow.map(_.race).update(race)
-          } catch {
-            case _: NoSuchElementException => terminate(404, "Race does not exist.")
-          }
-        case "role" =>
-          val roles = json[Seq[String]](value)
-          try {
-            val roleSet = Role.ValueSet(roles.map(Role.withName): _*)
-            clipRow.map(_.role).update(roleSet)
-          } catch {
-            case _: NoSuchElementException => terminate(404, "Role does not exist.")
-          }
-        case "grade" =>
-          val grade = value.toInt
-          clipRow.map(_.grade).update(grade)
-        case "duration" =>
-          val length = value.toInt
-          clipRow.map(_.length).update(length)
-        case "tags" =>
-          val tags = json[Seq[Int]](value)
-          Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType =!= TagType.studio).map(_.tagId))).delete // remove older ones first
-          if (!tags.forall(tag => Tables.tag.filter(_.tagId === tag).exists.run)) {
-            terminate(404, "Tag does not exist.")
-          }
-          val tagsIncludingParents = tags.map(tag => getParentOrChildTags(tag, true, true) + tag).fold(Set[Int]())(_ ++ _).toSeq // duplicates removed
-          Tables.clipTag.map(row => (row.clipId, row.tagId)).insertAll(tagsIncludingParents.map(tag => (id, tag)): _*)
-        case "sourceNote" =>
-          clipRow.map(_.sourceNote).update(value)
-      }
-      // render the new clip
-      renderClip(queryClip(query => query.filter(_.clipId === id)).first, Option.empty, Option.empty)
+        })
+        .flatMap(_ => queryClip(query => query.filter(_.clipId === id)))
+        .flatMap(clips => renderClip(clips.head, Option.empty, Option.empty, Option.empty))
     }
   }
 
   get("/clip/:id/similar") {
     val id = params("id").toInt
-    db().withSession { implicit session =>
-      if (!Tables.clip.filter(_.clipId === id).exists.run) {
-        terminate(404, "Clip does not exist.")
-      }
-      Difference.scanAll(id)
+    withDb { implicit db =>
+      db.run(Tables.clip.filter(_.clipId === id).exists.result).flatMap(exists => {
+        if (!exists) {
+          terminate(404, "Clip does not exist.")
+        }
+        Difference.scanAll(id)
+      })
     }
   }
 
   post("/clip/autocrawl") {
-    db().withSession { session => Autocrawl(session)}
+    withDb(Autocrawl.apply)
   }
 
   get("/tag") {
-    db().withSession { implicit session =>
-      Tables.tag.map(tag => (tag.tagId, tag.name, tag.description, tag.bestOfTag)).list.map(tag => Map("id" -> tag._1, "name" -> tag._2, "parent" -> getParentOrChildTags(tag._1, true, false), "description" -> tag._3, "best" -> tag._4))
+    withDb { implicit db =>
+      db.run(Tables.tag.map(tag => (tag.tagId, tag.name, tag.description, tag.bestOfTag)).result).flatMap(rows => Future.sequence(rows.map(tag => for {
+        parents <- getParentOrChildTags(tag._1, true, false)
+      } yield Map("id" -> tag._1, "name" -> tag._2, "parent" -> parents, "description" -> tag._3, "best" -> tag._4))))
     }
   }
 
   post("/tag/:id/setbest") {
     val id = params("id").toInt
     val clip = params("clip").toInt
-    db().withSession { implicit session =>
-      if (!Tables.tag.filter(_.tagId === id).exists.run) {
-        terminate(404, "Tag does not exist.")
-      }
-      if (!Tables.clipTag.filter(row => (row.tagId === id) && (row.clipId === clip)).exists.run) {
-        terminate(409, "Clip does not belong to such tag.")
-      }
-      Tables.tag.filter(_.tagId === id).map(_.bestOfTag).update(Some(clip))
-      JNull // nothing to return
+    withDb { implicit db =>
+      db.run(Tables.clipTag.filter(row => (row.tagId === id) && (row.clipId === clip)).exists.result).flatMap(exists => {
+        if (!exists) {
+          terminate(409, "Clip does not belong to such tag.")
+        }
+        db.run(Tables.tag.filter(_.tagId === id).map(_.bestOfTag).update(Some(clip)))
+      }).map(_ => JNull) // nothing to return
     }
   }
 
@@ -264,15 +268,19 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     if (name.length < 1) {
       terminate(400, "Name too short.")
     }
-    db().withSession { implicit session =>
-      if (!Tables.tag.filter(_.tagId === id).exists.run) {
-        terminate(404, "Tag does not exist.")
-      }
-      if (Tables.tag.filter(tag => (tag.tagId =!= id) && (tag.name === name)).exists.run) {
-        terminate(409, "Tag name already exists.")
-      }
-      Tables.tag.filter(_.tagId === id).map(_.name).update(name)
-      JNull // nothing to return
+    withDb { db =>
+      (for {
+        tagIdExists <- db.run(Tables.tag.filter(_.tagId === id).exists.result)
+        tagNameExists <- db.run(Tables.tag.filter(tag => (tag.tagId =!= id) && (tag.name === name)).exists.result)
+      } yield {
+        if (!tagIdExists) {
+          terminate(404, "Tag does not exist.")
+        }
+        if (tagNameExists) {
+          terminate(409, "Tag name already exists.")
+        }
+      }).flatMap(_ => db.run(Tables.tag.filter(_.tagId === id).map(_.name).update(name)))
+        .map(_ => JNull) // nothing to return
     }
   }
 
@@ -282,104 +290,78 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     if (description.length < 1) {
       terminate(400, "description too short.")
     }
-    db().withSession { implicit session =>
-      if (!Tables.tag.filter(_.tagId === id).exists.run) {
-        terminate(404, "Tag does not exist.")
-      }
-      Tables.tag.filter(_.tagId === id).map(_.description).update(Some(description))
-      JNull // nothing to return
-    }
+    withDb(_.run(Tables.tag.filter(_.tagId === id).map(_.description).update(Some(description))).map({
+      case 1 => JNull
+      case _ => terminate(404, "No single clip updated.")
+    }))
   }
 
   post("/tag/:id/parent") {
     val id = params("id").toInt
     val parents = json[Seq[Int]](params("parent")).toSet // remove duplicates
-    db().withSession { implicit session =>
-      if (!Tables.tag.filter(_.tagId === id).exists.run) {
-        terminate(404, "Child tag does not exist.")
-      }
-      if (!parents.forall(tag => Tables.tag.filter(_.tagId === tag).exists.run)) {
-        terminate(404, "Parent tag does not exist.")
-      }
-      if (!parents.forall(tag => legalTagParent(id, tag))) {
-        terminate(409, "Forming cycles or different types are not allowed.")
-      }
-      Tables.tagRelationship.filter(_.childTag === id).delete
-      Tables.tagRelationship.map(row => (row.parentTag, row.childTag)).insertAll(parents.toSeq.map(parent => (parent, id)): _*)
-      JNull // nothing to return
+    withDb { implicit db =>
+      (for {
+        childExists <- db.run(Tables.tag.filter(_.tagId === id).exists.result)
+        existingParentsCount <- db.run(Tables.tag.filter(_.tagId inSet parents).length.result)
+        legal <- Future.sequence(parents.map(parent => legalTagParent(id, parent)))
+      } yield {
+        if (!childExists) {
+          terminate(404, "Child tag does not exist.")
+        }
+        if (existingParentsCount < parents.size) {
+          terminate(404, "Parent tag does not exist.")
+        }
+        if (!legal.forall(identity)) {
+          terminate(409, "Forming cycles or different types are not allowed.")
+        }
+      }).flatMap(_ => db.run(Tables.tagRelationship.filter(_.childTag === id).delete))
+        .flatMap(_ => db.run(Tables.tagRelationship.map(row => (row.parentTag, row.childTag)) ++= parents.toSeq.map(parent => (parent, id))))
+        .map(_ => JNull)
     }
   }
 
   post("/tag/auto") {
     val dryRun = params("dry").toBoolean
-    db().withSession { implicit session =>
-      val clips = Tables.clip.map(clip => (clip.clipId, clip.file)).list
-      clips.map(entry => {
-        val tagIds = ClipTagCheck.check(entry._1)
-        if (!dryRun) {
-          ClipTagCheck.actualRun(entry._1, tagIds)
-        }
-        new ClipTagCheck(entry._2, ClipTagCheck.tagNames(tagIds))
-      }).filter(_.problematicTags.length > 0)
+    withDb { implicit db =>
+      db.run(Tables.clip.map(clip => (clip.clipId, clip.file)).result)
+        .flatMap(clips => Future.sequence(clips.map(entry => async {
+          val tagIds = await(ClipTagCheck.check(entry._1))
+          if (!dryRun) {
+            await(ClipTagCheck.actualRun(entry._1, tagIds))
+          }
+          new ClipTagCheck(entry._2, await(ClipTagCheck.tagNames(tagIds)))
+        })))
+        .map(_.filter(_.problematicTags.nonEmpty))
     }
   }
 
-  def createHelper(filter: (String => lifted.Query[_, (Option[Int], String), Seq]), returningInvoker: ReturningInsertInvokerDef[(Option[Int], String), (Option[Int], String)]) = {
+  def tagCreateHelper(tagType: TagType.Value) = {
     // return inserted id
     val name = params("name")
     if (name.length < 1) {
       terminate(400, "Name too short.")
     }
-    db().withSession { implicit session =>
-      if (filter(name).exists.run) {
+    withDb(db => async {
+      if (await(db.run(Tables.tag.filter(_.name === name).exists.result))) {
         terminate(409, "Name already exists.")
       }
-      (returningInvoker +=(None, name)) match {
-        case (Some(id), _) => Map("id" -> id)
+      await(db.run((Tables.tag returning Tables.tag) += (None, name, None, None, tagType))) match {
+        case (Some(id), _, _, _, _) => Map("id" -> id)
         case _ => terminate(500, "Insertion failed.")
       }
-    }
+    })
   }
 
   post("/tag/create") {
-    val name = params("name")
-    val tagType = TagType.withName(params("type"))
-    if (name.length < 1) {
-      terminate(400, "Name too short.")
-    }
-    db().withSession { implicit session =>
-      if (Tables.tag.filter(_.name === name).exists.run) {
-        terminate(409, "Name already exists.")
-      }
-      ((Tables.tag returning Tables.tag) +=(None, name, None, None, tagType)) match {
-        case (Some(id), _, _, _, _) => Map("id" -> id)
-        case _ => terminate(500, "Insertion failed.")
-      }
-    }
-
+    tagCreateHelper(try { TagType.withName(params("type")) } catch { case _: NoSuchElementException => TagType.special })
   }
 
   get("/studio") {
-    implicit val mct = TagType.mct
-    db().withSession { implicit session =>
-      Tables.tag.filter(_.tagType === TagType.studio).map(tag => (tag.tagId, tag.name)).list.map(tag => (tag._1.toString, tag._2)).toMap
-    }
+    withDb(_.run(Tables.tag.filter(_.tagType === TagType.studio).map(tag => (tag.tagId, tag.name)).result).map(_.map(tag => (tag._1.toString, tag._2)).toMap))
   }
 
   post("/studio/create") {
-    val name = params("name")
-    if (name.length < 1) {
-      terminate(400, "Name too short.")
-    }
-    db().withSession { implicit session =>
-      if (Tables.tag.filter(_.name === name).exists.run) {
-        terminate(409, "Name already exists.")
-      }
-      ((Tables.tag returning Tables.tag) += (None, name, None, None, TagType.studio)) match {
-        case (Some(id), _, _, _, _) => Map("id" -> id)
-        case _ => terminate(500, "Insertion failed.")
-      }
-    }
+    tagCreateHelper(TagType.studio)
   }
 
 }
