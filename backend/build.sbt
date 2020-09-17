@@ -4,7 +4,7 @@ import java.util.Calendar
 organization := "kmxz"
 name := "avct2"
 version := new SimpleDateFormat("yyyyMMdd").format(Calendar.getInstance().getTime())
-scalaVersion := "2.12.12"
+scalaVersion := "2.13.3"
 scalacOptions += "-target:jvm-1.8"
 scalacOptions += "-Xasync"
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
@@ -15,10 +15,10 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   // scalatra
-  "org.scalatra" %% "scalatra" % "2.6.5",
+  "org.scalatra" %% "scalatra" % "2.7.0",
   // json
-  "org.scalatra" %% "scalatra-json" % "2.6.5",
-  "org.json4s" %% "json4s-native" % "3.5.3",
+  "org.scalatra" %% "scalatra-json" % "2.7.0",
+  "org.json4s" %% "json4s-native" % "3.6.9",
   // servlet container
   "org.eclipse.jetty" % "jetty-plus" % "9.4.8.v20171121" % "container",
   "javax.servlet" % "javax.servlet-api" % "3.1.0" % "provided",

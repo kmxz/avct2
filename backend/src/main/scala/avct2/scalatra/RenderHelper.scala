@@ -56,7 +56,7 @@ trait RenderHelper {
       .result).map(list => list.map(row => (row._1, (row._2, row._3.getOrElse(0)))).toMap)
 
   // to be used with queryClip; latter two params for performance improvement only
-  def renderClip(tuple: (Int, String, Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions), tagTypesOptional: Option[Map[Int, TagType.Value]], clipTagsOptional: Option[Map[Int, Set[Int]]], recordsOptional: Option[Map[Int, (Int, Int)]])(implicit db: Database) = async { tuple match {
+  def renderClip(tuple: (Int, String, Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions), tagTypesOptional: Option[Map[Int, TagType.Value]], clipTagsOptional: Option[Map[Int, Seq[Int]]], recordsOptional: Option[Map[Int, (Int, Int)]])(implicit db: Database) = async { tuple match {
     case (clipId, file, race, grade, role, size, length, thumbSet, sourceNote, dimensions) =>
       val allTags = await(clipTagsOptional.map(_(clipId)).map(Future.successful).getOrElse(db.run(Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).result)))
       val tagTypesFuture = tagTypesOptional.map(Future.successful).getOrElse(db.run(Tables.tag.filter(_.tagId.inSet(allTags)).map(tag => (tag.tagId, tag.tagType)).result).map(_.toMap))

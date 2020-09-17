@@ -57,7 +57,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         records <- timeFuture("records", queryRecords(Tables.record))
         clips <- timeFuture("clips", queryClip(identity))
       } yield Future.sequence(clips.map(
-        clip => renderClip(clip, Option(allTags.toMap), Option(allClipTags.groupBy(_._1).mapValues(_.map(_._2).toSet)), Option(records))
+        clip => renderClip(clip, Option(allTags.toMap), Option(allClipTags.groupMap(_._1)(_._2)), Option(records))
       ))
     }
   }
@@ -74,15 +74,15 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         case Some(err) => terminate(err._1, err._2)
         case None =>
           if (record) {
-            db.run(Tables.record.map(row => (row.clipId, row.timestamp)) += ((id, (Platform.currentTime / 1000).toInt))).map(_ => Unit)
-          } else Future.successful(Unit) // nothing to return
+            db.run(Tables.record.map(row => (row.clipId, row.timestamp)) += ((id, (Platform.currentTime / 1000).toInt)))
+          } else Future.unit // nothing to return
       }
     }
   }
 
   post("/clip/:id/open") {
     val record = params("record").toBoolean
-    openFileHelper(open, record)
+    openFileHelper(open, record).map(_ => JNull)
   }
 
   post("/clip/:id/openwith") {
@@ -94,11 +94,11 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     if (!playerFile.isFile) {
       terminate(503, "Player executable does not exist.")
     }
-    openFileHelper(openWith(_, playerFile), true)
+    openFileHelper(openWith(_, playerFile), true).map(_ => JNull)
   }
 
   post("/clip/:id/folder") {
-    openFileHelper(openInFolder, false)
+    openFileHelper(openInFolder, false).map(_ => JNull)
   }
 
   get("/clip/:id/thumb") {
@@ -172,14 +172,14 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
                   terminate(404, "Studio does not exist.")
                 }
               })
-              else Future.successful(Unit)).flatMap(_ =>
+              else Future.unit).flatMap(_ =>
                 db.run(Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType === TagType.studio).map(_.tagId))).delete)
               ).flatMap(_ =>
                 for {
                   _ <- db.run(Tables.clipTag.map(row => (row.clipId, row.tagId)) += (id, studio))
-                  _ <- if (clipRow._1 == Race.unknown) updateRaceAutomaticallyAccordingToStudio(id, studio).map(_ => Unit) else Future.successful(Unit)
-                  _ <- if (clipRow._2.isEmpty) updateRolesAutomaticallyAccordingToStudio(id, studio).map(_ => Unit) else Future.successful(Unit)
-                } yield Unit
+                  _ <- if (clipRow._1 == Race.unknown) updateRaceAutomaticallyAccordingToStudio(id, studio) else Future.unit
+                  _ <- if (clipRow._2.isEmpty) updateRolesAutomaticallyAccordingToStudio(id, studio) else Future.unit
+                } yield ()
               )
             case "race" =>
               val race = try {
