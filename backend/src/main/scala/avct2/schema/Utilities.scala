@@ -15,6 +15,7 @@ object Role extends Enumeration {
   Value("M/f")
   Value("F/m")
   Value("F/f")
+  Value("MtF/m")
   def mct = MappedColumnType.base[ValueSet, Int](_.toBitMask(0).toInt, int => ValueSet.fromBitMask(Array(int.toLong)))
 }
 

@@ -243,9 +243,9 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   get("/tag") {
     withDb { implicit db =>
-      db.run(Tables.tag.map(tag => (tag.tagId, tag.name, tag.description, tag.bestOfTag)).result).flatMap(rows => Future.sequence(rows.map(tag => for {
+      db.run(Tables.tag.map(tag => (tag.tagId, tag.name, tag.description, tag.bestOfTag, tag.tagType)).result).flatMap(rows => Future.sequence(rows.map(tag => for {
         parents <- getParentOrChildTags(tag._1, true, false)
-      } yield Map("id" -> tag._1, "name" -> tag._2, "parent" -> parents, "description" -> tag._3, "best" -> tag._4))))
+      } yield Map("id" -> tag._1, "name" -> tag._2, "parent" -> parents, "description" -> tag._3, "best" -> tag._4, "type" -> tag._5.toString))))
     }
   }
 

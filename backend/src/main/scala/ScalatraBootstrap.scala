@@ -1,8 +1,9 @@
 import javax.servlet.ServletContext
-
 import avct2.Avct2Conf
-import avct2.scalatra.{Avct2Servlet, NoCacheServlet, PreConfServlet}
+import avct2.scalatra.{Avct2Servlet, NoCacheServlet, PreConfServlet, StaticFileServlet}
 import org.scalatra._
+
+import java.nio.file.Paths
 
 class ScalatraBootstrap extends LifeCycle {
 
@@ -18,6 +19,7 @@ class ScalatraBootstrap extends LifeCycle {
     }, "/")
     context.mount(new PreConfServlet(), "/conf/*")
     context.mount(new Avct2Servlet(), "/serv/*")
+    context.mount(new StaticFileServlet(Paths.get(System.getProperty("user.dir"), "ui")), "/ui/*")
     Avct2Conf()
   }
 

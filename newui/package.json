@@ -1,0 +1,15 @@
+{
+  "name": "newui",
+  "dependencies": {
+    "lit-element": "^2.4.0"
+  },
+  "scripts": {
+    "postprocess": "sed -i \"s/from 'lit-element';/from 'https:\\/\\/unpkg.com\\/lit-element?module';/\" ../backend/src/main/webapp/ui/*.js",
+    "build": "tsc --outDir ../backend/src/main/webapp/ui; npm run postprocess",
+    "serve": "tmux new-session 'tsc --watch' \\; split-window 'es-dev-server --node-resolve --watch' \\; select-layout even-vertical"
+  },
+  "devDependencies": {
+    "es-dev-server": "^2.0.2",
+    "typescript": "^4.1.3"
+  }
+}
