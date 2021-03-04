@@ -1,59 +1,122 @@
+import { send } from './api';
+import { AvctClipTagsElementKey } from './registry';
+
 const RACES = ['Unknown', 'Chinese', 'Other Asian', 'Other races'] as const;
 const ROLES = ['Vanilla', 'M self', 'F self', 'M/m', 'M/f', 'F/m', 'F/f', 'MtF/m'] as const;
+const TAG_TYPES = ['Special', 'Studio', 'Content', 'Format'] as const;
 
 export type Race = typeof RACES[number];
 export type Role = typeof ROLES[number];
+export type TagType = typeof TAG_TYPES[number];
 
-interface ClipJson {
-    readonly id: number;
-    readonly duration: number;
-    readonly grade: number;
-    readonly lastPlay: number;
-    readonly totalPlay: number;
-    readonly path: string;
-    readonly race: Race;
-    readonly role: Role[];
-    readonly size: number;
-    readonly sourceNote: string;
-    readonly tags: number[];
-    readonly thumbSet: boolean;
-    readonly resolution: number;
+export type TagId = number;
+export type ClipId = number;
+
+export interface RowData {
+    id: number | string;
+    version: number;
+    errors: DedupeStore<Map<string, string[]> | null>;
 }
 
-export class Clip {
-    data: ClipJson;
-    readonly file: string;
-    exists: boolean = true;
-    thumbImgPromise: Promise<Blob> | null;
-
-    jerkScore: number = 0;
-    jerkEntries: QjResultEntry[];
-
-    constructor(data: ClipJson) {
-        this.data = data;
-        this.file = data.path.split('/').pop();
-    }
+export interface ClipCallback {
+    loading: boolean;
+    rerenderAll(): void;
 }
 
-export class Tag {
-    readonly id: number;
+export type ClipJson = [
+    ClipId, // id
+    string, // path
+    Race, // race
+    Role[], // role
+    number, // grade, a.k.a. rating
+    number, // size
+    number, // duration
+    number[], // tags
+    number, // totalPlay
+    number, // lastPlay
+    boolean, // thumbSet
+    string, // sourceNote
+    number // resolution
+];
+
+export interface TagJson {
+    readonly id: TagId;
     readonly name: string;
+    readonly best: ClipId;
+    readonly parent: TagId[];
+    readonly type: TagType;
 }
 
-export class QjCriterion {
-    weight: number = 1;
-    constructor(public readonly name: string, public readonly calc: (clip: Clip) => { score: number, message: string }) {}
+export const arrayNonEq = <T>(elementNonEq?: (a: T, b: T) => boolean): ((aArr: T[] | null | undefined, bArr: T[] | null | undefined) => boolean) => (aArr, bArr) => {
+    if (!aArr || !bArr) { return (!aArr) !== (!bArr); }
+    if (aArr.length !== bArr.length) { return true; }
+    return aArr.some((el, index) => (elementNonEq ? elementNonEq(el, bArr[index]) : (el !== bArr[index])));
+};
 
-    doCalc(clip: Clip) {
-        const result = this.calc(clip);
-        return new QjResultEntry(this, result.score, result.message);
+export const mapNonEq = <K, V>(elementNonEq?: (a: V, b: V) => boolean): ((aMap: Map<K, V> | null | undefined, bMap: Map<K, V> | null | undefined) => boolean) => (aMap, bMap) => {
+    if (!aMap || !bMap) { return (!aMap) !== (!bMap); }
+    if (aMap.size !== bMap.size) { return true; }
+    for (const [key, el] of aMap) {
+        if (!bMap.has(key)) { return true; }
+        if (elementNonEq ? elementNonEq(el, bMap.get(key)!) : (el !== bMap.get(key))) { return true; }
+    }
+    return false;
+};
+
+// Return the same instance if actual value not changed (using the given comparision function).
+export class DedupeStore<T> {
+    value(newValue: T): T { 
+        if (this.notEqual(newValue, this.instance)) {
+            this.instance = newValue;
+        }
+        return this.instance;
+    }
+
+    constructor(public instance: T, private readonly notEqual: (a: T, b: T) => boolean) {}
+}
+
+export class Store<T> {
+    loaded: boolean = false;
+    error?: any;
+    value?: T;
+
+    constructor(public readonly promise: Promise<T>) {
+        promise.then(value => {
+            this.value = value;
+            this.loaded = true;
+        }, error => {
+            this.error = error;
+            this.loaded = true;
+        });
     }
 }
 
-class QjResultEntry {
-    readonly weightedScore: number;
+export class MultiStore<T> {
+    private resolve?: (value: T) => void;
+    private oldPromise?: Promise<T>;
 
-    constructor(public readonly criterion: QjCriterion, public readonly score: number, public readonly message: string) {
-        this.weightedScore = score * criterion.weight;
+    constructor(public promise: Promise<T>) {
+        promise.finally(this.next);
     }
+
+    private readonly next = () => {
+        this.oldPromise = this.promise;
+        this.promise = new Promise(res => { this.resolve = res; });
+    };
+
+    update(value: T) {
+        if (!this.resolve) { throw new TypeError('Initializtion not done yet!'); }
+        this.resolve(value);
+        this.next();
+    }
+
+    async *value(): AsyncGenerator<T, never, never> {
+        if (this.oldPromise) {
+            yield await this.oldPromise;
+        }
+        while (true) {
+            yield await this.promise;
+        }
+    }
+      
 }

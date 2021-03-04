@@ -13,4 +13,9 @@
         <listener-class>org.scalatra.servlet.ScalatraListener</listener-class>
     </listener>
 
+    <context-param>
+        <param-name>org.scalatra.cors.allowCredentials</param-name>
+        <param-value>false</param-value>
+    </context-param>
+
 </web-app>

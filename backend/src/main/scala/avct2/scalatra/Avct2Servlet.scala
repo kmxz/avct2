@@ -13,6 +13,7 @@ import avct2.schema.Utilities._
 import avct2.schema._
 import javax.sql.rowset.serial.SerialBlob
 import org.json4s.JsonAST.JNull
+import org.scalatra.CorsSupport
 import org.scalatra.FutureSupport
 import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 import slick.jdbc.HsqldbProfile.api._
@@ -20,27 +21,35 @@ import slick.jdbc.HsqldbProfile.api._
 import scala.compat.Platform
 import scala.concurrent.Future
 
-class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with FutureSupport with RenderHelper {
+class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with FutureSupport with RenderHelper with CorsSupport {
 
   protected implicit def executor = scala.concurrent.ExecutionContext.Implicits.global
 
   configureMultipartHandling(MultipartConfig())
 
+  options("/*") {
+    response.setHeader(
+      "Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers"));
+  }
+
   def withDb[T](f: Database => Future[T]): Future[T] = f(Avct2Conf.dbConnection.get.database)
 
   def terminate(status: Int, message: String) = {
-    halt(status, headers = Map("X-Error" -> message))
+    augmentSimpleRequest()
+    halt(status, message)
   }
 
   before() {
-    contentType = formats("json")
-    Avct2Conf.dbConnection match {
-      case None => terminate(412, "Establish a database connection first.")
-      case Some(conn) =>
-        val header = request.getHeader("X-Db-Connection-Id")
-        if (header != conn.id) {
-          terminate(412, "Working DB connection changed.");
-        }
+    if (request.getMethod.toUpperCase != "OPTIONS") {
+      contentType = formats("json")
+      Avct2Conf.dbConnection match {
+        case None => terminate(412, "Establish a database connection first.")
+        case Some(conn) =>
+          val header = request.getHeader("X-Db-Connection-Id")
+          if (header != conn.id) {
+            terminate(412, s"Working DB connection changed. New DB: ${conn.id}");
+          }
+      }
     }
   }
 
@@ -165,22 +174,6 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       db.run(clipRowQuery.map(clip => (clip.race, clip.role)).result.head)
         .flatMap(clipRow => {
           params("key") match {
-            case "studio" =>
-              val studio = value.toInt
-              (if (studio != 0) db.run(Tables.tag.filter(row => (row.tagId === studio) && (row.tagType === TagType.studio)).exists.result).map(exists => {
-                if (!exists) {
-                  terminate(404, "Studio does not exist.")
-                }
-              })
-              else Future.unit).flatMap(_ =>
-                db.run(Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType === TagType.studio).map(_.tagId))).delete)
-              ).flatMap(_ =>
-                for {
-                  _ <- db.run(Tables.clipTag.map(row => (row.clipId, row.tagId)) += (id, studio))
-                  _ <- if (clipRow._1 == Race.unknown) updateRaceAutomaticallyAccordingToStudio(id, studio) else Future.unit
-                  _ <- if (clipRow._2.isEmpty) updateRolesAutomaticallyAccordingToStudio(id, studio) else Future.unit
-                } yield ()
-              )
             case "race" =>
               val race = try {
                 Race.withName(value)
@@ -204,13 +197,15 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
               db.run(clipRowQuery.map(_.length).update(length))
             case "tags" =>
               val tags = json[Seq[Int]](value)
-              db.run(Tables.tag.filter(_.tagId inSet tags).length.result).map(cnt => {
-                if (cnt < tags.size) {
+              db.run(Tables.tag.filter(_.tagId inSet tags).map(tag => (tag.tagId, tag.tagType)).result).map(tagRows => {
+                if (tagRows.length < tags.size) {
                   terminate(404, "Tag does not exist.")
                 }
-              }).flatMap(_ => db.run(Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType =!= TagType.studio).map(_.tagId))).delete))
-                .flatMap(_ => for {
-                  _ <- db.run(Tables.clipTag.filter(clipTag => (clipTag.clipId === id) && (clipTag.tagId in Tables.tag.filter(_.tagType =!= TagType.studio).map(_.tagId))).delete)
+                tagRows.filter(_._2 == TagType.studio).map(_._1).toSet
+              }).flatMap(studioIds => for {
+                  _ <- db.run(Tables.clipTag.filter(clipTag => clipTag.clipId === id).delete)
+                  _ <- if (clipRow._1 == Race.unknown) updateRaceAutomaticallyAccordingToStudio(id, studioIds) else Future.unit
+                  _ <- if (clipRow._2.isEmpty) updateRolesAutomaticallyAccordingToStudio(id, studioIds) else Future.unit
                   tagsIncludingParents <- Future.sequence(tags.map(tag => getParentOrChildTags(tag, true, true))).map(_.fold(Set[Int]())(_ ++ _) ++ tags) // duplicates removed
                 } yield tagsIncludingParents)
                 .flatMap(tagsIncludingParents =>
@@ -335,7 +330,8 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
     }
   }
 
-  def tagCreateHelper(tagType: TagType.Value) = {
+  post("/tag/create") {
+    val tagType = TagType.withName(params("type"))
     // return inserted id
     val name = params("name")
     if (name.length < 1) {
@@ -351,17 +347,4 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       }
     })
   }
-
-  post("/tag/create") {
-    tagCreateHelper(try { TagType.withName(params("type")) } catch { case _: NoSuchElementException => TagType.special })
-  }
-
-  get("/studio") {
-    withDb(_.run(Tables.tag.filter(_.tagType === TagType.studio).map(tag => (tag.tagId, tag.name)).result).map(_.map(tag => (tag._1.toString, tag._2)).toMap))
-  }
-
-  post("/studio/create") {
-    tagCreateHelper(TagType.studio)
-  }
-
 }

@@ -63,7 +63,21 @@ trait RenderHelper {
       val record = await(recordsOptional.map(Future.successful).getOrElse(queryRecords(Tables.record.filter(_.clipId === clipId)))).getOrElse(clipId, (0, 0))
       val tagTypes = await(tagTypesFuture)
       // caution: lastPlay may be void
-      Map("id" -> clipId, "path" -> file, "studio" -> allTags.find(tag => tagTypes(tag) == TagType.studio).getOrElse(0), "race" -> race.toString, "role" -> role.map(_.toString), "grade" -> grade, "size" -> size, "duration" -> length, "tags" -> allTags.filter(tag => tagTypes(tag) != TagType.studio), "totalPlay" -> record._1, "lastPlay" -> record._2, "thumbSet" -> thumbSet, "sourceNote" -> sourceNote, "resolution" -> dimensions.min) // Enum-s must be toString-ed, otherwise json4s will fuck things up
+      Seq(
+        /* "id" -> */ clipId,
+        /* "path" -> */ file,
+        /* "race" -> */ race.toString,
+        /* "role" -> */ role.map(_.toString),
+        /* "grade" -> */ grade,
+        /* "size" -> */ size,
+        /* "duration" -> */ length,
+        /* "tags" -> */ allTags,
+        /* "totalPlay" -> */ record._1,
+        /* "lastPlay" -> */ record._2,
+        /* "thumbSet" -> */ thumbSet,
+        /* "sourceNote" -> */ sourceNote,
+        /* "resolution" -> */ dimensions.min
+      ) // Enum-s must be toString-ed, otherwise json4s will fuck things up
   }}
 
   def openFile(id: Int, opener: (File => Boolean))(implicit db: Database) = async {
@@ -77,35 +91,39 @@ trait RenderHelper {
     }
   }
 
-  def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit db: Database) = async {
-    val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.race).result))
-    if (otherClips.nonEmpty) {
-      val map = scala.collection.mutable.Map[Race.Value, Int]()
-      otherClips.foreach { race =>
-        map.update(race, map.getOrElse(race, 0) + 1)
-      }
-      val length = otherClips.length
-      map.maxBy(_._2) match {
-        case (race, count) =>
-          if (count * 2 > length) {
-            await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.race).update(race)))
-          }
+  def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioTagIds: Set[Int])(implicit db: Database) = async {
+    if (studioTagIds.isEmpty) Unit else {
+      val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId inSet studioTagIds).map(_.clipId)).map(_.race).result))
+      if (otherClips.nonEmpty) {
+        val map = scala.collection.mutable.Map[Race.Value, Int]()
+        otherClips.foreach { race =>
+          map.update(race, map.getOrElse(race, 0) + 1)
+        }
+        val length = otherClips.length
+        map.maxBy(_._2) match {
+          case (race, count) =>
+            if (count * 2 > length) {
+              await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.race).update(race)))
+            }
+        }
       }
     }
   }
 
-  def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioTagId: Int)(implicit db: Database) = async {
-    val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId === studioTagId).map(_.clipId)).map(_.role).result))
-    if (otherClips.nonEmpty) {
-      val map = scala.collection.mutable.Map[Role.Value, Int]()
-      otherClips.foreach { roles =>
-        roles.foreach(role => {
-          map.update(role, map.getOrElse(role, 0) + 1)
-        })
+  def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioTagIds: Set[Int])(implicit db: Database) = async {
+    if (studioTagIds.isEmpty) Unit else {
+      val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId inSet studioTagIds).map(_.clipId)).map(_.role).result))
+      if (otherClips.nonEmpty) {
+        val map = scala.collection.mutable.Map[Role.Value, Int]()
+        otherClips.foreach { roles =>
+          roles.foreach(role => {
+            map.update(role, map.getOrElse(role, 0) + 1)
+          })
+        }
+        val length = otherClips.length
+        val newRoles = Role.ValueSet(map.filter(_._2 * 2 > length).keys.toSeq: _*)
+        await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.role).update(newRoles)))
       }
-      val length = otherClips.length
-      val newRoles = Role.ValueSet(map.filter(_._2 * 2 > length).keys.toSeq: _*)
-      await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.role).update(newRoles)))
     }
   }
 

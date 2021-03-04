@@ -1,4 +1,16 @@
-import { LitElement, html, customElement, property, css } from 'lit-element';
+import { LitElement, css } from 'lit-element/lit-element.js';
+import { html } from 'lit-html/static.js';
+import { customElement } from 'lit-element/decorators/custom-element.js';
+import { property } from 'lit-element/decorators/property.js';
+import { clips, tags } from './data';
+import { until } from 'lit-html/directives/until.js';
+import { AvctClips } from './registry';  
+import { asyncReplace } from 'lit-html/directives/async-replace.js';
+
+// Imports for custom element definitions.
+import './table';
+import './tags';
+import './clips';
 
 /**
  * An example element.
@@ -35,7 +47,7 @@ export class MyElement extends LitElement {
       <button @click=${this._onClick} part="button">
         Click Count: ${this.count}
       </button>
-      <slot></slot>
+      ${until(clips.promise.then(data => html`<${AvctClips} .clips="${data}". tags="${asyncReplace(tags.value())}"></${AvctClips}>`), html`Loading...`)}
     `;
   }
 
@@ -46,10 +58,8 @@ export class MyElement extends LitElement {
   foo(): string {
     return 'foo';
   }
-}
 
-declare global {
-  interface HTMLElementTagNameMap {
-    'my-element': MyElement;
+  constructor() {
+    super();
   }
 }
