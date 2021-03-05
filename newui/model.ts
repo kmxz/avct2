@@ -1,9 +1,6 @@
-import { send } from './api';
-import { AvctClipTagsElementKey } from './registry';
-
-const RACES = ['Unknown', 'Chinese', 'Other Asian', 'Other races'] as const;
-const ROLES = ['Vanilla', 'M self', 'F self', 'M/m', 'M/f', 'F/m', 'F/f', 'MtF/m'] as const;
-const TAG_TYPES = ['Special', 'Studio', 'Content', 'Format'] as const;
+export const RACES = ['Unknown' /* index = 0 special */, 'Chinese', 'Other Asian', 'Other races'] as const;
+export const ROLES = ['Vanilla', 'M self', 'F self', 'M/m', 'M/f', 'F/m', 'F/f', 'MtF/m'] as const;
+export const TAG_TYPES = ['Special', 'Studio', 'Content', 'Format'] as const;
 
 export type Race = typeof RACES[number];
 export type Role = typeof ROLES[number];
@@ -14,13 +11,10 @@ export type ClipId = number;
 
 export interface RowData {
     id: number | string;
-    version: number;
-    errors: DedupeStore<Map<string, string[]> | null>;
 }
 
 export interface ClipCallback {
     loading: boolean;
-    rerenderAll(): void;
 }
 
 export type ClipJson = [
@@ -92,10 +86,10 @@ export class Store<T> {
 }
 
 export class MultiStore<T> {
-    private resolve?: (value: T) => void;
+    private resolve?: (value: Promise<T>) => void;
     private oldPromise?: Promise<T>;
 
-    constructor(public promise: Promise<T>) {
+    constructor(private promise: Promise<T>) {
         promise.finally(this.next);
     }
 
@@ -104,9 +98,9 @@ export class MultiStore<T> {
         this.promise = new Promise(res => { this.resolve = res; });
     };
 
-    update(value: T) {
-        if (!this.resolve) { throw new TypeError('Initializtion not done yet!'); }
-        this.resolve(value);
+    update(updater: (old: T) => T) {
+        if (!this.resolve || !this.oldPromise) { throw new TypeError('Initializtion not done yet!'); }
+        this.resolve(this.oldPromise.then(updater));
         this.next();
     }
 

@@ -4,13 +4,16 @@ import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { clips, tags } from './data';
 import { until } from 'lit-html/directives/until.js';
-import { AvctClips } from './registry';  
+import { AvctClips, AvctToastContainer } from './registry';  
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 
 // Imports for custom element definitions.
 import './table';
 import './tags';
 import './clips';
+import './menu';
+import './menus';
+import './toast';
 
 /**
  * An example element.
@@ -47,7 +50,8 @@ export class MyElement extends LitElement {
       <button @click=${this._onClick} part="button">
         Click Count: ${this.count}
       </button>
-      ${until(clips.promise.then(data => html`<${AvctClips} .clips="${data}". tags="${asyncReplace(tags.value())}"></${AvctClips}>`), html`Loading...`)}
+      <${AvctClips} .clips="${asyncReplace(clips.value())}" .tags="${asyncReplace(tags.value())}"></${AvctClips}>
+      <${AvctToastContainer}></${AvctToastContainer}>
     `;
   }
 
@@ -62,4 +66,6 @@ export class MyElement extends LitElement {
   constructor() {
     super();
   }
+
+  createRenderRoot() { return this; }
 }

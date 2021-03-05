@@ -17,18 +17,7 @@ export const column = (title: string, cellType: StaticTagName): Column => ({ tit
 
 @customElement(AvctTableElementKey)
 export class AvctTableElement<T extends RowData> extends LitElement {
-    static styles = css`
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        td {
-            border-bottom: 1px solid #e0e0e0;
-            padding: 2px;
-        }
-    `;
-
-    @property({ attribute: false, hasChanged: arrayNonEq() })
+    @property({ attribute: false, hasChanged: arrayNonEq()})
     rows: T[] = [];
 
     @property({ attribute: false, hasChanged: arrayNonEq<Column>((col1, col2) => col1.cellType !== col2.cellType) })
@@ -44,10 +33,10 @@ export class AvctTableElement<T extends RowData> extends LitElement {
                 </thead>
                 <tbody>
                     ${repeat(this.rows, row => row.id, 
-                        row => guard([row.id, row.version], () => 
+                        row => guard([row], () => 
                             html`<tr>${this.columns.map(column => 
                                 html`<td>
-                                    <${column.cellType} .item="${row}" .version="${row.version}"></${column.cellType}>
+                                    <${column.cellType} .item="${row}"></${column.cellType}>
                                 </td>`
                             )}</tr>`
                         )
@@ -56,4 +45,6 @@ export class AvctTableElement<T extends RowData> extends LitElement {
             </table>
         `;
     }
+
+    createRenderRoot() { return this; }
 }

@@ -1,92 +1,59 @@
 import { column } from './table';
-import { LitElement, css, TemplateResult } from 'lit-element/lit-element.js';
+import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
 import { html } from 'lit-html/static.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
-import { arrayNonEq, TagJson, ClipCallback } from './model';
+import { arrayNonEq, TagJson, ClipCallback, Race, Role } from './model';
 import { tags, Clip } from './data';
-import { AvctClipName, AvctClipNameElementKey, AvctClipScoreElementKey, AvctClipScore, AvctClipsElementKey, AvctTable, AvctClipTagsElementKey, AvctTagList, AvctClipTags } from './registry';
+import { AvctClipName, AvctClipNameElementKey, AvctClipScoreElementKey, AvctClipScore, AvctClipsElementKey, AvctTable, AvctClipTagsElementKey, AvctTagList, AvctClipTags, AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipRole, AvctClipRace, AvctClipNote, AvctClipNoteElementKey, AvctCtxMenu, AvctRaceSelection, AvctRoleSelection } from './registry';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
+import { classMap } from 'lit-html/directives/class-map.js';
+import { globalToast } from './toast';
 
 @customElement(AvctClipsElementKey)
 export class AvctClipsElement extends LitElement {
     @property({ attribute: false })
-    clips: Map<number, Clip> = new Map();
+    clips?: Map<number, Clip>;
 
     @property({ attribute: false })
-    tags: Map<number, TagJson> = new Map();
+    tags?: Map<number, TagJson>;
 
     @property({ attribute: false, hasChanged: arrayNonEq() })
     rows: number[] = [];
 
     applyFilter(): void {
-        this.rows = Array.from(this.clips.keys());
+        this.rows = Array.from(this.clips!.keys());
     }
 
-    firstUpdated() {
-        for (const clip of this.clips.values()) {
-            clip.validate(this.tags);
+    updated(changedProps: Map<keyof AvctClipsElement, any>) {
+        if (changedProps.has('clips')) {
+            this.applyFilter();
         }
-        this.applyFilter();
+        requestAnimationFrame(now => {
+            console.log(`RENDER FIN @${now}`);
+        });
     }
+
+    createRenderRoot() { return this; }
 
     render() {
-        return html`<${AvctTable} .rows="${this.rows.map(id => this.clips.get(id))}" .columns="${[
+        if (!this.clips) {
+            return html`Loading...`;
+        }
+        return html`<${AvctTable} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${[
             column('Name', AvctClipName),
             column('Score', AvctClipScore),
+            column('Roles', AvctClipRole),
+            column('Race', AvctClipRace),
             column('Tags', AvctClipTags),
+            column('Note', AvctClipNote),
         ]}"></${AvctTable}>`;
     }
 }
 
 abstract class ClipCellElementBase extends LitElement implements ClipCallback {
-    static styles = css`
-        :host {
-            display: block;
-            position: relative;
-        }
-
-        @keyframes rotate{
-            to { transform: rotate(360deg); }
-        }
-
-        :host([loading])::before { 
-            content: '';
-            width: 16px;
-            height: 16px;
-            border-width: 4px;
-            border-style: solid;
-            border-color: black black black transparent;
-            border-radius: 50%;
-            opacity: 0.5;
-            position: absolute;
-            margin-left: -8px;
-            margin-top: -8px;
-            left: 50%;
-            top: 50%;
-            animation: rotate 1.5s linear infinite;
-        }
-
-        .error {
-            content: '⚠ ' attr(invalid);
-            background: #d32f2f;
-            font-size: 12px;
-            color: #fff;
-            display: inline-block;
-            line-height: 18px;
-            height: 18px;
-            border-radius: 9px;
-            padding: 0 6px;
-            margin: 2px;
-        }
-    `;
-
     @property({ attribute: false })
     item!: Clip;
-
-    // Not being read. Used to trigger update only.
-    @property({ attribute: false })
-    version!: number;
 
     @property({ type: Boolean, reflect: true })
     loading = false;
@@ -97,37 +64,89 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
         return td as HTMLTableDataCellElement;
     }
 
-    rerenderAll() {
-        const tr = this.td().parentNode!;
-        for (const node of Array.from(tr.childNodes)) {
-            if (node.nodeName !== 'TD') { continue; }
-            const cell = (node as HTMLTableDataCellElement).firstElementChild;
-            if (!(cell instanceof ClipCellElementBase)) { throw new TypeError('Sibling not a cell.'); }
-            cell.version = this.item.version;
-        }
-    }
-
     render() {
-        const errors = this.item.errors.instance?.get(this.tagName.toLowerCase());
+        // console.log(`Rendering ${this.tagName} for ${this.item.id}`);
+        const errors = this.item.errors?.get(this.tagName.toLowerCase());
         return html`${this.renderContent()}${errors?.map(item => html`<span class="error">${item}</span>`)}`;
     }
+
+    createRenderRoot() { return this; }
 
     abstract renderContent(): TemplateResult;
 }
 
 @customElement(AvctClipNameElementKey)
 export class AvctClipNameElement extends ClipCellElementBase {
-    static get styles() { return super.styles; }
-
     renderContent() {
         return html`${this.item.getFile()}`;
     }
 }
 
+@customElement(AvctClipRaceElementKey)
+export class AvctClipRaceElement extends ClipCellElementBase {
+    @property({ attribute: false })
+    edit = false;
+
+    private startEdit(): void { this.edit = true; }
+    private abortEdit(): void { this.edit = false; }
+    private selects(e: CustomEvent<Race>): Promise<void> { this.edit = false; return this.item.update('race', e.detail, this); }
+    
+    renderContent() {
+        return html`
+            ${this.item.race}
+            <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
+            ${this.edit ? html`
+                <${AvctCtxMenu} title="Edit race" @avct-close="${this.abortEdit}" shown>
+                    <${AvctRaceSelection} .selected="${this.item.race}" @avct-select="${this.selects}"></${AvctRaceSelection}>
+                </${AvctCtxMenu}>`
+            : null}`;
+    }
+}
+
+@customElement(AvctClipRoleElementKey)
+export class AvctClipRoleElement extends ClipCellElementBase {
+    @property({ attribute: false })
+    edit = false;
+
+    private dirty = false;
+
+    private markDirty(): void { this.dirty = true; }
+    private startEdit(): void { this.edit = true; this.dirty = false; }
+    private abortEdit(): void { 
+        if (!this.edit) { return; }
+        if (this.dirty) { globalToast('Role editor discarded.'); }
+        this.edit = false;
+    }
+    private selects(e: CustomEvent<Role[]>): Promise<void> { this.edit = false; return this.item.update('role', e.detail, this); }
+    
+    renderContent() {
+        return html`
+            ${this.item.roles.map(role => html`<span>${role}</span>`)}
+            <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
+            ${this.edit ? html`
+                <${AvctCtxMenu} shown title="Edit roles" @avct-close="${this.abortEdit}">
+                    <${AvctRoleSelection} .selected="${this.item.roles}" @avct-touch="${this.markDirty}" @avct-select="${this.selects}"></${AvctRoleSelection}>
+                </${AvctCtxMenu}>` 
+            : null}
+        `;
+    }
+}
+
+@customElement(AvctClipNoteElementKey)
+export class AvctClipNoteElement extends ClipCellElementBase {
+    @property({ attribute: false })
+    edit = false;
+
+    private startEdit(): void { this.edit = true; }
+    private abortEdit(): void { this.edit = false; }
+
+    renderContent() {
+        return html`${this.item.note}<button class="td-hover edit-button" @click="${this.startEdit}">✎</button>${this.edit ? (html`<${AvctCtxMenu} shown @avct-close="${this.abortEdit}">TEST</${AvctRaceSelection}></${AvctCtxMenu}>`) : null}`;
+    }
+}
+
 @customElement(AvctClipTagsElementKey)
 export class AvctClipTagsElement extends ClipCellElementBase {
-    static get styles() { return super.styles; }
-
     renderContent() {
         return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => this.item.getTags().map(id => (tagMap as Map<number, TagJson>).get(id)))}"></${AvctTagList}>`;
     }
@@ -135,21 +154,40 @@ export class AvctClipTagsElement extends ClipCellElementBase {
 
 @customElement(AvctClipScoreElementKey)
 export class AvctClipScoreElement extends ClipCellElementBase {
-    static get styles() { 
-        return [super.styles, css`button { background: none; border: 0 none; padding: 0; margin: 0; }`];
+    @property({ attribute: false })
+    preview = 0;
+
+    private static targetScore(e: MouseEvent): number {
+        if ((e.target as HTMLElement).tagName.toUpperCase() !== 'BUTTON') { return 0; }
+        const star = e.target as HTMLButtonElement;
+        return parseInt(star.value);
     }
 
     private async handleClick(e: MouseEvent): Promise<void> {
-        if ((e.target as HTMLElement).tagName.toUpperCase() !== 'BUTTON') { return; }
-        const star = e.target as HTMLButtonElement;
-        const score = parseInt(star.value);
-        await this.item.setRating(score, this);
+        const score = AvctClipScoreElement.targetScore(e);
+        if (score > 0) {
+            await this.item.update('grade', score, this);
+            this.preview = 0;
+        }
+    }
+
+    private handleMouseOver(e: MouseEvent): void {
+        const score = AvctClipScoreElement.targetScore(e);
+        if (score > 0) {
+            this.preview = score;
+        }
+    }
+
+    private handleMouseOut(e: MouseEvent): void {
+        if (AvctClipScoreElement.targetScore(e) > 0) {
+            this.preview = 0;
+        }
     }
     
     renderContent() {
-        const rating = this.item.getRating();
-        return html`<div @click="${this.handleClick}">${Array.from(Array(5).keys()).map(index => 
-            html`<button value="${String(index + 1)}">${(rating > index) ? '★' : '☆'}</button>`
+        const rating = this.item.score;
+        return html`<div @click="${this.handleClick}" @mouseover="${this.handleMouseOver}" @mouseout="${this.handleMouseOut}">${Array.from(Array(5).keys()).map(index => 
+            html`<button class="${classMap({ 'preview': this.preview > index })}" value="${String(index + 1)}">${(rating > index) ? '★' : '☆'}</button>`
         )}</div>`;
     }
 }
