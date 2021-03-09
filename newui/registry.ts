@@ -16,6 +16,8 @@ export const AvctTagListElementKey = 'avct-tag-list';
 export const AvctCtxMenuElementKey = 'avct-ctx-menu';
 export const AvctRaceSelectionElementKey = 'avct-race-selection';
 export const AvctRoleSelectionElementKey = 'avct-role-selection';
+export const AvctTextEditElementKey = 'avct-text-edit';
+export const AvctTagSelectElementKey = 'avct-tag-select';
 export const AvctToastContainerElementKey = 'avct-toast-container';
 
 export const AvctTable = unsafeStatic(AvctTableElementKey);
@@ -30,4 +32,6 @@ export const AvctTagList = unsafeStatic(AvctTagListElementKey);
 export const AvctCtxMenu = unsafeStatic(AvctCtxMenuElementKey);
 export const AvctRaceSelection = unsafeStatic(AvctRaceSelectionElementKey);
 export const AvctRoleSelection = unsafeStatic(AvctRoleSelectionElementKey);
+export const AvctTextEdit = unsafeStatic(AvctTextEditElementKey);
+export const AvctTagSelect = unsafeStatic(AvctTagSelectElementKey);
 export const AvctToastContainer = unsafeStatic(AvctToastContainerElementKey);

@@ -5,7 +5,7 @@ import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { arrayNonEq, TagJson, ClipCallback, Race, Role } from './model';
 import { tags, Clip } from './data';
-import { AvctClipName, AvctClipNameElementKey, AvctClipScoreElementKey, AvctClipScore, AvctClipsElementKey, AvctTable, AvctClipTagsElementKey, AvctTagList, AvctClipTags, AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipRole, AvctClipRace, AvctClipNote, AvctClipNoteElementKey, AvctCtxMenu, AvctRaceSelection, AvctRoleSelection } from './registry';
+import { AvctClipName, AvctClipNameElementKey, AvctClipScoreElementKey, AvctClipScore, AvctClipsElementKey, AvctTable, AvctClipTagsElementKey, AvctTagList, AvctClipTags, AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipRole, AvctClipRace, AvctClipNote, AvctClipNoteElementKey, AvctCtxMenu, AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from './registry';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { globalToast } from './toast';
@@ -78,7 +78,11 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
 @customElement(AvctClipNameElementKey)
 export class AvctClipNameElement extends ClipCellElementBase {
     renderContent() {
-        return html`${this.item.getFile()}`;
+        return html`
+            ${this.item.getFile()}
+            <${AvctCtxMenu} title="${this.item.path}">
+            </${AvctCtxMenu}>
+        `;
     }
 }
 
@@ -96,7 +100,7 @@ export class AvctClipRaceElement extends ClipCellElementBase {
             ${this.item.race}
             <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
-                <${AvctCtxMenu} title="Edit race" @avct-close="${this.abortEdit}" shown>
+                <${AvctCtxMenu} shown shadow title="Edit race" @avct-close="${this.abortEdit}">
                     <${AvctRaceSelection} .selected="${this.item.race}" @avct-select="${this.selects}"></${AvctRaceSelection}>
                 </${AvctCtxMenu}>`
             : null}`;
@@ -124,7 +128,7 @@ export class AvctClipRoleElement extends ClipCellElementBase {
             ${this.item.roles.map(role => html`<span>${role}</span>`)}
             <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
-                <${AvctCtxMenu} shown title="Edit roles" @avct-close="${this.abortEdit}">
+                <${AvctCtxMenu} shown shadow title="Edit roles" @avct-close="${this.abortEdit}">
                     <${AvctRoleSelection} .selected="${this.item.roles}" @avct-touch="${this.markDirty}" @avct-select="${this.selects}"></${AvctRoleSelection}>
                 </${AvctCtxMenu}>` 
             : null}
@@ -137,18 +141,44 @@ export class AvctClipNoteElement extends ClipCellElementBase {
     @property({ attribute: false })
     edit = false;
 
-    private startEdit(): void { this.edit = true; }
-    private abortEdit(): void { this.edit = false; }
+    private dirty = false;
+
+    private markDirty(): void { this.dirty = true; }
+    private startEdit(): void { this.edit = true; this.dirty = false; }
+    private abortEdit(): void { 
+        if (!this.edit) { return; }
+        if (this.dirty) { globalToast('Source note editor discarded.'); }
+        this.edit = false;
+    }
+    private done(e: CustomEvent<string>): Promise<void> { this.edit = false; return this.item.update('sourceNote', e.detail, this); }
 
     renderContent() {
-        return html`${this.item.note}<button class="td-hover edit-button" @click="${this.startEdit}">✎</button>${this.edit ? (html`<${AvctCtxMenu} shown @avct-close="${this.abortEdit}">TEST</${AvctRaceSelection}></${AvctCtxMenu}>`) : null}`;
+        return html`
+            ${this.item.note}
+            <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
+            ${this.edit ? html`
+                <${AvctCtxMenu} shown shadow title="Edit Source note" @avct-close="${this.abortEdit}">
+                    <${AvctTextEdit} value="${this.item.note}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
+                </${AvctCtxMenu}>`
+            : null}
+        `;
     }
 }
 
 @customElement(AvctClipTagsElementKey)
 export class AvctClipTagsElement extends ClipCellElementBase {
+    private removeTag(e: CustomEvent<number>): Promise<void> {
+        const newTags = this.item.tags.filter(id => id !== e.detail);
+        return this.item.update('tags', newTags, this);
+    }
+
+    private selectTag(e: CustomEvent<number>): Promise<void> {
+        const newTags = this.item.tags.concat(e.detail);
+        return this.item.update('tags', newTags, this);
+    }
+
     renderContent() {
-        return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => this.item.getTags().map(id => (tagMap as Map<number, TagJson>).get(id)))}"></${AvctTagList}>`;
+        return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => this.item.tags.map(id => (tagMap as Map<number, TagJson>).get(id)))}" @avct-select="${this.selectTag}" @avct-remove="${this.removeTag}"></${AvctTagList}>`;
     }
 }
 

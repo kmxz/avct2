@@ -1,4 +1,4 @@
-import { LitElement, css } from 'lit-element/lit-element.js';
+import { LitElement } from 'lit-element/lit-element.js';
 import { html } from 'lit-html/static.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
@@ -23,12 +23,16 @@ export class AvctTableElement<T extends RowData> extends LitElement {
     @property({ attribute: false, hasChanged: arrayNonEq<Column>((col1, col2) => col1.cellType !== col2.cellType) })
     columns: Column[] = [];
 
+    private handleMouseDown(e: MouseEvent) {
+        // TODO
+    }
+
     render() {
         return html`
             <table>
                 <thead>
                     <tr>
-                        ${this.columns.map(column => html`<th width="${column.width}">${column.title}</th>`)}
+                        ${this.columns.map(column => html`<th width="${column.width}" @mousedown="${this.handleMouseDown}">${column.title}<span></span></th>`)}
                     </tr>
                 </thead>
                 <tbody>

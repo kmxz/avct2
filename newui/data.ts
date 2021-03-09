@@ -13,29 +13,30 @@ export const players: Store<string[]> = new Store(send('players'));
 
 export class Clip implements RowData {
     readonly id: number;
+    readonly path: string;
     readonly data: ClipJson;
     readonly race: Race;
     readonly roles: Role[];
     readonly score: number;
+    readonly tags: number[];
     readonly note: string;
     exists = true;
     thumbImgPromise: Promise<Blob> | undefined;
 
     constructor(data: ClipJson, tagsData: Map<number, TagJson>) {
         this.id = data[0];
+        this.path = data[1];
         this.race = data[2];
         this.roles = data[3];
         this.score = data[4];
+        this.tags = data[7];
         this.note = data[11];
 
         this.data = data;
         this.validate(tagsData);
     }
 
-    getPath(): string { return this.data[1]; }
-    getFile(): string { return this.getPath().split('/').pop()!; }
-
-    getTags(): number[] { return this.data[7]; }
+    getFile(): string { return this.path.split('/').pop()!; }
 
     private changeRequested = false;
 
@@ -67,7 +68,7 @@ export class Clip implements RowData {
             errors.set(AvctClipScoreElementKey, ['No rating']);
         }
 
-        const tagEntities = this.getTags().map(id => tags.get(id));
+        const tagEntities = this.tags.map(id => tags.get(id));
         const tagErrors = [];
         if (!tagEntities.find(tag => tag?.type === 'Studio')) {
             tagErrors.push('No studio');

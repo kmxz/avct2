@@ -1,37 +1,55 @@
-@keyframes rotate{
-    to { transform: rotate(360deg); }
-}
+@import './shared.css';
 
-* { font-family: 'Quicksand'; color: #2a2a2a; } html, body { margin: 0; padding: 0; font-size: 15px; }
+* { font-family: 'Quicksand'; color: #2a2a2a; }
+
+html, body { margin: 0; padding: 0; font-size: 15px; overflow-x: hidden; }
 
 button { outline: none; }
+
+avct-table {
+    overflow: scroll;
+}
 
 table {
     border-collapse: collapse;
     width: 100%;
 }
 
+th {
+    border-bottom: 1px solid #c5c5cc;
+    position: sticky;
+    z-index: 1;
+    background: #FFF;
+    top: 0;
+    padding: 4px 2px;
+    cursor: move;
+    user-select: none;
+}
+
+th span { /* resize handle */
+    position: absolute;
+    visibility: hidden;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    display: block;
+    background: #e0e0e0;
+    cursor: e-resize;
+}
+
+th:hover span {
+    visibility: visible;
+}
+
+th:hover span:hover {
+    background: #c5c5cc;
+}
+
 td {
     border-bottom: 1px solid #e0e0e0;
     padding: 2px;
     position: relative; 
-}
-
-td > [loading]::before { 
-    content: '';
-    width: 16px;
-    height: 16px;
-    border-width: 4px;
-    border-style: solid;
-    border-color: black black black transparent;
-    border-radius: 50%;
-    opacity: 0.5;
-    position: absolute;
-    margin-left: -8px;
-    margin-top: -8px;
-    left: 50%;
-    top: 50%;
-    animation: rotate 1.5s linear infinite;
 }
 
 .td-hover { display: none; }
@@ -51,8 +69,12 @@ td:hover .td-hover { display: initial; }
     margin: 2px;
 }
 
-avct-clip-score button {
-    background: none; border: 0 none; padding: 0; margin: 0; cursor: pointer;
+avct-clip-score, avct-clip-race, avct-clip-role {
+    user-select: none;
+}
+
+avct-clip-score button, avct-clip-score button:hover, avct-clip-score:active {
+    background: none; border: 0 none; padding: 0; margin: 0; cursor: pointer; box-shadow: none;
 }
 
 avct-clip-score button.preview {
@@ -61,7 +83,7 @@ avct-clip-score button.preview {
 }
 
 .edit-button {
-    background: #fff1ff; border: 1px solid #e0e0e0; padding: 0; margin: 0; border-radius: 50%; height: 24px; line-height: 22px; width: 24px; text-align: center; margin: 0 2px; cursor: pointer;
+    padding: 0; margin: 0; border-radius: 50%; height: 24px; line-height: 22px; width: 24px; text-align: center; margin: 0 2px; cursor: pointer;
 }
 
 avct-clip-race > .edit-button { margin-left: 4px; }
@@ -74,10 +96,3 @@ avct-clip-role > span, avct-tag-list > span {
     border-radius: 4px;
     position: relative;
 }
-
-.delete { cursor: pointer; background: none; border: 0 none; }
-
-.tag-type-studio { background: #ffc9cd; }
-.tag-type-content { background: #DEBEDF; }
-.tag-type-format { background: #c7c3d7; }
-.tag-type-special { background: #f8f19b; }

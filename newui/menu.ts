@@ -1,16 +1,37 @@
-import { LitElement, css } from 'lit-element/lit-element.js';
+import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
 import { AvctCtxMenuElementKey } from './registry';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from 'lit-html/static.js';
+import { styleMap } from 'lit-html/directives/style-map.js';
 
 @customElement(AvctCtxMenuElementKey)
 export class AvctCtxMenuElement extends LitElement {
     static styles = css`
         :host {
-            display: inline-block;
+            position: absolute;
         }
-        h3 {
+        ::slotted(*) {
+            position: relative;
+        }
+        :host([shown]) {
+            background-color: #f6f9fd;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            white-space: nowrap;
+            min-width: 120px;
+            max-width: 280px;
+            border: 1px solid #999;
+            z-index: 100;
+            border-radius: 4px;
+            display: block;
+        }
+        :host([shown])::before {
+            content: attr(title);
+            overflow-wrap: break-word;
+            white-space: normal;
+            display: block;
             background-color: #e6ebf3;
             color: #000;
             margin: 0;
@@ -19,58 +40,71 @@ export class AvctCtxMenuElement extends LitElement {
             font-size: 15px;
             padding: 6px 16px;
             margin-bottom: -4px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
         }
-        .up, .down {
+        :host([shadow][shown])::after {
+            content: '';
+            display: block;
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: auto;
-            white-space: nowrap;
-            min-width: 72px;
-            max-width: 480px;
-            border: 1px solid #bdbdbd;
+            left: -120px; right: -120px; top: -120px; bottom: -120px;
+            background: radial-gradient(closest-side, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0));
+            z-index: -1;
+            border-radius: 50%;
+        }
+        .proper {
             background-color: #f6f9fd;
-            z-index: 100;
+            padding: 12px;
             border-radius: 4px;
         }
-        .up::before, .down::before {
+        .arrow {
+            position: absolute;
             border-left: 12px solid transparent;
             border-right: 12px solid transparent;
             margin-left: -12px;
         }
-        .up::after, .down::after {
-            border-left: 11px solid transparent;
-            border-right: 11px solid transparent;
-            margin-left: -11px;
-        }
-        .up::before { border-top: 12px solid #bdbdbd; }
-        .down::before { border-bottom: 12px solid #bdbdbd; }
-        .up::after { border-top: 11px solid #f6f9fd; }
-        .down::after { border-bottom: 11px solid #e6ebf3; }
-        .up::before, .down::before, .up::after, .down::after {
+        .arrow::after {
             content: '';
             position: absolute;
-            left: 50%;
+            border-left: 11px solid transparent;
+            border-right: 11px solid transparent;
+            left: -11px;
         }
-        .up {
+        :host([direction="up"]) .arrow { top: 100%; border-top: 12px solid #999; }
+        :host([direction="down"]) .arrow { bottom: 100%; border-bottom: 12px solid #999; }
+        :host([direction="up"]) .arrow::after { border-top: 11px solid #f6f9fd; top: -12px; }
+        :host([direction="down"]) .arrow::after { border-bottom: 11px solid #e6ebf3; bottom: -12px; }
+        :host([direction="up"]) {
             bottom: calc(75% + 8px);
         }
-        .up::before, .up::after {
-            top: 100%;
-        }
-        .down {
+        :host([direction="down"]) {
             top: calc(75% + 8px);
-        }
-        .down::before, .down::after {
-            bottom: 100%;
         }
     `;
 
-    @property({ type: String })
+    // Not read. For CSS only.
+    @property({ type: String, reflect: true })
     title = 'Detail';
 
     @property({ type: Boolean, reflect: true })
     shown = false;
+
+    // Not read. For CSS only.
+    @property({ type: Boolean, reflect: true })
+    shadow = false;
+
+    // Not read. For CSS only.
+    @property({ type: String, reflect: true })
+    direction?: string;
+
+    private leftCompensate: number = 0;
+
+    update(changedParams: PropertyValues) {
+        if (changedParams.has('shown') && this.shown) {
+            this.setDirections();
+        }
+        super.update(changedParams);
+    }
 
     registeredParent?: HTMLElement;
 
@@ -85,28 +119,34 @@ export class AvctCtxMenuElement extends LitElement {
         super.disconnectedCallback();
         this.registeredParent?.removeEventListener('mouseenter', this.parentMouseEnter);
         this.registeredParent?.removeEventListener('mouseleave', this.parentMouseLeave);
-        this.registeredParent = undefined;
+        this.registeredParent = void 0;
     }
 
-    private readonly parentMouseEnter = (e: MouseEvent): void => {
+    private readonly parentMouseEnter = (): void => {
         this.shown = true;
     };
 
-    private readonly parentMouseLeave = (e: MouseEvent): void => {
+    private readonly parentMouseLeave = (): void => {
         this.shown = false;
         this.dispatchEvent(new CustomEvent<void>('avct-close'));
     };
 
-    shouldPointUpward(): boolean {
+    setDirections(): void {
         const parentRect = this.registeredParent!.getBoundingClientRect();
+        const windowWidth = document.documentElement.clientWidth;
         const windowHeight = document.documentElement.clientHeight;
-        return parentRect.top + parentRect.bottom > windowHeight;
+        this.direction = (parentRect.top + parentRect.bottom > windowHeight) ? 'up' : 'down';
+        const xCenter = (parentRect.left + parentRect.right) / 2;
+        const onLeftHalf = xCenter < windowWidth / 2;
+        this.leftCompensate = onLeftHalf ? Math.max(0, 144 - xCenter) : Math.min(0, windowWidth - xCenter - 144);
     }
 
     render() {
-        return this.shown ? html`<div class="${this.shouldPointUpward() ? 'up' : 'down'}">
-            <h3>${this.title}</h3>
-            <slot></slot>
-        </div>` : null;
+        this.style.left = `calc(50% + ${this.leftCompensate}px)`;
+        const arrowStyle = styleMap({ left: `calc(50% - ${this.leftCompensate}px)` });
+        return this.shown ? html`
+            <div class="proper"><slot></slot></div>
+            <div class="arrow" style="${arrowStyle}"></div>
+        ` : null;
     }
 }

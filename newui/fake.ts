@@ -1,4 +1,5 @@
 import { ClipJson, Race, RACES, Role, ROLES, TagJson } from './model';
+import { globalToast } from './toast';
 
 class Lcg {
     private static readonly a = 25214903917n;
@@ -62,11 +63,11 @@ for (let i = 0; i < 100; i++) {
     fakeClips.push((i % 7 !== 0) ? generateFakeClip(i) : null);
 }
 
-export const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
+const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
     'clip/list': (): ClipJson[] => fakeClips.filter(nonNull),
     'clip/edit': params => {
         const clip = fakeClips[params['id']]!;
-        const indices: Record<string, number> = { 'grade': 4, 'race': 2, 'role': 3, 'tags': 7 };
+        const indices: Record<string, number> = { 'grade': 4, 'race': 2, 'role': 3, 'tags': 7, 'sourceNote': 11 };
         if (params['key'] in indices) {
             clip[indices[params['key']]] = params['value'];
         } else {
@@ -89,6 +90,21 @@ export const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => an
         { id: 12, name: 'tag 12', best: 3, parent: [], type: 'Special' },
         { id: 13, name: 'tag 13', best: 3, parent: [3], type: 'Studio' },
         { id: 14, name: 'tag 14', best: 3, parent: [9, 6], type: 'Content' },
-        { id: 15, name: 'tag 15', best: 3, parent: [13, 6], type: 'Content' },
-    ]
+        { id: 15, name: 'tag 15', best: 3, parent: [13, 6], type: 'Content' }
+    ],
+    'tag/create': () => {
+        const id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+        return { id };
+    }
 };
+
+export const handle = (api: string, params?: { [key: string]: any }): Promise<any> => {
+    return new Promise((res, rej) => {
+        const mapper = FAKE_RESULTS[api];
+        console.log(`API ${api} called with ${JSON.stringify(params ?? null)}.`);
+        if (!mapper) { rej('Not mocked!'); } else { setTimeout(() => res(mapper(params!)), 500); }
+    }).catch(e => {
+        globalToast(`Mock API error: ${e}`);
+        throw e;
+    });
+}

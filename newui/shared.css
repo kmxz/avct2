@@ -1,0 +1,46 @@
+@keyframes rotate{
+    to { transform: rotate(360deg); }
+}
+
+button {
+    background: linear-gradient(to bottom, #f7f7f7, #fff0ff);
+    border: 1px solid #e0e0e9;
+    border-radius: 4px;
+    padding: 4px 8px;
+    outline: none;
+}
+
+button:hover {
+    border: 1px solid #d3d0f0;
+    box-shadow: 0 1px 1px #e1c1e2; 
+}
+
+button:active {  
+    background: #fff0ff;
+}
+
+.tag-type-studio { background: #ffc9cd; }
+.tag-type-content { background: #debedf; }
+.tag-type-format { background: #c7c3d7; }
+.tag-type-special { background: #f8f19b; }
+
+input[type="text"] {
+    padding: 4px 6px;
+}
+
+[loading]::before { 
+    content: '';
+    width: 16px;
+    height: 16px;
+    border-width: 4px;
+    border-style: solid;
+    border-color: black black black transparent;
+    border-radius: 50%;
+    opacity: 0.5;
+    position: absolute;
+    margin-left: -8px;
+    margin-top: -8px;
+    left: 50%;
+    top: 50%;
+    animation: rotate 1.5s linear infinite;
+}

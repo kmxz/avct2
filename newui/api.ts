@@ -1,7 +1,7 @@
 // Copied from original; not adopted to TS.
 
 import Throttle from './throttle';
-import { FAKE_RESULTS } from './fake';
+import { handle } from './fake';
 import { globalToast } from './toast';
 
 const FAKE = true;
@@ -69,10 +69,7 @@ export const send = (api: string, opt_params: { [key: string]: any } = {}): Prom
         }
     }
     if (FAKE) {
-        return new Promise((res, rej) => {
-            const mapper = FAKE_RESULTS[api];
-            if (!mapper) { rej('Not mocked!'); } else { setTimeout(() => res(mapper(opt_params)), 500); }
-        });
+        return handle(api, opt_params);
     }
     return throttle.add(() => {
         const xhr = fetch(ROOT + '/serv/' + url, {
