@@ -8,6 +8,8 @@ button { outline: none; }
 
 avct-table {
     overflow: scroll;
+    height: 400px;
+    display: block;
 }
 
 table {
@@ -22,7 +24,6 @@ th {
     background: #FFF;
     top: 0;
     padding: 4px 2px;
-    cursor: move;
     user-select: none;
 }
 
@@ -46,6 +47,11 @@ th:hover span:hover {
     background: #c5c5cc;
 }
 
+th span.active {
+    visibility: visible;
+    background: #7986CB;
+}
+
 td {
     border-bottom: 1px solid #e0e0e0;
     padding: 2px;
@@ -55,6 +61,30 @@ td {
 .td-hover { display: none; }
 
 td:hover .td-hover { display: initial; }
+
+.table-settings {
+    /* visibility: hidden; */
+    position: absolute;
+    right: 2px;
+    top: 2px;
+}
+
+tr:hover .table-settings {
+    visibility: visible;
+}
+
+.handle-drag-modal {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.025);
+    z-index: 100;
+}
+
+.handle-drag-modal.resize { cursor: e-resize; }
+.handle-drag-modal.move { cursor: move; }
 
 .error {
     content: '⚠ ' attr(invalid);

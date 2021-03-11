@@ -158,7 +158,7 @@ export class AvctTagSelectElement extends LitElement {
         const matchedTags = Array.from(allTags.values()).map(tag => [
             tag,
             AvctTagSelectElement.matchTagValue(tag.name, normalizedInput)
-        ] as [TagJson, number]).filter(entry => entry[1] > Number.MIN_SAFE_INTEGER).sort((a, b) => (b[1] - a[1]) || (a[0].name.localeCompare(b[0].name)));
+        ] as const).filter(entry => entry[1] > Number.MIN_SAFE_INTEGER).sort((a, b) => (b[1] - a[1]) || (a[0].name.localeCompare(b[0].name)));
         if (matchedTags.length && (matchedTags[0][0].name === inputValue)) { // Before normalization!
             this.selectedTag = matchedTags[0][0];
         } else {

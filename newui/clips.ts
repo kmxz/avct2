@@ -36,18 +36,20 @@ export class AvctClipsElement extends LitElement {
 
     createRenderRoot() { return this; }
 
+    private static columns = [
+        column('Name', AvctClipName),
+        column('Score', AvctClipScore),
+        column('Roles', AvctClipRole),
+        column('Race', AvctClipRace),
+        column('Tags', AvctClipTags),
+        column('Note', AvctClipNote),
+    ];
+
     render() {
         if (!this.clips) {
             return html`Loading...`;
         }
-        return html`<${AvctTable} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${[
-            column('Name', AvctClipName),
-            column('Score', AvctClipScore),
-            column('Roles', AvctClipRole),
-            column('Race', AvctClipRace),
-            column('Tags', AvctClipTags),
-            column('Note', AvctClipNote),
-        ]}"></${AvctTable}>`;
+        return html`<${AvctTable} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${AvctClipsElement.columns}"></${AvctTable}>`;
     }
 }
 

@@ -5,6 +5,7 @@ import { unsafeStatic } from 'lit-html/static.js';
 export type StaticTagName = ReturnType<typeof unsafeStatic>;
 
 export const AvctTableElementKey = 'avct-table';
+export const AvctTableColumnEditElementKey = 'avct-table-column-edit';
 export const AvctClipsElementKey = 'avct-clips';
 export const AvctClipNameElementKey = 'avct-clip-name';
 export const AvctClipTagsElementKey = 'avct-clip-tags';
@@ -21,6 +22,7 @@ export const AvctTagSelectElementKey = 'avct-tag-select';
 export const AvctToastContainerElementKey = 'avct-toast-container';
 
 export const AvctTable = unsafeStatic(AvctTableElementKey);
+export const AvctTableColumnEdit = unsafeStatic(AvctTableColumnEditElementKey);
 export const AvctClips = unsafeStatic(AvctClipsElementKey);
 export const AvctClipName = unsafeStatic(AvctClipNameElementKey);
 export const AvctClipTags = unsafeStatic(AvctClipTagsElementKey);

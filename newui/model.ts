@@ -57,6 +57,14 @@ export const mapNonEq = <K, V>(elementNonEq?: (a: V, b: V) => boolean): ((aMap: 
     return false;
 };
 
+export const recordNonEq = <V>(elementNonEq?: (a: V, b: V) => boolean): ((aObj: Record<string, V> | null | undefined, bObj: Record<string, V> | null | undefined) => boolean) => (aObj, bObj) => {
+    if (!aObj || !bObj) { return (!aObj) !== (!bObj); }
+    const aKeys = Object.keys(aObj).filter(key => aObj.hasOwnProperty(key));
+    const bKeys = Object.keys(bObj).filter(key => bObj.hasOwnProperty(key));
+    if (aKeys.length !== bKeys.length) { return true; }
+    return aKeys.some(key => (!bObj.hasOwnProperty(key)) || (elementNonEq ? elementNonEq(aObj[key], bObj[key]) : (aObj[key] !== bObj[key])));
+};
+
 // Return the same instance if actual value not changed (using the given comparision function).
 export class DedupeStore<T> {
     value(newValue: T): T { 

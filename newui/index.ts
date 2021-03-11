@@ -3,7 +3,6 @@ import { html } from 'lit-html/static.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { clips, tags } from './data';
-import { until } from 'lit-html/directives/until.js';
 import { AvctClips, AvctToastContainer } from './registry';  
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 
