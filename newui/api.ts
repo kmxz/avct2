@@ -2,7 +2,7 @@
 
 import Throttle from './throttle';
 import { handle } from './fake';
-import { globalToast } from './toast';
+import { globalToast } from './components/toast';
 
 const FAKE = true;
 const ROOT = 'http://192.168.1.5:8080';

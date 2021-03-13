@@ -3,16 +3,19 @@ import { html } from 'lit-html/static.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { clips, tags } from './data';
-import { AvctClips, AvctToastContainer } from './registry';  
+import { AvctClips, AvctClipUpdatesDialog, AvctDialogContainer, AvctToastContainer } from './registry';  
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 
 // Imports for custom element definitions.
-import './table';
+import './components/dialog';
+import './components/table';
 import './tags';
 import './clips';
-import './menu';
+import './components/menu';
 import './menus';
-import './toast';
+import './components/toast';
+import './clip-updates-dialog';
+import { globalDialog } from './components/dialog';
 
 /**
  * An example element.
@@ -50,16 +53,13 @@ export class MyElement extends LitElement {
         Click Count: ${this.count}
       </button>
       <${AvctClips} .clips="${asyncReplace(clips.value())}" .tags="${asyncReplace(tags.value())}"></${AvctClips}>
+      <${AvctDialogContainer}></${AvctDialogContainer}>
       <${AvctToastContainer}></${AvctToastContainer}>
     `;
   }
 
   private _onClick() {
     this.count++;
-  }
-
-  foo(): string {
-    return 'foo';
   }
 
   constructor() {

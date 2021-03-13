@@ -4,7 +4,7 @@ import { AvctCtxMenu, AvctTagListElementKey, AvctTagSelectElementKey, AvctTagSel
 import { property } from 'lit-element/decorators/property.js';
 import { html } from 'lit-html/static.js';
 import { TagJson, TagType, TAG_TYPES } from './model';
-import { globalToast } from './toast';
+import { globalToast } from './components/toast';
 import { query } from 'lit-element/decorators/query.js';
 import { tags } from './data';
 import { send } from './api';
@@ -64,7 +64,7 @@ export class AvctTagListElement extends LitElement {
                     <${AvctCtxMenu} title="${tag.type} tag"><button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button></${AvctCtxMenu}>
                 </span>
             `)}
-            <button class="td-hover edit-button" @click="${this.onAddTag}">+</button>
+            <button class="td-hover round-button" @click="${this.onAddTag}">+</button>
             ${this.add ? html`
                 <${AvctCtxMenu} shown shadow title="Add a tag" @avct-close="${this.abortAdd}">
                     <${AvctTagSelect} @avct-select="${this.selectTag}" .existing="${this.tagIds}"></${AvctTagSelect}>

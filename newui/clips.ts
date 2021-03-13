@@ -1,4 +1,4 @@
-import { column } from './table';
+import { column } from './components/table';
 import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
 import { html } from 'lit-html/static.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
@@ -8,7 +8,7 @@ import { tags, Clip } from './data';
 import { AvctClipName, AvctClipNameElementKey, AvctClipScoreElementKey, AvctClipScore, AvctClipsElementKey, AvctTable, AvctClipTagsElementKey, AvctTagList, AvctClipTags, AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipRole, AvctClipRace, AvctClipNote, AvctClipNoteElementKey, AvctCtxMenu, AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from './registry';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { classMap } from 'lit-html/directives/class-map.js';
-import { globalToast } from './toast';
+import { globalToast } from './components/toast';
 
 @customElement(AvctClipsElementKey)
 export class AvctClipsElement extends LitElement {
@@ -100,7 +100,7 @@ export class AvctClipRaceElement extends ClipCellElementBase {
     renderContent() {
         return html`
             ${this.item.race}
-            <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
+            <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit race" @avct-close="${this.abortEdit}">
                     <${AvctRaceSelection} .selected="${this.item.race}" @avct-select="${this.selects}"></${AvctRaceSelection}>
@@ -128,7 +128,7 @@ export class AvctClipRoleElement extends ClipCellElementBase {
     renderContent() {
         return html`
             ${this.item.roles.map(role => html`<span>${role}</span>`)}
-            <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
+            <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit roles" @avct-close="${this.abortEdit}">
                     <${AvctRoleSelection} .selected="${this.item.roles}" @avct-touch="${this.markDirty}" @avct-select="${this.selects}"></${AvctRoleSelection}>
@@ -157,7 +157,7 @@ export class AvctClipNoteElement extends ClipCellElementBase {
     renderContent() {
         return html`
             ${this.item.note}
-            <button class="td-hover edit-button" @click="${this.startEdit}">✎</button>
+            <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit Source note" @avct-close="${this.abortEdit}">
                     <${AvctTextEdit} value="${this.item.note}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>

@@ -19,6 +19,10 @@ button:active {
     background: #fff0ff;
 }
 
+.round-button {
+    padding: 0; margin: 0; border-radius: 50%; height: 24px; line-height: 22px; width: 24px; text-align: center; margin: 0 2px; cursor: pointer;
+}
+
 .tag-type-studio { background: #ffc9cd; }
 .tag-type-content { background: #debedf; }
 .tag-type-format { background: #c7c3d7; }

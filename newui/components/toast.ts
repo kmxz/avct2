@@ -1,12 +1,15 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { html } from 'lit-html/static.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctToastContainerElementKey } from './registry';
-import { MultiStore } from './model';
+import { AvctToastContainerElementKey } from '../registry';
+import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
+import { seq } from './utils';
+import { repeat } from 'lit-html/directives/repeat.js';
 
 interface Toast {
+    id: number;
     text: string;
     since: number;
 }
@@ -14,8 +17,8 @@ interface Toast {
 const DURATION = 5000;
 const globalToasts = new MultiStore<Toast[]>(Promise.resolve([]));
 
-export const globalToast = (text: string): void => globalToasts.update(list => list.concat({ text, since: Date.now() }));
-(window as any)['TTX'] = globalToast;
+const uniqId = seq();
+export const globalToast = (text: string): void => globalToasts.update(list => list.concat({ text, since: Date.now(), id: uniqId() }));
 
 @customElement(AvctToastContainerElementKey)
 export class AvctToastContainerElement extends LitElement {
@@ -63,7 +66,7 @@ export class AvctToastContainerElement extends LitElement {
             if (!list.length) { return null; }
             const ttl = list[0].since + DURATION - Date.now();
             setTimeout(this.cleanup, Math.max(0, ttl));
-            return list.map(toast => html`<div>${toast.text}</div>`);
+            return repeat(list, toast => toast.id, toast => html`<div>${toast.text}</div>`);
         })}`;
     }
 }

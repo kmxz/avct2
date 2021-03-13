@@ -106,7 +106,7 @@ export class MultiStore<T> {
         this.promise = new Promise(res => { this.resolve = res; });
     };
 
-    update(updater: (old: T) => T) {
+    update(updater: (old: T) => T): void {
         if (!this.resolve || !this.oldPromise) { throw new TypeError('Initializtion not done yet!'); }
         this.resolve(this.oldPromise.then(updater));
         this.next();

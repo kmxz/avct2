@@ -20,6 +20,8 @@ export const AvctRoleSelectionElementKey = 'avct-role-selection';
 export const AvctTextEditElementKey = 'avct-text-edit';
 export const AvctTagSelectElementKey = 'avct-tag-select';
 export const AvctToastContainerElementKey = 'avct-toast-container';
+export const AvctDialogContainerElementKey = 'avct-dialog-container';
+export const AvctClipUpdatesDialogElementKey = 'avct-clip-updates';
 
 export const AvctTable = unsafeStatic(AvctTableElementKey);
 export const AvctTableColumnEdit = unsafeStatic(AvctTableColumnEditElementKey);
@@ -37,3 +39,5 @@ export const AvctRoleSelection = unsafeStatic(AvctRoleSelectionElementKey);
 export const AvctTextEdit = unsafeStatic(AvctTextEditElementKey);
 export const AvctTagSelect = unsafeStatic(AvctTagSelectElementKey);
 export const AvctToastContainer = unsafeStatic(AvctToastContainerElementKey);
+export const AvctDialogContainer = unsafeStatic(AvctDialogContainerElementKey);
+export const AvctClipUpdatesDialog = unsafeStatic(AvctClipUpdatesDialogElementKey);

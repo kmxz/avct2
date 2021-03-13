@@ -1,27 +1,50 @@
 import { send } from './api';
-import { TagJson, ClipCallback, RowData, ClipJson, DedupeStore, Store, MultiStore, mapNonEq, Race, Role, RACES } from './model';
-import { AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipScoreElementKey, AvctClipTagsElementKey } from './registry';
+import { globalDialog } from './components/dialog';
+import { TagJson, ClipCallback, RowData, ClipJson, Store, MultiStore, Race, Role, RACES } from './model';
+import { AvctClipNameElementKey, AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipScoreElementKey, AvctClipTagsElementKey, AvctClipUpdatesDialog } from './registry';
 
-export const tags: MultiStore<Map<number, TagJson>> = new MultiStore(send('tag/list').then((raw: TagJson[]) => new Map(raw.map(tagJson => [tagJson.id, tagJson]))));
+const tagListReq = send('tag/list');
+const clipListReq = send('clip/list');
+
+export const tags: MultiStore<Map<number, TagJson>> = new MultiStore(tagListReq.then((raw: TagJson[]) => new Map(raw.map(tagJson => [tagJson.id, tagJson]))));
 
 export const clips: MultiStore<Map<number, Clip>> = new MultiStore(
-    Promise.all([tags.value().next().then(res => res.value), send('clip/list')]).then(
+    Promise.all([tags.value().next().then(res => res.value), clipListReq]).then(
         ([tags, raw]: [Map<number, TagJson>, ClipJson[]]) => new Map(raw.map(clipJson => [clipJson[0], new Clip(clipJson, tags)])))
 );
+
+Promise.all([tagListReq, clipListReq]).then(() => send('clip/autocrawl')).then(async (response: { added: string[], disappeared: string[] }) => {
+    const tagsData = (await tags.value().next()).value;
+    if (response.disappeared.length) {
+        const disappearedFiles = new Set(response.disappeared);
+        clips.update(oldMap => {
+            const newMap = new Map(Array.from(oldMap.entries()).map(entry => {
+                if (disappearedFiles.has(entry[1].path)) {
+                    return [entry[0], entry[1].clone({ exists: false }, tagsData)];
+                } else {
+                    return entry;
+                }
+            }));
+            return newMap;
+        });
+    }
+    if (response.disappeared.length || response.added.length) {
+        globalDialog({ title: 'Clip files changed', type: AvctClipUpdatesDialog, params: response });
+    }
+});
 
 export const players: Store<string[]> = new Store(send('players'));
 
 export class Clip implements RowData {
     readonly id: number;
     readonly path: string;
-    readonly data: ClipJson;
     readonly race: Race;
     readonly roles: Role[];
     readonly score: number;
     readonly tags: number[];
     readonly note: string;
-    exists = true;
-    thumbImgPromise: Promise<Blob> | undefined;
+    readonly exists: boolean;
+    readonly thumbImgPromise: Promise<Blob> | undefined;
 
     constructor(data: ClipJson, tagsData: Map<number, TagJson>) {
         this.id = data[0];
@@ -32,8 +55,14 @@ export class Clip implements RowData {
         this.tags = data[7];
         this.note = data[11];
 
-        this.data = data;
+        this.exists = true;
         this.validate(tagsData);
+    }
+
+    clone(updates: Partial<Clip>, tagsData: Map<number, TagJson>): Clip {
+        const newInstance = Object.assign(Object.create(Clip.prototype) as Clip, this, updates);
+        newInstance.validate(tagsData);
+        return newInstance;
     }
 
     getFile(): string { return this.path.split('/').pop()!; }
@@ -63,6 +92,10 @@ export class Clip implements RowData {
 
     validate(tags: Map<number, TagJson>): void {
         const errors = new Map<string, string[]>();
+
+        if (!this.exists) {
+            errors.set(AvctClipNameElementKey, ['File not exists']);
+        }
 
         if (this.score <= 0) {
             errors.set(AvctClipScoreElementKey, ['No rating']);

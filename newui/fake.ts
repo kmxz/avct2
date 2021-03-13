@@ -1,11 +1,11 @@
 import { ClipJson, Race, RACES, Role, ROLES, TagJson } from './model';
-import { globalToast } from './toast';
+import { globalToast } from './components/toast';
 
 class Lcg {
     private static readonly a = 25214903917n;
     private static readonly c = 11n;
     private static readonly m = 2n ** 48n;
-    private static readonly i31cap = (2n ** 31n) - 1n;
+    static readonly i31cap = (2n ** 31n) - 1n;
 
     constructor(private seed: bigint) {}
 
@@ -95,6 +95,16 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
     'tag/create': () => {
         const id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
         return { id };
+    },
+    'clip/autocrawl': () => {
+        const newLcg = new Lcg(BigInt(Date.now()));
+        const disappeared = fakeClips.filter(nonNull).filter(_ => newLcg.nextFloat() < 0.01).map(item => item[1]);
+        const added = [];
+        const numberOfAppeared = Math.exp(newLcg.nextFloat() * 5) - 100;
+        for (let i = 0; i < numberOfAppeared; i++) {
+            added.push(toPath(newLcg.nextI31()));
+        }
+        return { disappeared, added };
     }
 };
 
