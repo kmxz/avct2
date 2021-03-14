@@ -5,11 +5,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctDialogContainerElementKey } from '../registry';
+import { html } from '../registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
-import { html } from 'lit-html/static.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { seq } from './utils';
@@ -24,7 +22,7 @@ export const globalDialog = (dialog) => new Promise((res, rej) => globalDialogs.
     onSelect: res,
     onCancel: rej
 })));
-let AvctDialogContainerElement = class AvctDialogContainerElement extends LitElement {
+export class AvctDialogContainer extends LitElement {
     constructor() {
         super(...arguments);
         this.dialogs = globalDialogs;
@@ -62,8 +60,8 @@ let AvctDialogContainerElement = class AvctDialogContainerElement extends LitEle
             `) : null;
         })}`;
     }
-};
-AvctDialogContainerElement.styles = css `
+}
+AvctDialogContainer.styles = css `
         .dialog-modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, 0.2); display: flex; justify-content: center; z-index: 2; padding: 32px; }
         .dialog-proper { align-self: center; background: #fff; padding: 0 16px 16px 16px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25); max-height: 100%; overflow: auto; }
         h2 {
@@ -76,13 +74,10 @@ AvctDialogContainerElement.styles = css `
             align-items: center;
             position: sticky;
             top: 0;
+            z-index: 1;
         }
         .dialog-title button { margin-left: 16px; }
     `;
 __decorate([
     property({ attribute: false })
-], AvctDialogContainerElement.prototype, "dialogs", void 0);
-AvctDialogContainerElement = __decorate([
-    customElement(AvctDialogContainerElementKey)
-], AvctDialogContainerElement);
-export { AvctDialogContainerElement };
+], AvctDialogContainer.prototype, "dialogs", void 0);

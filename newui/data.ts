@@ -1,7 +1,9 @@
 import { send } from './api';
 import { globalDialog } from './components/dialog';
+import { AvctClipsUpdates } from './dialogs';
+import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags } from './clips';
 import { TagJson, ClipCallback, RowData, ClipJson, Store, MultiStore, Race, Role, RACES } from './model';
-import { AvctClipNameElementKey, AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipScoreElementKey, AvctClipTagsElementKey, AvctClipUpdatesDialog } from './registry';
+import { ElementType } from './registry';
 
 const tagListReq = send('tag/list');
 const clipListReq = send('clip/list');
@@ -29,7 +31,7 @@ Promise.all([tagListReq, clipListReq]).then(() => send('clip/autocrawl')).then(a
         });
     }
     if (response.disappeared.length || response.added.length) {
-        globalDialog({ title: 'Clip files changed', type: AvctClipUpdatesDialog, params: response });
+        globalDialog({ title: 'Clip files changed', type: AvctClipsUpdates, params: response });
     }
 });
 
@@ -42,6 +44,8 @@ export class Clip implements RowData {
     readonly roles: Role[];
     readonly score: number;
     readonly tags: number[];
+    readonly totalPlay: number;
+    readonly lastPlay: number;
     readonly note: string;
     readonly exists: boolean;
     readonly thumbImgPromise: Promise<Blob> | undefined;
@@ -53,6 +57,8 @@ export class Clip implements RowData {
         this.roles = data[3];
         this.score = data[4];
         this.tags = data[7];
+        this.totalPlay = data[8];
+        this.lastPlay = data[9];
         this.note = data[11];
 
         this.exists = true;
@@ -88,17 +94,17 @@ export class Clip implements RowData {
         }
     }
 
-    errors: Map<string, string[]> | null = null;
+    errors: Map<ElementType, string[]> | null = null;
 
     validate(tags: Map<number, TagJson>): void {
-        const errors = new Map<string, string[]>();
+        const errors = new Map<ElementType, string[]>();
 
         if (!this.exists) {
-            errors.set(AvctClipNameElementKey, ['File not exists']);
+            errors.set(AvctClipName, ['File not exists']);
         }
 
         if (this.score <= 0) {
-            errors.set(AvctClipScoreElementKey, ['No rating']);
+            errors.set(AvctClipScore, ['No rating']);
         }
 
         const tagEntities = this.tags.map(id => tags.get(id));
@@ -109,14 +115,14 @@ export class Clip implements RowData {
         if (!tagEntities.find(tag => tag?.type === 'Content')) {
             tagErrors.push('No content tag');
         }
-        if (tagErrors.length) { errors.set(AvctClipTagsElementKey, tagErrors); }
+        if (tagErrors.length) { errors.set(AvctClipTags, tagErrors); }
 
         if (RACES.indexOf(this.race) <= 0) {
-            errors.set(AvctClipRaceElementKey, ['Not set']);
+            errors.set(AvctClipRace, ['Not set']);
         }
 
         if (!this.roles.length) {
-            errors.set(AvctClipRoleElementKey, ['Not set']);
+            errors.set(AvctClipRole, ['Not set']);
         }
 
         const out = errors.size > 0 ? errors : null;

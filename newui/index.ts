@@ -1,9 +1,7 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from 'lit-html/static.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { clips, tags } from './data';
-import { AvctClips, AvctClipUpdatesDialog, AvctDialogContainer, AvctToastContainer } from './registry';  
+import { html } from './registry';  
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 
 // Imports for custom element definitions.
@@ -14,8 +12,10 @@ import './clips';
 import './components/menu';
 import './menus';
 import './components/toast';
-import './clip-updates-dialog';
-import { globalDialog } from './components/dialog';
+import './dialogs';
+import { AvctDialogContainer, globalDialog } from './components/dialog';
+import { AvctClips } from './clips';
+import { AvctToastContainer } from './components/toast';
 
 /**
  * An example element.
@@ -23,8 +23,7 @@ import { globalDialog } from './components/dialog';
  * @slot - This element has a slot
  * @csspart button - The button
  */
-@customElement('my-element')
-export class MyElement extends LitElement {
+export class RootElement extends LitElement {
   static styles = css`
     :host {
       display: block;
@@ -68,3 +67,5 @@ export class MyElement extends LitElement {
 
   createRenderRoot() { return this; }
 }
+
+window.customElements.define('avct-root', RootElement);

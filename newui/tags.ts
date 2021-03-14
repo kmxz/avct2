@@ -1,13 +1,12 @@
 import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctCtxMenu, AvctTagListElementKey, AvctTagSelectElementKey, AvctTagSelect } from './registry';
+import { html } from './registry';
 import { property } from 'lit-element/decorators/property.js';
-import { html } from 'lit-html/static.js';
 import { TagJson, TagType, TAG_TYPES } from './model';
 import { globalToast } from './components/toast';
 import { query } from 'lit-element/decorators/query.js';
 import { tags } from './data';
 import { send } from './api';
+import { AvctCtxMenu } from './components/menu';
 
 const sortOrder: Record<TagType, number> = {
     'Studio': 1, 'Content': 2, 'Format': 3, 'Special': 4
@@ -15,8 +14,7 @@ const sortOrder: Record<TagType, number> = {
 
 const normalize = (input: string): string => input.toLowerCase().replace(/\s+/g, ' ').trim();
 
-@customElement(AvctTagListElementKey)
-export class AvctTagListElement extends LitElement {
+export class AvctTagList extends LitElement {
     @property({ attribute: false })
     tags: TagJson[] = [];
 
@@ -73,8 +71,7 @@ export class AvctTagListElement extends LitElement {
     }
 }
 
-@customElement(AvctTagSelectElementKey)
-export class AvctTagSelectElement extends LitElement {
+export class AvctTagSelect extends LitElement {
     static styles = css`
         .anchor {
             position: relative;
@@ -157,7 +154,7 @@ export class AvctTagSelectElement extends LitElement {
         const allTags = (await tags.value().next()).value;
         const matchedTags = Array.from(allTags.values()).map(tag => [
             tag,
-            AvctTagSelectElement.matchTagValue(tag.name, normalizedInput)
+            AvctTagSelect.matchTagValue(tag.name, normalizedInput)
         ] as const).filter(entry => entry[1] > Number.MIN_SAFE_INTEGER).sort((a, b) => (b[1] - a[1]) || (a[0].name.localeCompare(b[0].name)));
         if (matchedTags.length && (matchedTags[0][0].name === inputValue)) { // Before normalization!
             this.selectedTag = matchedTags[0][0];

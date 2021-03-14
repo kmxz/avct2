@@ -5,12 +5,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctCtxMenuElementKey } from '../registry';
+import { html } from '../registry';
 import { property } from 'lit-element/decorators/property.js';
-import { html } from 'lit-html/static.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
-let AvctCtxMenuElement = class AvctCtxMenuElement extends LitElement {
+export class AvctCtxMenu extends LitElement {
     constructor() {
         super(...arguments);
         // Not read. For CSS only.
@@ -62,8 +60,8 @@ let AvctCtxMenuElement = class AvctCtxMenuElement extends LitElement {
             <div class="arrow" style="${arrowStyle}"></div>
         ` : null;
     }
-};
-AvctCtxMenuElement.styles = css `
+}
+AvctCtxMenu.styles = css `
         :host {
             position: absolute;
         }
@@ -139,17 +137,13 @@ AvctCtxMenuElement.styles = css `
     `;
 __decorate([
     property({ type: String, reflect: true })
-], AvctCtxMenuElement.prototype, "title", void 0);
+], AvctCtxMenu.prototype, "title", void 0);
 __decorate([
     property({ type: Boolean, reflect: true })
-], AvctCtxMenuElement.prototype, "shown", void 0);
+], AvctCtxMenu.prototype, "shown", void 0);
 __decorate([
     property({ type: Boolean, reflect: true })
-], AvctCtxMenuElement.prototype, "shadow", void 0);
+], AvctCtxMenu.prototype, "shadow", void 0);
 __decorate([
     property({ type: String, reflect: true })
-], AvctCtxMenuElement.prototype, "direction", void 0);
-AvctCtxMenuElement = __decorate([
-    customElement(AvctCtxMenuElementKey)
-], AvctCtxMenuElement);
-export { AvctCtxMenuElement };
+], AvctCtxMenu.prototype, "direction", void 0);

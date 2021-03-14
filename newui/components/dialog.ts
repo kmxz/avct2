@@ -1,16 +1,15 @@
 import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctCtxMenuElementKey, AvctDialogContainerElementKey, StaticTagName } from '../registry';
+import { ElementType, html } from '../registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
-import { html } from 'lit-html/static.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { seq } from './utils';
 
 interface DialogOptions {
     title: string;
-    type: StaticTagName;
+    type: ElementType;
     params: any;
     cancellable: boolean;
 }
@@ -36,8 +35,7 @@ export const globalDialog = (dialog: Partial<DialogOptions> & Pick<DialogOptions
     }))
 );
 
-@customElement(AvctDialogContainerElementKey)
-export class AvctDialogContainerElement extends LitElement {
+export class AvctDialogContainer extends LitElement {
     static styles = css`
         .dialog-modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, 0.2); display: flex; justify-content: center; z-index: 2; padding: 32px; }
         .dialog-proper { align-self: center; background: #fff; padding: 0 16px 16px 16px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25); max-height: 100%; overflow: auto; }
@@ -51,13 +49,14 @@ export class AvctDialogContainerElement extends LitElement {
             align-items: center;
             position: sticky;
             top: 0;
+            z-index: 1;
         }
         .dialog-title button { margin-left: 16px; }
     `;
 
     @property({ attribute: false })
     dialogs = globalDialogs;
-
+    
     private handleClose(dialogProper: HTMLDivElement, result: CustomEvent<any> | undefined) {
         const id = parseInt(dialogProper.dataset['dialogId']!);
         this.dialogs.update(oldDialogs => {

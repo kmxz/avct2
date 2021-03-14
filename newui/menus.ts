@@ -1,14 +1,11 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctRaceSelectionElementKey, AvctRoleSelectionElementKey, AvctTextEditElementKey } from './registry';
+import { html } from './registry';
 import { property } from 'lit-element/decorators/property.js';
 import { query } from 'lit-element/decorators/query.js';
 import { queryAll } from 'lit-element/decorators/query-all.js';
-import { html } from 'lit-html/static.js';
 import { RACES, Race, Role, ROLES } from './model';
 
-@customElement(AvctRaceSelectionElementKey)
-export class AvctRaceSelectionElement extends LitElement {
+export class AvctRaceSelection extends LitElement {
     static styles = css`
         label {
             display: block;
@@ -27,8 +24,7 @@ export class AvctRaceSelectionElement extends LitElement {
     }
 }
 
-@customElement(AvctRoleSelectionElementKey)
-export class AvctRoleSelectionElement extends LitElement {
+export class AvctRoleSelection extends LitElement {
     static styles = css`
         :host {
             display: grid;
@@ -63,8 +59,7 @@ export class AvctRoleSelectionElement extends LitElement {
     }
 }
 
-@customElement(AvctTextEditElementKey)
-export class AvctTextEditElement extends LitElement {
+export class AvctTextEdit extends LitElement {
     static styles = css`
         input, button {
             display: block;

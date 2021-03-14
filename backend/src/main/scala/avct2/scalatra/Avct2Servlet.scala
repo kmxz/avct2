@@ -73,7 +73,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   get("/clip/:id/history") {
     val id = params("id").toInt
-    withDb(_.run(Tables.record.filter(_.clipId === id).map(_.timestamp).result))
+    withDb(_.run(Tables.record.filter(_.clipId === id).sortBy(_.timestamp.desc).map(_.timestamp).result))
   }
 
   def openFileHelper(opener: (File => Boolean), record: Boolean) = {

@@ -51,20 +51,21 @@ const toTags = (randI31: number): number[] => {
 
 const generateFakeClip = (id: number): ClipJson => {
     const lcg = new Lcg(BigInt(id) * 214013n + 2531011n);
+    const numberOfHistory = Math.max(Math.floor(Math.exp(lcg.nextFloat() * 5) - 5), 0);
+    const lastOfHistory = Date.now() / 1000 - Math.exp(10 * lcg.nextFloat()) * 1000;
     return [
-        id, toPath(lcg.nextI31()), toRace(lcg.nextFloat()), toRoles(lcg.nextI31()), toScore(lcg.nextFloat()), 5000000, 360, toTags(lcg.nextI31()), 0, 0, false, `fake clip ${id}`, toResolution(lcg.nextFloat())
+        id, toPath(lcg.nextI31()), toRace(lcg.nextFloat()), toRoles(lcg.nextI31()), toScore(lcg.nextFloat()), 5000000, 360, toTags(lcg.nextI31()), numberOfHistory, numberOfHistory ? lastOfHistory : 0, ((id % 10) < 7), `fake clip ${id}`, toResolution(lcg.nextFloat())
     ];
 };
 
-const fakeClips: (ClipJson | null)[] = [];
-const nonNull = <T>(value: T | null): value is T => (value !== null);
+const fakeClips: ClipJson[] = [];
 
 for (let i = 0; i < 100; i++) {
-    fakeClips.push((i % 7 !== 0) ? generateFakeClip(i) : null);
+    fakeClips.push(generateFakeClip(i));
 }
 
 const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
-    'clip/list': (): ClipJson[] => fakeClips.filter(nonNull),
+    'clip/list': (): ClipJson[] => fakeClips,
     'clip/edit': params => {
         const clip = fakeClips[params['id']]!;
         const indices: Record<string, number> = { 'grade': 4, 'race': 2, 'role': 3, 'tags': 7, 'sourceNote': 11 };
@@ -98,14 +99,25 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
     },
     'clip/autocrawl': () => {
         const newLcg = new Lcg(BigInt(Date.now()));
-        const disappeared = fakeClips.filter(nonNull).filter(_ => newLcg.nextFloat() < 0.01).map(item => item[1]);
+        const disappeared = fakeClips.filter(_ => newLcg.nextFloat() < 0.005).map(item => item[1]);
         const added = [];
         const numberOfAppeared = Math.exp(newLcg.nextFloat() * 5) - 100;
         for (let i = 0; i < numberOfAppeared; i++) {
             added.push(toPath(newLcg.nextI31()));
         }
         return { disappeared, added };
-    }
+    },
+    'clip/history': params => {
+        const newLcg = new Lcg(BigInt(params.id) * 214013n + 2531011n);
+        const numbers = Math.exp(newLcg.nextFloat() * 5) - 5;
+        const times = [];
+        for (let i = 0, cur = Date.now() / 1000; i < numbers; i++) {
+            cur -= Math.exp(10 * newLcg.nextFloat()) * 1000;
+            times.push(cur);
+        }
+        return times;
+    },
+    'clip/thumb': params => fetch(`images/${(params.id - -1)}.jpg`).then(res => res.blob())
 };
 
 export const handle = (api: string, params?: { [key: string]: any }): Promise<any> => {

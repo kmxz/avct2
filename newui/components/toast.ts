@@ -1,7 +1,6 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from 'lit-html/static.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctToastContainerElementKey } from '../registry';
+import { html } from '../registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
@@ -20,8 +19,7 @@ const globalToasts = new MultiStore<Toast[]>(Promise.resolve([]));
 const uniqId = seq();
 export const globalToast = (text: string): void => globalToasts.update(list => list.concat({ text, since: Date.now(), id: uniqId() }));
 
-@customElement(AvctToastContainerElementKey)
-export class AvctToastContainerElement extends LitElement {
+export class AvctToastContainer extends LitElement {
     static styles = css`
         :host {
             position: fixed;

@@ -1,12 +1,9 @@
 import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctCtxMenuElementKey } from '../registry';
+import { html } from '../registry';
 import { property } from 'lit-element/decorators/property.js';
-import { html } from 'lit-html/static.js';
-import { styleMap } from 'lit-html/directives/style-map.js';
+import { styleMap } from 'lit-html/directives/style-map.js'
 
-@customElement(AvctCtxMenuElementKey)
-export class AvctCtxMenuElement extends LitElement {
+export class AvctCtxMenu extends LitElement {
     static styles = css`
         :host {
             position: absolute;

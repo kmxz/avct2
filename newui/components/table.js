@@ -5,19 +5,18 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from 'lit-html/static.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { guard } from 'lit-html/directives/guard.js';
-import { AvctCtxMenu, AvctTableColumnEdit, AvctTableColumnEditElementKey, AvctTableElementKey } from '../registry';
+import { html } from '../registry';
 import { arrayNonEq, recordNonEq } from '../model';
 import { query } from 'lit-element/decorators/query.js';
 import { seq } from './utils';
+import { AvctCtxMenu } from './menu';
 const INSERT_AT_END = 'INSERT_AT_END';
 const uniqId = seq();
 export const column = (title, cellType, show = true) => ({ id: `${uniqId()}`, title, cellType, width: show ? 100 : 0 });
-let AvctTableColumnEditElement = class AvctTableColumnEditElement extends LitElement {
+export class AvctTableColumnEdit extends LitElement {
     constructor() {
         super(...arguments);
         this.columns = [];
@@ -121,8 +120,8 @@ let AvctTableColumnEditElement = class AvctTableColumnEditElement extends LitEle
             </ul>
         `;
     }
-};
-AvctTableColumnEditElement.styles = css `
+}
+AvctTableColumnEdit.styles = css `
         :host {
             display: flex;
             position: relative;
@@ -154,15 +153,11 @@ AvctTableColumnEditElement.styles = css `
     `;
 __decorate([
     property({ attribute: false, hasChanged: arrayNonEq(recordNonEq()) })
-], AvctTableColumnEditElement.prototype, "columns", void 0);
+], AvctTableColumnEdit.prototype, "columns", void 0);
 __decorate([
     query('ul.active')
-], AvctTableColumnEditElement.prototype, "activeUl", void 0);
-AvctTableColumnEditElement = __decorate([
-    customElement(AvctTableColumnEditElementKey)
-], AvctTableColumnEditElement);
-export { AvctTableColumnEditElement };
-let AvctTableElement = class AvctTableElement extends LitElement {
+], AvctTableColumnEdit.prototype, "activeUl", void 0);
+export class AvctTableElement extends LitElement {
     constructor() {
         super(...arguments);
         this.rows = [];
@@ -201,6 +196,7 @@ let AvctTableElement = class AvctTableElement extends LitElement {
     abortEdit() { this.edit = false; }
     render() {
         const visibleColumns = this.columns.filter(column => column.width);
+        console.log(AvctTableColumnEdit);
         const config = html `
             <button class="table-settings round-button" @click="${this.editColumns}">⚙</button>
             ${this.edit ? html `
@@ -225,7 +221,7 @@ let AvctTableElement = class AvctTableElement extends LitElement {
         `;
     }
     createRenderRoot() { return this; }
-};
+}
 __decorate([
     property({ attribute: false, hasChanged: arrayNonEq() })
 ], AvctTableElement.prototype, "rows", void 0);
@@ -235,7 +231,3 @@ __decorate([
 __decorate([
     property({ attribute: false })
 ], AvctTableElement.prototype, "edit", void 0);
-AvctTableElement = __decorate([
-    customElement(AvctTableElementKey)
-], AvctTableElement);
-export { AvctTableElement };

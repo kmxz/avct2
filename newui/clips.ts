@@ -1,57 +1,17 @@
-import { column } from './components/table';
+import { AvctTableElement, column } from './components/table';
 import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
-import { html } from 'lit-html/static.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
+import { html } from './registry';
 import { property } from 'lit-element/decorators/property.js';
 import { arrayNonEq, TagJson, ClipCallback, Race, Role } from './model';
 import { tags, Clip } from './data';
-import { AvctClipName, AvctClipNameElementKey, AvctClipScoreElementKey, AvctClipScore, AvctClipsElementKey, AvctTable, AvctClipTagsElementKey, AvctTagList, AvctClipTags, AvctClipRaceElementKey, AvctClipRoleElementKey, AvctClipRole, AvctClipRace, AvctClipNote, AvctClipNoteElementKey, AvctCtxMenu, AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from './registry';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { globalToast } from './components/toast';
-
-@customElement(AvctClipsElementKey)
-export class AvctClipsElement extends LitElement {
-    @property({ attribute: false })
-    clips?: Map<number, Clip>;
-
-    @property({ attribute: false })
-    tags?: Map<number, TagJson>;
-
-    @property({ attribute: false, hasChanged: arrayNonEq() })
-    rows: number[] = [];
-
-    applyFilter(): void {
-        this.rows = Array.from(this.clips!.keys());
-    }
-
-    updated(changedProps: Map<keyof AvctClipsElement, any>) {
-        if (changedProps.has('clips')) {
-            this.applyFilter();
-        }
-        requestAnimationFrame(now => {
-            console.log(`RENDER FIN @${now}`);
-        });
-    }
-
-    createRenderRoot() { return this; }
-
-    private static columns = [
-        column('Name', AvctClipName),
-        column('Score', AvctClipScore),
-        column('Roles', AvctClipRole),
-        column('Race', AvctClipRace),
-        column('Tags', AvctClipTags),
-        column('Note', AvctClipNote),
-    ];
-
-    render() {
-        if (!this.clips) {
-            return html`Loading...`;
-        }
-        return html`<${AvctTable} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${AvctClipsElement.columns}"></${AvctTable}>`;
-    }
-}
+import { globalDialog } from './components/dialog';
+import { AvctCtxMenu } from './components/menu';
+import { AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from './menus';
+import { AvctTagList } from './tags';
+import { AvctClipHistoryDialog } from './dialogs';
 
 abstract class ClipCellElementBase extends LitElement implements ClipCallback {
     @property({ attribute: false })
@@ -68,7 +28,7 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
 
     render() {
         // console.log(`Rendering ${this.tagName} for ${this.item.id}`);
-        const errors = this.item.errors?.get(this.tagName.toLowerCase());
+        const errors = this.item.errors?.get(this.constructor as any);
         return html`${this.renderContent()}${errors?.map(item => html`<span class="error">${item}</span>`)}`;
     }
 
@@ -77,8 +37,7 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
     abstract renderContent(): TemplateResult;
 }
 
-@customElement(AvctClipNameElementKey)
-export class AvctClipNameElement extends ClipCellElementBase {
+export class AvctClipName extends ClipCellElementBase {
     renderContent() {
         return html`
             ${this.item.getFile()}
@@ -88,8 +47,7 @@ export class AvctClipNameElement extends ClipCellElementBase {
     }
 }
 
-@customElement(AvctClipRaceElementKey)
-export class AvctClipRaceElement extends ClipCellElementBase {
+export class AvctClipRace extends ClipCellElementBase {
     @property({ attribute: false })
     edit = false;
 
@@ -109,8 +67,7 @@ export class AvctClipRaceElement extends ClipCellElementBase {
     }
 }
 
-@customElement(AvctClipRoleElementKey)
-export class AvctClipRoleElement extends ClipCellElementBase {
+export class AvctClipRole extends ClipCellElementBase {
     @property({ attribute: false })
     edit = false;
 
@@ -138,8 +95,7 @@ export class AvctClipRoleElement extends ClipCellElementBase {
     }
 }
 
-@customElement(AvctClipNoteElementKey)
-export class AvctClipNoteElement extends ClipCellElementBase {
+export class AvctClipNote extends ClipCellElementBase {
     @property({ attribute: false })
     edit = false;
 
@@ -167,8 +123,7 @@ export class AvctClipNoteElement extends ClipCellElementBase {
     }
 }
 
-@customElement(AvctClipTagsElementKey)
-export class AvctClipTagsElement extends ClipCellElementBase {
+export class AvctClipTags extends ClipCellElementBase {
     private removeTag(e: CustomEvent<number>): Promise<void> {
         const newTags = this.item.tags.filter(id => id !== e.detail);
         return this.item.update('tags', newTags, this);
@@ -184,8 +139,7 @@ export class AvctClipTagsElement extends ClipCellElementBase {
     }
 }
 
-@customElement(AvctClipScoreElementKey)
-export class AvctClipScoreElement extends ClipCellElementBase {
+export class AvctClipScore extends ClipCellElementBase {
     @property({ attribute: false })
     preview = 0;
 
@@ -196,7 +150,7 @@ export class AvctClipScoreElement extends ClipCellElementBase {
     }
 
     private async handleClick(e: MouseEvent): Promise<void> {
-        const score = AvctClipScoreElement.targetScore(e);
+        const score = AvctClipScore.targetScore(e);
         if (score > 0) {
             await this.item.update('grade', score, this);
             this.preview = 0;
@@ -204,14 +158,14 @@ export class AvctClipScoreElement extends ClipCellElementBase {
     }
 
     private handleMouseOver(e: MouseEvent): void {
-        const score = AvctClipScoreElement.targetScore(e);
+        const score = AvctClipScore.targetScore(e);
         if (score > 0) {
             this.preview = score;
         }
     }
 
     private handleMouseOut(e: MouseEvent): void {
-        if (AvctClipScoreElement.targetScore(e) > 0) {
+        if (AvctClipScore.targetScore(e) > 0) {
             this.preview = 0;
         }
     }
@@ -221,5 +175,61 @@ export class AvctClipScoreElement extends ClipCellElementBase {
         return html`<div @click="${this.handleClick}" @mouseover="${this.handleMouseOver}" @mouseout="${this.handleMouseOut}">${Array.from(Array(5).keys()).map(index => 
             html`<button class="${classMap({ 'preview': this.preview > index })}" value="${String(index + 1)}">${(rating > index) ? '★' : '☆'}</button>`
         )}</div>`;
+    }
+}
+
+class AvctClipHistory extends ClipCellElementBase {
+    private popupView(): void {
+        globalDialog({ type: AvctClipHistoryDialog, params: this.item.id });
+    }
+
+    renderContent() {
+        if (!this.item.lastPlay) { return html`Never played`; }
+        const diffDays = (new Date().getTime() / 1000 - this.item.lastPlay) / (3600 * 24);
+        return html`${this.item.totalPlay} times (${(diffDays > 10) ? String(Math.round(diffDays)) : diffDays.toPrecision(2)} days ago)
+        <button class="td-hover round-button" @click="${this.popupView}">⏲</button>`;
+    }
+}
+
+export class AvctClips extends LitElement {
+    @property({ attribute: false })
+    clips?: Map<number, Clip>;
+
+    @property({ attribute: false })
+    tags?: Map<number, TagJson>;
+
+    @property({ attribute: false, hasChanged: arrayNonEq() })
+    rows: number[] = [];
+
+    applyFilter(): void {
+        this.rows = Array.from(this.clips!.keys());
+    }
+
+    updated(changedProps: Map<keyof AvctClips, any>) {
+        if (changedProps.has('clips')) {
+            this.applyFilter();
+        }
+        requestAnimationFrame(now => {
+            console.log(`RENDER FIN @${now}`);
+        });
+    }
+
+    createRenderRoot() { return this; }
+
+    private static columns = [
+        column('Name', AvctClipName),
+        column('Score', AvctClipScore),
+        column('Roles', AvctClipRole),
+        column('Race', AvctClipRace),
+        column('Tags', AvctClipTags),
+        column('Note', AvctClipNote),
+        column('History', AvctClipHistory, false)
+    ];
+
+    render() {
+        if (!this.clips) {
+            return html`Loading...`;
+        }
+        return html`<${AvctTableElement} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${AvctClips.columns}"></${AvctTableElement}>`;
     }
 }

@@ -5,9 +5,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from 'lit-html/static.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
-import { AvctToastContainerElementKey } from '../registry';
+import { html } from '../registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
@@ -17,7 +15,7 @@ const DURATION = 5000;
 const globalToasts = new MultiStore(Promise.resolve([]));
 const uniqId = seq();
 export const globalToast = (text) => globalToasts.update(list => list.concat({ text, since: Date.now(), id: uniqId() }));
-let AvctToastContainerElement = class AvctToastContainerElement extends LitElement {
+export class AvctToastContainer extends LitElement {
     constructor() {
         super(...arguments);
         this.toaster = globalToasts;
@@ -48,8 +46,8 @@ let AvctToastContainerElement = class AvctToastContainerElement extends LitEleme
             return repeat(list, toast => toast.id, toast => html `<div>${toast.text}</div>`);
         })}`;
     }
-};
-AvctToastContainerElement.styles = css `
+}
+AvctToastContainer.styles = css `
         :host {
             position: fixed;
             bottom: 0;
@@ -71,8 +69,4 @@ AvctToastContainerElement.styles = css `
     `;
 __decorate([
     property({ attribute: false })
-], AvctToastContainerElement.prototype, "toaster", void 0);
-AvctToastContainerElement = __decorate([
-    customElement(AvctToastContainerElementKey)
-], AvctToastContainerElement);
-export { AvctToastContainerElement };
+], AvctToastContainer.prototype, "toaster", void 0);

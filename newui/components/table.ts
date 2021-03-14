@@ -1,13 +1,12 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from 'lit-html/static.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { guard } from 'lit-html/directives/guard.js';
-import { AvctCtxMenu, AvctTableColumnEdit, AvctTableColumnEditElementKey, AvctTableElementKey, StaticTagName } from '../registry';
+import { ElementType, html } from '../registry';
 import { arrayNonEq, recordNonEq, RowData } from '../model';
 import { query } from 'lit-element/decorators/query.js';
 import { seq } from './utils';
+import { AvctCtxMenu } from './menu';
 
 const INSERT_AT_END = 'INSERT_AT_END';
 
@@ -16,14 +15,13 @@ const uniqId = seq();
 interface Column {
     id: string;
     title: string;
-    cellType: StaticTagName;
+    cellType: ElementType;
     width: number;
 }
 
-export const column = (title: string, cellType: StaticTagName, show: boolean = true): Column => ({ id: `${uniqId()}`, title, cellType, width: show ? 100 : 0 });
+export const column = (title: string, cellType: ElementType, show: boolean = true): Column => ({ id: `${uniqId()}`, title, cellType, width: show ? 100 : 0 });
 
-@customElement(AvctTableColumnEditElementKey)
-export class AvctTableColumnEditElement extends LitElement {
+export class AvctTableColumnEdit extends LitElement {
     static styles = css`
         :host {
             display: flex;
@@ -160,7 +158,6 @@ export class AvctTableColumnEditElement extends LitElement {
     }
 }
 
-@customElement(AvctTableElementKey)
 export class AvctTableElement<T extends RowData> extends LitElement {
     @property({ attribute: false, hasChanged: arrayNonEq()})
     rows: T[] = [];
@@ -205,6 +202,7 @@ export class AvctTableElement<T extends RowData> extends LitElement {
 
     render() {
         const visibleColumns = this.columns.filter(column => column.width);
+        console.log(AvctTableColumnEdit);
         const config = html`
             <button class="table-settings round-button" @click="${this.editColumns}">⚙</button>
             ${this.edit ? html`
