@@ -158,7 +158,12 @@ export class AvctTableColumnEdit extends LitElement {
     }
 }
 
-export class AvctTableElement<T extends RowData> extends LitElement {
+export class AvctTable<T extends RowData> extends LitElement {
+    constructor() {
+        super();
+        this.addEventListener('scroll', this.scrollListener);
+    }
+
     @property({ attribute: false, hasChanged: arrayNonEq()})
     rows: T[] = [];
 
@@ -194,18 +199,52 @@ export class AvctTableElement<T extends RowData> extends LitElement {
     }
 
     @property({ attribute: false })
-    edit = false;
+    editingColumns = false;
+
+    @property({ attribute: false })
+    visibleRows = 20;
 
     private columnsChanged(event: CustomEvent<Column[]>): void { this.columns = event.detail; }
-    private editColumns(): void { this.edit = true; }
-    private abortEdit(): void { this.edit = false; }
+    private editColumns(): void { this.editingColumns = true; }
+    private abortEdit(): void { this.editingColumns = false; }
+
+    private scrollTopToRecover = -1;
+
+    private readonly scrollListener = (): void => {
+        if (this.visibleRows >= this.rows.length) { return; }
+        const scrollHost = this.getBoundingClientRect();
+        const loadMoreElement = this.loadMoreTd!.getBoundingClientRect();
+        if (loadMoreElement.top + loadMoreElement.bottom < scrollHost.bottom * 2) {
+            this.scrollTopToRecover = this.scrollTop;
+            this.visibleRows += 10;
+        }
+    };
+
+    private readonly restoreScrollPosition = (): void => {
+        if (this.scrollTopToRecover < 0) { return; }
+        if (this.scrollHeight < this.scrollTopToRecover) { 
+            requestAnimationFrame(this.restoreScrollPosition);
+        } else {
+            this.scrollTop = this.scrollTopToRecover;
+            this.scrollTopToRecover = -1;
+        }
+    }
+
+    updated() {
+        if (this.scrollTopToRecover >= 0) {
+            requestAnimationFrame(this.restoreScrollPosition);
+        }
+    }
+
+    @query('.load-more')
+    loadMoreTd!: HTMLTableDataCellElement;
 
     render() {
         const visibleColumns = this.columns.filter(column => column.width);
-        console.log(AvctTableColumnEdit);
+        const visibleRows = this.rows.slice(0, this.visibleRows);
         const config = html`
             <button class="table-settings round-button" @click="${this.editColumns}">⚙</button>
-            ${this.edit ? html`
+            ${this.editingColumns ? html`
                 <${AvctCtxMenu} shown shadow title="Change columns" @avct-close="${this.abortEdit}">
                     <${AvctTableColumnEdit} .columns="${this.columns}" @avct-select="${this.columnsChanged}"></${AvctTableColumnEdit}>
                 </${AvctCtxMenu}>` 
@@ -219,7 +258,7 @@ export class AvctTableElement<T extends RowData> extends LitElement {
                     </tr>
                 </thead>
                 <tbody>
-                    ${repeat(this.rows, row => row.id, 
+                    ${repeat(visibleRows, row => row.id, 
                         row => guard([row, this.columns], () => 
                             html`<tr>${visibleColumns.map(column => 
                                 html`<td>
@@ -229,6 +268,9 @@ export class AvctTableElement<T extends RowData> extends LitElement {
                         )
                     )}
                 </tbody>
+                <tfoot>
+                    <tr><td class="load-more" colspan="${visibleColumns.length}">${(visibleRows.length >= this.rows.length ? html`All ${visibleRows.length} rows have been rendered` : html`Load more...`)}</td></tr>
+                </tfoot>
             </table>
         `;
     }

@@ -50,7 +50,7 @@ export class AvctCtxMenu extends LitElement {
         this.direction = (parentRect.top + parentRect.bottom > windowHeight) ? 'up' : 'down';
         const xCenter = (parentRect.left + parentRect.right) / 2;
         const onLeftHalf = xCenter < windowWidth / 2;
-        this.leftCompensate = onLeftHalf ? Math.max(0, 144 - xCenter) : Math.min(0, windowWidth - xCenter - 144);
+        this.leftCompensate = onLeftHalf ? Math.max(0, 120 - xCenter) : Math.min(0, windowWidth - xCenter - 120);
     }
     render() {
         this.style.left = `calc(50% + ${this.leftCompensate}px)`;

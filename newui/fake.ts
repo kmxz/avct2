@@ -60,14 +60,14 @@ const generateFakeClip = (id: number): ClipJson => {
 
 const fakeClips: ClipJson[] = [];
 
-for (let i = 0; i < 100; i++) {
+for (let i = 1; i < 100; i++) {
     fakeClips.push(generateFakeClip(i));
 }
 
 const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
     'clip/list': (): ClipJson[] => fakeClips,
     'clip/edit': params => {
-        const clip = fakeClips[params['id']]!;
+        const clip = fakeClips[params['id'] - 1]!;
         const indices: Record<string, number> = { 'grade': 4, 'race': 2, 'role': 3, 'tags': 7, 'sourceNote': 11 };
         if (params['key'] in indices) {
             clip[indices[params['key']]] = params['value'];
@@ -117,7 +117,7 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
         }
         return times;
     },
-    'clip/thumb': params => fetch(`images/${(params.id - -1)}.jpg`).then(res => res.blob())
+    'clip/thumb': params => fetch(`images/${((params.id % 10) - -1)}.jpg`).then(res => res.blob())
 };
 
 export const handle = (api: string, params?: { [key: string]: any }): Promise<any> => {

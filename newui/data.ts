@@ -1,7 +1,7 @@
 import { send } from './api';
 import { globalDialog } from './components/dialog';
 import { AvctClipsUpdates } from './dialogs';
-import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags } from './clips';
+import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb } from './clips';
 import { TagJson, ClipCallback, RowData, ClipJson, Store, MultiStore, Race, Role, RACES } from './model';
 import { ElementType } from './registry';
 
@@ -47,10 +47,15 @@ export class Clip implements RowData {
     readonly totalPlay: number;
     readonly lastPlay: number;
     readonly note: string;
-    readonly exists: boolean;
-    readonly thumbImgPromise: Promise<Blob> | undefined;
+    readonly hasThumb: boolean;
 
-    constructor(data: ClipJson, tagsData: Map<number, TagJson>) {
+    readonly exists: boolean;
+    private thumbImgPromise: Promise<string> | undefined;
+
+    constructor(data: ClipJson, tagsData: Map<number, TagJson>, oldInstance?: Clip) {
+        if (oldInstance) {
+            Object.assign(this, oldInstance);
+        }
         this.id = data[0];
         this.path = data[1];
         this.race = data[2];
@@ -59,8 +64,8 @@ export class Clip implements RowData {
         this.tags = data[7];
         this.totalPlay = data[8];
         this.lastPlay = data[9];
+        this.hasThumb = data[10];
         this.note = data[11];
-
         this.exists = true;
         this.validate(tagsData);
     }
@@ -69,6 +74,14 @@ export class Clip implements RowData {
         const newInstance = Object.assign(Object.create(Clip.prototype) as Clip, this, updates);
         newInstance.validate(tagsData);
         return newInstance;
+    }
+
+    getThumb(): Promise<string> {
+        if (!this.hasThumb) { throw new TypeError(`Thumb not set for clip ${this.id}.`); }
+        if (!this.thumbImgPromise) {
+            this.thumbImgPromise = send('clip/thumb', { id: this.id }).then((blob: Blob) => URL.createObjectURL(blob));
+        }
+        return this.thumbImgPromise;
     }
 
     getFile(): string { return this.path.split('/').pop()!; }
@@ -86,7 +99,8 @@ export class Clip implements RowData {
             const tagsData = (await tags.value().next()).value;
             clips.update(oldMap => {
                 const newMap = new Map(oldMap);
-                newMap.set(this.id, new Clip(json, tagsData));
+                const newClip = new Clip(json, tagsData, this);
+                newMap.set(this.id, newClip);
                 return newMap;
             });
         } finally {
@@ -101,6 +115,10 @@ export class Clip implements RowData {
 
         if (!this.exists) {
             errors.set(AvctClipName, ['File not exists']);
+        }
+
+        if (!this.hasThumb) {
+            errors.set(AvctClipThumb, ['Thumb unset']);
         }
 
         if (this.score <= 0) {

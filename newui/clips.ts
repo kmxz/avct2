@@ -1,10 +1,11 @@
-import { AvctTableElement, column } from './components/table';
+import { AvctTable, column } from './components/table';
 import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
 import { html } from './registry';
 import { property } from 'lit-element/decorators/property.js';
 import { arrayNonEq, TagJson, ClipCallback, Race, Role } from './model';
 import { tags, Clip } from './data';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
+import { until } from 'lit-html/directives/until.js';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { globalToast } from './components/toast';
 import { globalDialog } from './components/dialog';
@@ -35,6 +36,17 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
     createRenderRoot() { return this; }
 
     abstract renderContent(): TemplateResult;
+}
+
+export class AvctClipThumb extends ClipCellElementBase {
+    renderContent() {
+        return html`
+            ${this.item.hasThumb ? until(this.item.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : null}
+            <${AvctCtxMenu} title="Thumbnail">
+                Test
+            </${AvctCtxMenu}>
+        `;
+    }
 }
 
 export class AvctClipName extends ClipCellElementBase {
@@ -217,6 +229,7 @@ export class AvctClips extends LitElement {
     createRenderRoot() { return this; }
 
     private static columns = [
+        column('Thumb', AvctClipThumb),
         column('Name', AvctClipName),
         column('Score', AvctClipScore),
         column('Roles', AvctClipRole),
@@ -230,6 +243,6 @@ export class AvctClips extends LitElement {
         if (!this.clips) {
             return html`Loading...`;
         }
-        return html`<${AvctTableElement} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${AvctClips.columns}"></${AvctTableElement}>`;
+        return html`<${AvctTable} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${AvctClips.columns}"></${AvctTable}>`;
     }
 }

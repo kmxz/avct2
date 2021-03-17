@@ -4,7 +4,7 @@
 
 html, body { margin: 0; padding: 0; font-size: 15px; overflow-x: hidden; }
 
-button { outline: none; }
+img { max-width: 100%; }
 
 avct-table {
     overflow: scroll;
@@ -52,7 +52,7 @@ th span.active {
     background: #7986CB;
 }
 
-td {
+tbody td {
     border-bottom: 1px solid #e0e0e0;
     padding: 2px;
     position: relative; 
@@ -85,6 +85,11 @@ tr:hover .table-settings {
 
 .handle-drag-modal.resize { cursor: e-resize; }
 .handle-drag-modal.move { cursor: move; }
+
+tfoot td {
+    text-align: center;
+    padding: 16px;
+}
 
 .error {
     content: '⚠ ' attr(invalid);

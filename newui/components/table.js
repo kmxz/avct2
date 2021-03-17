@@ -157,12 +157,38 @@ __decorate([
 __decorate([
     query('ul.active')
 ], AvctTableColumnEdit.prototype, "activeUl", void 0);
-export class AvctTableElement extends LitElement {
+export class AvctTable extends LitElement {
     constructor() {
-        super(...arguments);
+        super();
         this.rows = [];
         this.columns = [];
-        this.edit = false;
+        this.editingColumns = false;
+        this.visibleRows = 20;
+        this.scrollTopToRecover = -1;
+        this.scrollListener = () => {
+            if (this.visibleRows >= this.rows.length) {
+                return;
+            }
+            const scrollHost = this.getBoundingClientRect();
+            const loadMoreElement = this.loadMoreTd.getBoundingClientRect();
+            if (loadMoreElement.top + loadMoreElement.bottom < scrollHost.bottom * 2) {
+                this.scrollTopToRecover = this.scrollTop;
+                this.visibleRows += 10;
+            }
+        };
+        this.restoreScrollPosition = () => {
+            if (this.scrollTopToRecover < 0) {
+                return;
+            }
+            if (this.scrollHeight < this.scrollTopToRecover) {
+                requestAnimationFrame(this.restoreScrollPosition);
+            }
+            else {
+                this.scrollTop = this.scrollTopToRecover;
+                this.scrollTopToRecover = -1;
+            }
+        };
+        this.addEventListener('scroll', this.scrollListener);
     }
     handleResizeMouseDown(e) {
         const resizeHandle = e.currentTarget;
@@ -192,14 +218,19 @@ export class AvctTableElement extends LitElement {
         e.preventDefault();
     }
     columnsChanged(event) { this.columns = event.detail; }
-    editColumns() { this.edit = true; }
-    abortEdit() { this.edit = false; }
+    editColumns() { this.editingColumns = true; }
+    abortEdit() { this.editingColumns = false; }
+    updated() {
+        if (this.scrollTopToRecover >= 0) {
+            requestAnimationFrame(this.restoreScrollPosition);
+        }
+    }
     render() {
         const visibleColumns = this.columns.filter(column => column.width);
-        console.log(AvctTableColumnEdit);
+        const visibleRows = this.rows.slice(0, this.visibleRows);
         const config = html `
             <button class="table-settings round-button" @click="${this.editColumns}">⚙</button>
-            ${this.edit ? html `
+            ${this.editingColumns ? html `
                 <${AvctCtxMenu} shown shadow title="Change columns" @avct-close="${this.abortEdit}">
                     <${AvctTableColumnEdit} .columns="${this.columns}" @avct-select="${this.columnsChanged}"></${AvctTableColumnEdit}>
                 </${AvctCtxMenu}>`
@@ -213,10 +244,13 @@ export class AvctTableElement extends LitElement {
                     </tr>
                 </thead>
                 <tbody>
-                    ${repeat(this.rows, row => row.id, row => guard([row, this.columns], () => html `<tr>${visibleColumns.map(column => html `<td>
+                    ${repeat(visibleRows, row => row.id, row => guard([row, this.columns], () => html `<tr>${visibleColumns.map(column => html `<td>
                                     <${column.cellType} .item="${row}"></${column.cellType}>
                                 </td>`)}</tr>`))}
                 </tbody>
+                <tfoot>
+                    <tr><td class="load-more" colspan="${visibleColumns.length}">${(visibleRows.length >= this.rows.length ? html `All ${visibleRows.length} rows have been rendered` : html `Load more...`)}</td></tr>
+                </tfoot>
             </table>
         `;
     }
@@ -224,10 +258,16 @@ export class AvctTableElement extends LitElement {
 }
 __decorate([
     property({ attribute: false, hasChanged: arrayNonEq() })
-], AvctTableElement.prototype, "rows", void 0);
+], AvctTable.prototype, "rows", void 0);
 __decorate([
     property({ attribute: false, hasChanged: arrayNonEq(recordNonEq()) })
-], AvctTableElement.prototype, "columns", void 0);
+], AvctTable.prototype, "columns", void 0);
 __decorate([
     property({ attribute: false })
-], AvctTableElement.prototype, "edit", void 0);
+], AvctTable.prototype, "editingColumns", void 0);
+__decorate([
+    property({ attribute: false })
+], AvctTable.prototype, "visibleRows", void 0);
+__decorate([
+    query('.load-more')
+], AvctTable.prototype, "loadMoreTd", void 0);
