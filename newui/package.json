@@ -1,7 +1,6 @@
 {
   "name": "newui",
   "dependencies": {
-    "carehtml": "^0.1.1",
     "lit-element": "^3.0.0-pre.3",
     "lit-html": "^2.0.0-pre.7"
   },

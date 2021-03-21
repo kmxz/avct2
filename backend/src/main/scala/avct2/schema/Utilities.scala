@@ -30,7 +30,7 @@ object Race extends Enumeration {
 object TagType extends Enumeration {
   val special = Value("Special")
   val studio = Value("Studio")
-  Value("Content")
+  val content = Value("Content")
   Value("Format")
   def mct = MappedColumnType.base[Value, Int](_.id, apply)
 }

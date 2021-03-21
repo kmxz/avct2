@@ -1,12 +1,13 @@
 import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { TagJson, TagType, TAG_TYPES } from './model';
+import { arrayNonEq, TagJson, TagType, TAG_TYPES } from './model';
 import { globalToast } from './components/toast';
 import { query } from 'lit-element/decorators/query.js';
 import { tags } from './data';
 import { send } from './api';
 import { AvctCtxMenu } from './components/menu';
+import { classMap } from 'lit-html/directives/class-map.js';
 
 const sortOrder: Record<TagType, number> = {
     'Studio': 1, 'Content': 2, 'Format': 3, 'Special': 4
@@ -124,7 +125,7 @@ export class AvctTagSelect extends LitElement {
     @property({ attribute: false })
     existing!: Set<number>;
 
-    @property({ attribute: false })
+    @property({ attribute: false, hasChanged: arrayNonEq() })
     hintTags?: TagJson[];
 
     @property({ attribute: false })
@@ -271,8 +272,8 @@ export class AvctTagSelect extends LitElement {
                 <input type="text" @input="${this.updateCandidates}" @focus="${this.updateCandidates}" @blur="${this.hideCandidates}" @keydown="${this.handleKeyDown}" ?disabled="${this.tagCreationInProgress}" />
                 <ul>
                     ${this.hintTags?.map((tag, index) =>
-                        html`<li class="${(index === this.highlightedHintTag) ? 'selected' : ''}" @click="${this.liClick}" @mousedown="${this.noMouseSteal}">${tag.name}<span><span class="tag-type-${tag.type.toLowerCase()}"></span>${tag.type}</span></li>
-                    `)}
+                        html`<li class="${classMap({ 'selected': index === this.highlightedHintTag })}" @click="${this.liClick}" @mousedown="${this.noMouseSteal}">${tag.name}<span><span class="tag-type-${tag.type.toLowerCase()}"></span>${tag.type}</span></li>`
+                    )}
                 </ul>
             </div>
             <div class="creation">

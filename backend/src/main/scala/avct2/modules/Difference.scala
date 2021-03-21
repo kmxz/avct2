@@ -113,7 +113,7 @@ object TagsEntry extends AbstractEntry {
   final val weight = 1.5
 
   def getScore(clipOld: ClipRow, clipNew: ClipRow) = {
-    CosineSimilarity(clipOld.tags, clipNew.tags)
+    CosineSimilarity(clipOld.contentTags, clipNew.contentTags)
   }
 
 }
@@ -122,13 +122,13 @@ object Difference {
 
   val entries = Seq(NameEntry, StudioEntry, RaceEntry, RoleEntry, SizeEntry, LengthEntry, TagsEntry)
 
-  case class ClipRow(filename: String, studioId: Set[Int], race: Race.Value, role: Role.ValueSet, size: Long, length: Int, clipId: Int, tags: Set[Int])
+  case class ClipRow(filename: String, studioId: Set[Int], race: Race.Value, role: Role.ValueSet, size: Long, length: Int, clipId: Int, contentTags: Set[Int])
 
   private def getClipRows(clips: Query[Clip, _, Seq], tagTypes: Map[Int, TagType.Value])(implicit db: Database): Future[Seq[ClipRow]] =
     db.run(clips.map(row => (row.file, row.race, row.role, row.size, row.length, row.clipId)).result)
       .flatMap(clips => Future.sequence(clips.map(row =>
         db.run(Tables.clipTag.filter(_.clipId === row._6).map(_.tagId).result).map(allTags =>
-          ClipRow(row._1, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet, row._2, row._3, row._4, row._5, row._6, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet)
+          ClipRow(row._1, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet, row._2, row._3, row._4, row._5, row._6, allTags.filter(tag => tagTypes(tag) == TagType.content).toSet)
         )
       )))
 
@@ -138,7 +138,7 @@ object Difference {
     await(getClipRows(Tables.clip.filter(_.clipId =!= clipId), allTags)).map({row =>
       val acquiredResults = entries.map(entry => entry.getResult(target, row))
       Report(row.clipId, acquiredResults.map(_._1).toMap, acquiredResults.map(_._2).sum)
-    }).sortBy(_.total)
+    }).sortBy(-_.total).take(25)
   }
 
 }

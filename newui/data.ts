@@ -43,11 +43,13 @@ export class Clip implements RowData {
     readonly race: Race;
     readonly roles: Role[];
     readonly score: number;
+    readonly duration: number;
     readonly tags: number[];
     readonly totalPlay: number;
     readonly lastPlay: number;
-    readonly note: string;
     readonly hasThumb: boolean;
+    readonly note: string;
+    readonly resolution: number;
 
     readonly exists: boolean;
     thumbImgPromise: Promise<string> | undefined;
@@ -61,11 +63,13 @@ export class Clip implements RowData {
         this.race = data[2];
         this.roles = data[3];
         this.score = data[4];
+        this.duration = data[6];
         this.tags = data[7];
         this.totalPlay = data[8];
         this.lastPlay = data[9];
         this.hasThumb = data[10];
         this.note = data[11];
+        this.resolution = data[12];
         this.exists = true;
         this.validate(tagsData);
     }

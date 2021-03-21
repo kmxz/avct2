@@ -14,6 +14,9 @@ import { AvctClipPlay, AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from
 import { AvctTagList } from './tags';
 import { AvctClipHistoryDialog, AvctThumbnailDialog } from './dialogs';
 import { send } from './api';
+import { styleMap } from 'lit-html/directives/style-map.js';
+
+const resolutionToColor = (resolution: number): string => resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000';
 
 abstract class ClipCellElementBase extends LitElement implements ClipCallback {
     @property({ attribute: false })
@@ -36,7 +39,7 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
 
     createRenderRoot() { return this; }
 
-    abstract renderContent(): TemplateResult;
+    abstract renderContent(): TemplateResult | string;
 }
 
 export class AvctClipThumb extends ClipCellElementBase {
@@ -70,8 +73,9 @@ export class AvctClipThumb extends ClipCellElementBase {
 export class AvctClipName extends ClipCellElementBase {
     renderContent() {
         return html`
+            <span class="resolution-indicator" title="${this.item.resolution + 'p'}" style="${styleMap({ 'background': resolutionToColor(this.item.resolution) })}"></span>
             ${this.item.getFile()}
-            <${AvctCtxMenu} title="Play ${this.item.getFile()}"><${AvctClipPlay} .clipId="${this.item.id}"></${AvctClipPlay}></${AvctCtxMenu}>
+            <${AvctCtxMenu} title="Play ${this.item.getFile()}"><${AvctClipPlay} .clipId="${this.item.id}" .path="${this.item.path}"></${AvctClipPlay}></${AvctCtxMenu}>
         `;
     }
 }
@@ -220,6 +224,15 @@ class AvctClipHistory extends ClipCellElementBase {
     }
 }
 
+class AvctClipDuration extends ClipCellElementBase {
+    renderContent() {
+        const duration = this.item.duration;
+        if (duration < 60) { return duration + 's'; }
+        const minutes = Math.floor(duration / 60);
+        return `${minutes} m ${duration - 60 * minutes} s`
+    }
+}
+
 export class AvctClips extends LitElement {
     @property({ attribute: false })
     clips?: Map<number, Clip>;
@@ -253,7 +266,8 @@ export class AvctClips extends LitElement {
         column('Race', AvctClipRace),
         column('Tags', AvctClipTags),
         column('Note', AvctClipNote),
-        column('History', AvctClipHistory, false)
+        column('History', AvctClipHistory, false),
+        column('Duration', AvctClipDuration, false)
     ];
 
     render() {

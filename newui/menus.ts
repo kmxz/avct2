@@ -7,6 +7,8 @@ import { RACES, Race, Role, ROLES } from './model';
 import { until } from 'lit-html/directives/until.js';
 import { players } from './data';
 import { send } from './api';
+import { globalDialog } from './components/dialog';
+import { AvctSimilarClipsDialog } from './dialogs';
 
 export class AvctRaceSelection extends LitElement {
     static styles = css`
@@ -104,12 +106,12 @@ export class AvctTextEdit extends LitElement {
 export class AvctClipPlay extends LitElement {
     static styles = css`
         :host { display: block; position: relative; }
-        button[name="record"] {
+        button[name="record"]:not(:last-of-type) {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
             margin-right: -1px;
         }
-        button[name="no-record"] {
+        button[name="no-record"]:not(:first-of-type) {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
         }
@@ -120,6 +122,7 @@ export class AvctClipPlay extends LitElement {
             margin-top: 0;
         }
         hr { border: 0; border-bottom: 1px solid #c7c7c7; }
+        .path { white-space: normal; }
     `;
 
     firstUpdated() {
@@ -149,14 +152,24 @@ export class AvctClipPlay extends LitElement {
     @property({ attribute: false })
     clipId!: number;
 
+    @property({ attribute: false })
+    path!: string;
+
+    @property({ type: Boolean })
+    insideSpecial!: boolean;
+
+    private openSimilar(): void {
+        globalDialog({ type: AvctSimilarClipsDialog, title: 'Similar clips', params: this.clipId });
+    }
+
     render() {
-        console.log('REndered ein');
         return html`
             <link rel="stylesheet" href="./shared.css" />
-            <div class="btn-group default"><button name="record" data-player="">Default player</button><button name="no-record">w/o REC</button></div>
-            ${until(players.then(list => list.map(name => html`<div class="btn-group" data-player="${name}"><button name="record">${name}</button><button name="no-record">w/o REC</button></div>`)), html`<span loading></span>`)}
+            <div class="btn-group default" data-player="">${this.insideSpecial ? html`<button name="no-record">Default player</button>` : html`<button name="record">Default player</button><button name="no-record">w/o REC</button>`}</div>
+            ${until(players.then(list => list.map(name => html`<div class="btn-group" data-player="${name}">${this.insideSpecial ? html`<button name="no-record">${name}</button>` : html`<button name="record">${name}</button><button name="no-record">w/o REC</button>`}</div>`)), html`<span loading></span>`)}
             <hr />
-            <button name="folder">Open in folder</button>
+            <div class="path"><button name="folder">Open in folder</button> (${this.path})</div>
+            ${this.insideSpecial ? null : html`<hr /><button name="similar" @click="${this.openSimilar}">Similar clips</button>`}
         `;
     }
 }

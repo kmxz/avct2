@@ -53,7 +53,7 @@ export const globalDialog = <I, O>(dialog: Partial<DialogOptions<I, O>> & Pick<D
 export class AvctDialogContainer extends LitElement {
     static styles = css`
         .dialog-modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, 0.2); display: flex; justify-content: center; z-index: 2; padding: 32px; }
-        .dialog-proper { align-self: center; background: #fff; padding: 0 16px 16px 16px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25); max-height: 100%; overflow: auto; }
+        .dialog-proper { align-self: center; background: #fff; padding: 0 16px 16px 16px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25); max-height: 100%; overflow-y: auto; }
         h2 {
             font-size: 16px;
             margin: 0 -16px 16px -16px;

@@ -7,19 +7,29 @@ import { arrayNonEq, recordNonEq, RowData } from '../model';
 import { query } from 'lit-element/decorators/query.js';
 import { seq } from './utils';
 import { AvctCtxMenu } from './menu';
+import { styleMap } from 'lit-html/directives/style-map.js';
+import { classMap } from 'lit-html/directives/class-map.js';
 
 const INSERT_AT_END = 'INSERT_AT_END';
 
 const uniqId = seq();
 
 interface Column {
-    id: string;
-    title: string;
-    cellType: ElementType;
-    width: number;
+    readonly id: string;
+    readonly title: string;
+    readonly cellType: ElementType;
+    readonly width: number;
 }
 
 export const column = (title: string, cellType: ElementType, show: boolean = true): Column => ({ id: `${uniqId()}`, title, cellType, width: show ? 100 : 0 });
+
+interface Moving {
+    readonly id: string;
+    readonly title: string;
+    readonly initialElX: number; readonly initialElY: number;
+    readonly elWidth: number; readonly elHeight: number;
+    currentX: number; currentY: number;
+}
 
 export class AvctTableColumnEdit extends LitElement {
     static styles = css`
@@ -45,7 +55,10 @@ export class AvctTableColumnEdit extends LitElement {
             padding-left: 8px;
         }
         .inactive li { opacity: 0.75; }
-        li.active {
+        .moving {
+            padding: 0; margin: 0; width: 0;
+        }
+        .moving li {
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
             position: absolute;
             z-index: 1;
@@ -59,94 +72,98 @@ export class AvctTableColumnEdit extends LitElement {
     @query('ul.active')
     activeUl!: HTMLUListElement;
 
+    @property({ attribute: false })
+    moving?: Moving;
+
     private handleMouseDown(e: MouseEvent): void {
         const oli = (e.currentTarget as HTMLElement);
         const oldCid = oli.dataset['columnId']!;
-        // let insertBeforeCid: string = oldCid;
-        const li = oli.cloneNode(true) as HTMLElement;
-        li.classList.add('active');
-        const singleWidth = oli.clientWidth;
-        const singleHeight = oli.clientHeight;
-        li.style.width = singleWidth + 'px';
-        const initialX = e.clientX;
-        const initialY = e.clientY;
-        const initialElX = oli.offsetLeft;
-        const initialElY = oli.offsetTop;
-        oli.classList.add('shadow');
-        const mouseMove = (e: MouseEvent): void => {
-            const container = this.getBoundingClientRect();
-            const leftUl = this.activeUl.getBoundingClientRect();
-            const x = Math.min(Math.max(e.clientX, container.left), container.right);
-            const y = Math.min(Math.max(e.clientY, container.top), container.bottom);
-            const liX = x - initialX + initialElX;
-            const liY = y - initialY + initialElY;
-            li.style.left = liX + 'px';
-            li.style.top = liY + 'px';
-            const xCenter = liX + singleWidth / 2;
-            const yCenter = liY + singleHeight / 2;
-            requestAnimationFrame(() => {
-                const toBeActive = xCenter < leftUl.right - container.left;
-                const parentNode = toBeActive ? this.activeUl : (this.activeUl.nextElementSibling as HTMLUListElement);
-                const existingChildren = Array.from(parentNode.children) as HTMLElement[];
-                let insertBefore: string | undefined;
-                for (let i = 0; i < existingChildren.length; i++) {
-                    const refTop = existingChildren[i].offsetTop;
-                    const refHeight = existingChildren[i].offsetHeight;
-                    if (yCenter < refTop + refHeight * 0.25) {
-                        if ((existingChildren[i] !== oli) && ((i === 0) || (existingChildren[i - 1] !== oli))) {
-                            insertBefore = existingChildren[i].dataset['columnId']!;
-                        } else {
-                            insertBefore = oldCid; // Position not changed.
-                        }
-                        break;
-                    }
-                    if (yCenter < refTop + refHeight * 0.75) {
-                        insertBefore = oldCid; break;
-                    }
-                }
-                if (!insertBefore) {
-                    if ((existingChildren.length === 0) || (existingChildren[existingChildren.length - 1] !== oli)) {
-                        insertBefore = INSERT_AT_END;
-                    } else {
-                        insertBefore = oldCid;
-                    }
-                }
-                if (insertBefore !== oldCid) {
-                    const columnsCopy = Array.from(this.columns);
-                    let columnToMove = columnsCopy.splice(columnsCopy.findIndex(column => column.id === oldCid), 1)[0];
-                    if (toBeActive && !columnToMove.width) {
-                        columnToMove = { ...columnToMove, width: 100 };
-                    } else if (!toBeActive && columnToMove.width) {
-                        columnToMove = { ...columnToMove, width: 0 };
-                    }
-                    columnsCopy.splice((insertBefore === INSERT_AT_END) ? Number.MAX_SAFE_INTEGER : columnsCopy.findIndex(column => column.id === insertBefore), 0, columnToMove);
-                    this.columns = columnsCopy;
-                }
-            });
-        };
-        li.style.left = initialElX + 'px';
-        li.style.top = initialElY + 'px';
-        li.addEventListener('mousemove', mouseMove);
-        const end = (): void => {
-            li.removeEventListener('mousemove', mouseMove);
-            li.removeEventListener('mouseup', end);
-            li.removeEventListener('mouseout', end);
-            li.parentNode!.removeChild(li);
-            oli.classList.remove('shadow');
-            e.preventDefault();
-            this.dispatchEvent(new CustomEvent<Column[]>('avct-select', { detail: this.columns }));
-        };
-        li.addEventListener('mouseup', end);
-        li.addEventListener('mouseout', end);
-        (this.shadowRoot ?? this).appendChild(li);
+        this.moving = {
+            initialElX: oli.offsetLeft - e.clientX,
+            initialElY: oli.offsetTop - e.clientY,
+            currentX: oli.offsetLeft,
+            currentY: oli.offsetTop,
+            elWidth: oli.clientWidth,
+            elHeight: oli.clientHeight,
+            id: oldCid,
+            title: oli.textContent!
+        }
         e.preventDefault();
     }
 
-    private renderGroup(columns: Column[]): ReturnType<LitElement['render']> {
-        return repeat(columns, entry => entry.id, entry => html`<li data-column-id="${String(entry.id)}" @mousedown="${this.handleMouseDown}">${entry.title}</li>`);
+    private handleMouseMove(e: MouseEvent): void {
+        const li = e.currentTarget as HTMLLIElement;
+        if (!this.moving) { return; }
+        const { initialElX, initialElY, elWidth, elHeight, id: oldCid } = this.moving;
+        const container = this.getBoundingClientRect();
+        const leftUl = this.activeUl.getBoundingClientRect();
+        const x = Math.min(Math.max(e.clientX, container.left), container.right);
+        const y = Math.min(Math.max(e.clientY, container.top), container.bottom);
+        const liX = x + initialElX;
+        const liY = y + initialElY;
+        li.style.left = liX + 'px';
+        li.style.top = liY + 'px';
+        // The two lines above won't trigger rerender as `this.moving` is still the same instance. It will however ensure the location once the template do gets rerendered due to other changes.
+        this.moving.currentX = liX;
+        this.moving.currentY = liY;
+        const xCenter = liX + elWidth / 2;
+        const yCenter = liY + elHeight / 2;
+        requestAnimationFrame(() => {
+            const toBeActive = xCenter < leftUl.right - container.left;
+            const parentNode = toBeActive ? this.activeUl : (this.activeUl.nextElementSibling as HTMLUListElement);
+            const existingChildren = Array.from(parentNode.children) as HTMLElement[];
+            let insertBefore: string | undefined;
+            for (let i = 0; i < existingChildren.length; i++) {
+                const refTop = existingChildren[i].offsetTop;
+                const refHeight = existingChildren[i].offsetHeight;
+                if (yCenter < refTop + refHeight * 0.25) {
+                    if ((existingChildren[i].dataset['columnId'] !== oldCid) && ((i === 0) || (existingChildren[i - 1].dataset['columnId'] !== oldCid))) {
+                        insertBefore = existingChildren[i].dataset['columnId']!;
+                    } else {
+                        insertBefore = oldCid; // Position not changed.
+                    }
+                    break;
+                }
+                if (yCenter < refTop + refHeight * 0.75) {
+                    insertBefore = oldCid; break;
+                }
+            }
+            if (!insertBefore) {
+                if ((existingChildren.length === 0) || (existingChildren[existingChildren.length - 1].dataset['columnId'] !== oldCid)) {
+                    insertBefore = INSERT_AT_END;
+                } else {
+                    insertBefore = oldCid;
+                }
+            }
+            if (insertBefore !== oldCid) {
+                const columnsCopy = Array.from(this.columns);
+                let columnToMove = columnsCopy.splice(columnsCopy.findIndex(column => column.id === oldCid), 1)[0];
+                if (toBeActive && !columnToMove.width) {
+                    columnToMove = { ...columnToMove, width: 100 };
+                } else if (!toBeActive && columnToMove.width) {
+                    columnToMove = { ...columnToMove, width: 0 };
+                }
+                columnsCopy.splice((insertBefore === INSERT_AT_END) ? Number.MAX_SAFE_INTEGER : columnsCopy.findIndex(column => column.id === insertBefore), 0, columnToMove);
+                this.columns = columnsCopy;
+            }
+        });
     }
 
+    private handleMouseEnd(e: MouseEvent): void {
+        e.preventDefault();
+        requestAnimationFrame(() => {
+            this.moving = void 0;
+            this.dispatchEvent(new CustomEvent<Column[]>('avct-select', { detail: this.columns }));
+        });
+    }
+
+    private renderGroup(columns: Column[]): ReturnType<LitElement['render']> {
+        const movingId = this.moving?.id;
+        return repeat(columns, entry => entry.id, entry => html`<li data-column-id="${String(entry.id)}" class="${classMap({ 'shadow': entry.id === movingId })}" @mousedown="${this.handleMouseDown}">${entry.title}</li>`);
+    }
+    
     render() {
+        const moving = this.moving;
         return html`
             <ul class="active">
                 ${this.renderGroup(this.columns.filter(column => column.width))}
@@ -154,6 +171,7 @@ export class AvctTableColumnEdit extends LitElement {
             <ul class="inactive">
                 ${this.renderGroup(this.columns.filter(column => !column.width))}
             </ul>
+            <ul class="moving">${moving ? html`<li data-column-id="${String(moving.id)}" @mousemove="${this.handleMouseMove}" @mouseout="${this.handleMouseEnd}" @mouseup="${this.handleMouseEnd}" style="${styleMap({ left: moving.currentX + 'px', top: moving.currentY + 'px', width: moving.elWidth + 'px', height: moving.elHeight + 'px' })}">${moving.title}</li>` : null}</ul>
         `;
     }
 }

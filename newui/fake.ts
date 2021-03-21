@@ -117,6 +117,14 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
         }
         return times;
     },
+    'clip/similar': () => {
+        return [
+            { clipId: 7, total: 15, scores: { 'a': 3, 'b': 7, 'c': 5 } },
+            { clipId: 5, total: 11, scores: { 'a': 4, 'b': 2, 'c': 5 } },
+            { clipId: 13, total: 5, scores: { 'a': 3, 'c': 2 } },
+            { clipId: 11, total: 1, scores: { 'a': 1 } }
+        ];
+    },
     'clip/thumb': params => fetch(`images/${((params.id % 10) - -1)}.jpg`).then(res => res.blob()),
     'players': () => ['test_player', 'mplayer', 'gplayer']
 };
