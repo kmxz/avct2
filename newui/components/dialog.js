@@ -5,12 +5,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from '../registry';
+import { html } from './registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { seq } from './utils';
+export class DialogBase extends LitElement {
+    done(detail) {
+        this.dispatchEvent(new CustomEvent('avct-select', { detail }));
+    }
+    abort() {
+        this.dispatchEvent(new CustomEvent('avct-close'));
+    }
+}
+__decorate([
+    property({ attribute: false })
+], DialogBase.prototype, "params", void 0);
 const globalDialogs = new MultiStore(Promise.resolve([]));
 const uniqId = seq();
 export const globalDialog = (dialog) => new Promise((res, rej) => globalDialogs.update(list => list.concat({
@@ -43,6 +54,9 @@ export class AvctDialogContainer extends LitElement {
     handleChildSelect(e) {
         this.handleClose(e.currentTarget.parentNode, e);
     }
+    handleChildClose(e) {
+        this.handleClose(e.currentTarget.parentNode, void 0);
+    }
     handleCloseButton(e) {
         this.handleClose(e.currentTarget.parentNode.parentNode, void 0);
     }
@@ -54,7 +68,7 @@ export class AvctDialogContainer extends LitElement {
                 <div class="dialog-modal">
                     <div class="dialog-proper" data-dialog-id="${String(dialog.id)}">
                         <h2><span>${dialog.title}</span>${dialog.cancellable ? html `<button class="round-button" @click="${this.handleCloseButton}">🗙</button>` : null}</h2>
-                        <${dialog.type} .params=${dialog.params} @avct-select="${this.handleChildSelect}" .params="${dialog.params}"></${dialog.type}>
+                        <${dialog.type} .params=${dialog.params} @avct-select="${this.handleChildSelect}" @avct-close="${this.handleChildClose}" .params="${dialog.params}"></${dialog.type}>
                     </div>
                 </div>
             `) : null;

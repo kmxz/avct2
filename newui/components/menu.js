@@ -5,7 +5,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from '../registry';
+import { html } from './registry';
 import { property } from 'lit-element/decorators/property.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
 export class AvctCtxMenu extends LitElement {

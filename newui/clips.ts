@@ -1,6 +1,6 @@
 import { AvctTable, column } from './components/table';
 import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
-import { html } from './registry';
+import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
 import { arrayNonEq, TagJson, ClipCallback, Race, Role } from './model';
 import { tags, Clip } from './data';
@@ -10,9 +10,10 @@ import { classMap } from 'lit-html/directives/class-map.js';
 import { globalToast } from './components/toast';
 import { globalDialog } from './components/dialog';
 import { AvctCtxMenu } from './components/menu';
-import { AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from './menus';
+import { AvctClipPlay, AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from './menus';
 import { AvctTagList } from './tags';
-import { AvctClipHistoryDialog } from './dialogs';
+import { AvctClipHistoryDialog, AvctThumbnailDialog } from './dialogs';
+import { send } from './api';
 
 abstract class ClipCellElementBase extends LitElement implements ClipCallback {
     @property({ attribute: false })
@@ -39,13 +40,30 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
 }
 
 export class AvctClipThumb extends ClipCellElementBase {
+    constructor() {
+        super();
+        this.addEventListener('click', async () => {
+            let blob: Blob;
+            try {
+                blob = await globalDialog({
+                    title: 'Select thumbnail',
+                    type: AvctThumbnailDialog,
+                    params: {
+                        id: this.item.id,
+                        thumb: this.item.hasThumb ? this.item.getThumb() : null
+                    }
+                });
+            } catch (e) {
+                globalToast('Thumb not changed.');
+                return;
+            }
+            await send('clip/saveshot', { 'id': this.item.id, 'file': blob });
+            await this.item.notifyThumbChange();
+        });
+    }
+
     renderContent() {
-        return html`
-            ${this.item.hasThumb ? until(this.item.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : null}
-            <${AvctCtxMenu} title="Thumbnail">
-                Test
-            </${AvctCtxMenu}>
-        `;
+        return html`${this.item.hasThumb ? until(this.item.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : null}`;
     }
 }
 
@@ -53,8 +71,7 @@ export class AvctClipName extends ClipCellElementBase {
     renderContent() {
         return html`
             ${this.item.getFile()}
-            <${AvctCtxMenu} title="${this.item.path}">
-            </${AvctCtxMenu}>
+            <${AvctCtxMenu} title="Play ${this.item.getFile()}"><${AvctClipPlay} .clipId="${this.item.id}"></${AvctClipPlay}></${AvctCtxMenu}>
         `;
     }
 }
@@ -156,7 +173,7 @@ export class AvctClipScore extends ClipCellElementBase {
     preview = 0;
 
     private static targetScore(e: MouseEvent): number {
-        if ((e.target as HTMLElement).tagName.toUpperCase() !== 'BUTTON') { return 0; }
+        if ((e.target as Node).nodeName.toUpperCase() !== 'BUTTON') { return 0; }
         const star = e.target as HTMLButtonElement;
         return parseInt(star.value);
     }

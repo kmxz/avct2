@@ -1,7 +1,7 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { clips, tags } from './data';
-import { html } from './registry';  
+import { html } from './components/registry';  
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 
 // Imports for custom element definitions.

@@ -63,7 +63,7 @@ tbody td {
 td:hover .td-hover { display: initial; }
 
 .table-settings {
-    /* visibility: hidden; */
+        visibility: hidden;
     position: absolute;
     right: 2px;
     top: 2px;

@@ -117,7 +117,8 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
         }
         return times;
     },
-    'clip/thumb': params => fetch(`images/${((params.id % 10) - -1)}.jpg`).then(res => res.blob())
+    'clip/thumb': params => fetch(`images/${((params.id % 10) - -1)}.jpg`).then(res => res.blob()),
+    'players': () => ['test_player', 'mplayer', 'gplayer']
 };
 
 export const handle = (api: string, params?: { [key: string]: any }): Promise<any> => {

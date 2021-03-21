@@ -3,7 +3,7 @@ import { globalDialog } from './components/dialog';
 import { AvctClipsUpdates } from './dialogs';
 import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb } from './clips';
 import { TagJson, ClipCallback, RowData, ClipJson, Store, MultiStore, Race, Role, RACES } from './model';
-import { ElementType } from './registry';
+import { ElementType } from './components/registry';
 
 const tagListReq = send('tag/list');
 const clipListReq = send('clip/list');
@@ -14,6 +14,8 @@ export const clips: MultiStore<Map<number, Clip>> = new MultiStore(
     Promise.all([tags.value().next().then(res => res.value), clipListReq]).then(
         ([tags, raw]: [Map<number, TagJson>, ClipJson[]]) => new Map(raw.map(clipJson => [clipJson[0], new Clip(clipJson, tags)])))
 );
+
+export const players: Promise<string[]> = send('players');
 
 Promise.all([tagListReq, clipListReq]).then(() => send('clip/autocrawl')).then(async (response: { added: string[], disappeared: string[] }) => {
     const tagsData = (await tags.value().next()).value;
@@ -35,8 +37,6 @@ Promise.all([tagListReq, clipListReq]).then(() => send('clip/autocrawl')).then(a
     }
 });
 
-export const players: Store<string[]> = new Store(send('players'));
-
 export class Clip implements RowData {
     readonly id: number;
     readonly path: string;
@@ -50,7 +50,7 @@ export class Clip implements RowData {
     readonly hasThumb: boolean;
 
     readonly exists: boolean;
-    private thumbImgPromise: Promise<string> | undefined;
+    thumbImgPromise: Promise<string> | undefined;
 
     constructor(data: ClipJson, tagsData: Map<number, TagJson>, oldInstance?: Clip) {
         if (oldInstance) {
@@ -145,5 +145,15 @@ export class Clip implements RowData {
 
         const out = errors.size > 0 ? errors : null;
         this.errors = out;
+    }
+
+    async notifyThumbChange(): Promise<void> {
+        const tagsData = (await tags.value().next()).value;
+        clips.update(oldMap => {
+            const newMap = new Map(oldMap);
+            const newClip = this.clone({ thumbImgPromise: undefined }, tagsData);
+            newMap.set(this.id, newClip);
+            return newMap;
+        });
     }
 }

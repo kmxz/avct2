@@ -1,5 +1,5 @@
 import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
-import { html } from './registry';
+import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
 import { TagJson, TagType, TAG_TYPES } from './model';
 import { globalToast } from './components/toast';

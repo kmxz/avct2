@@ -49,3 +49,5 @@ input[type="text"] {
     animation: rotate 1.5s linear infinite;
     box-sizing: border-box;
 }
+
+hr { border: 0; border-bottom: 1px solid #e0e0e0; }

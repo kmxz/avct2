@@ -1,29 +1,44 @@
-import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
-import { ElementType, html } from '../registry';
+import { LitElement, css } from 'lit-element/lit-element.js';
+import { html, Constructor } from './registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { seq } from './utils';
 
-interface DialogOptions {
+export abstract class DialogBase<I, O> extends LitElement {
+    @property({ attribute: false })
+    params!: I;
+
+    protected done(detail: O) {
+        this.dispatchEvent(new CustomEvent('avct-select', { detail }));
+    }
+
+    protected abort() {
+        this.dispatchEvent(new CustomEvent('avct-close'));
+    }
+}
+
+export type DialogType<I, O> = Constructor<DialogBase<I, O>>;
+
+interface DialogOptions<I, O> {
     title: string;
-    type: ElementType;
-    params: any;
+    type: DialogType<I, O>;
+    params: I;
     cancellable: boolean;
 }
 
-interface Dialog extends DialogOptions {
+interface Dialog<I, O> extends DialogOptions<I, O> {
     id: number;
-    onSelect: (callbackParams: any) => void;
+    onSelect: (callbackParams: O) => void;
     onCancel: () => void;
 }
 
-const globalDialogs = new MultiStore<Dialog[]>(Promise.resolve([]));
+const globalDialogs = new MultiStore<Dialog<any, any>[]>(Promise.resolve([]));
 
 const uniqId = seq();
-export const globalDialog = (dialog: Partial<DialogOptions> & Pick<DialogOptions, 'type'>): Promise<any> => new Promise((res, rej) => 
+
+export const globalDialog = <I, O>(dialog: Partial<DialogOptions<I, O>> & Pick<DialogOptions<I, O>, 'type'>): Promise<O> => new Promise((res, rej) => 
     globalDialogs.update(list => list.concat({
         title: 'Dialog',
         cancellable: true,
@@ -74,19 +89,23 @@ export class AvctDialogContainer extends LitElement {
         this.handleClose((e.currentTarget as LitElement).parentNode as HTMLDivElement, e);
     }
 
+    private handleChildClose(e: CustomEvent<void>): void {
+        this.handleClose((e.currentTarget as LitElement).parentNode as HTMLDivElement, void 0);
+    }
+
     private handleCloseButton(e: MouseEvent) {
         this.handleClose(((e.currentTarget as HTMLSpanElement).parentNode as HTMLDivElement).parentNode as HTMLDivElement, void 0);
     }
 
     render() {
         return html`${asyncReplace(this.dialogs.value(), value => {
-            const list = value as Dialog[];
+            const list = value as Dialog<any, any>[];
             return list.length ? repeat(list, dialog => dialog.id, dialog => html`
                 <link rel="stylesheet" href="./shared.css" />
                 <div class="dialog-modal">
                     <div class="dialog-proper" data-dialog-id="${String(dialog.id)}">
                         <h2><span>${dialog.title}</span>${dialog.cancellable ? html`<button class="round-button" @click="${this.handleCloseButton}">🗙</button>` : null}</h2>
-                        <${dialog.type} .params=${dialog.params} @avct-select="${this.handleChildSelect}" .params="${dialog.params}"></${dialog.type}>
+                        <${dialog.type} .params=${dialog.params} @avct-select="${this.handleChildSelect}" @avct-close="${this.handleChildClose}" .params="${dialog.params}"></${dialog.type}>
                     </div>
                 </div>
             `) : null;

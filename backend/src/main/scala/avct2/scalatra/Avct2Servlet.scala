@@ -91,19 +91,18 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   post("/clip/:id/open") {
     val record = params("record").toBoolean
-    openFileHelper(open, record).map(_ => JNull)
-  }
-
-  post("/clip/:id/openwith") {
     val player = params("player")
-    if (!Avct2Conf.getPlayers.contains(player)) {
-      terminate(404, "Such player is not registered.")
+    val opener = if (player.isEmpty) open else {
+      if (!Avct2Conf.getPlayers.contains(player)) {
+        terminate(404, "Such player is not registered.")
+      }
+      val playerFile = new File(player)
+      if (!playerFile.isFile) {
+        terminate(503, "Player executable does not exist.")
+      }
+      openWith(_, playerFile)
     }
-    val playerFile = new File(player)
-    if (!playerFile.isFile) {
-      terminate(503, "Player executable does not exist.")
-    }
-    openFileHelper(openWith(_, playerFile), true).map(_ => JNull)
+    openFileHelper(opener, record).map(_ => JNull)
   }
 
   post("/clip/:id/folder") {

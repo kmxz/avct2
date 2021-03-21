@@ -1,9 +1,12 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { html } from './registry';
+import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
 import { query } from 'lit-element/decorators/query.js';
 import { queryAll } from 'lit-element/decorators/query-all.js';
 import { RACES, Race, Role, ROLES } from './model';
+import { until } from 'lit-html/directives/until.js';
+import { players } from './data';
+import { send } from './api';
 
 export class AvctRaceSelection extends LitElement {
     static styles = css`
@@ -94,6 +97,66 @@ export class AvctTextEdit extends LitElement {
             <link rel="stylesheet" href="./shared.css" />
             <input type="text" value="${this.value}" @input="${this.change}" @keydown="${this.handleKeyDown}" />
             <button @click="${this.emit}">Save</button>
+        `;
+    }
+}
+
+export class AvctClipPlay extends LitElement {
+    static styles = css`
+        :host { display: block; position: relative; }
+        button[name="record"] {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-right: -1px;
+        }
+        button[name="no-record"] {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        .btn-group {
+            margin-top: 4px;
+        }
+        .default {
+            margin-top: 0;
+        }
+        hr { border: 0; border-bottom: 1px solid #c7c7c7; }
+    `;
+
+    firstUpdated() {
+        this.shadowRoot!.addEventListener('click', e => {
+            if ((e.target as Node).nodeName.toUpperCase() !== 'BUTTON') { return; }
+            const button = e.target as HTMLButtonElement;
+            let record: boolean;
+            switch (button.name) {
+                case 'folder':
+                    send('clip/folder', { id: this.clipId });
+                    return;
+                case 'record':
+                    record = true;
+                    break;
+                case 'no-record':
+                    record = false;
+                    break;
+                default:
+                    return;
+            }
+            const btnGroup = button.parentNode as HTMLDivElement;
+            const player = btnGroup.dataset['player'];
+            send('clip/open', { record, player, id: this.clipId });
+        });
+    }
+
+    @property({ attribute: false })
+    clipId!: number;
+
+    render() {
+        console.log('REndered ein');
+        return html`
+            <link rel="stylesheet" href="./shared.css" />
+            <div class="btn-group default"><button name="record" data-player="">Default player</button><button name="no-record">w/o REC</button></div>
+            ${until(players.then(list => list.map(name => html`<div class="btn-group" data-player="${name}"><button name="record">${name}</button><button name="no-record">w/o REC</button></div>`)), html`<span loading></span>`)}
+            <hr />
+            <button name="folder">Open in folder</button>
         `;
     }
 }

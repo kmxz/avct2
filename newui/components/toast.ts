@@ -1,6 +1,6 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { customElement } from 'lit-element/decorators/custom-element.js';
-import { html } from '../registry';
+import { html } from './registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';

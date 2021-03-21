@@ -8,7 +8,7 @@ import { LitElement, css } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { guard } from 'lit-html/directives/guard.js';
-import { html } from '../registry';
+import { html } from './registry';
 import { arrayNonEq, recordNonEq } from '../model';
 import { query } from 'lit-element/decorators/query.js';
 import { seq } from './utils';

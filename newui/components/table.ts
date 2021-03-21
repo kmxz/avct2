@@ -2,7 +2,7 @@ import { LitElement, css } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { guard } from 'lit-html/directives/guard.js';
-import { ElementType, html } from '../registry';
+import { ElementType, html } from './registry';
 import { arrayNonEq, recordNonEq, RowData } from '../model';
 import { query } from 'lit-element/decorators/query.js';
 import { seq } from './utils';
