@@ -10,9 +10,13 @@ import { classMap } from 'lit-html/directives/class-map.js';
 import { globalToast } from './components/toast';
 import { globalDialog } from './components/dialog';
 import { AvctCtxMenu } from './components/menu';
-import { AvctClipPlay, AvctRaceSelection, AvctRoleSelection, AvctTextEdit } from './menus';
+import { AvctClipPlay } from './menus/clip-play';
+import { AvctRaceSelection } from './menus/race-selection';
+import { AvctRoleSelection } from './menus/role-selection';
+import { AvctTextEdit } from './menus/text-edit';
 import { AvctTagList } from './tags';
-import { AvctClipHistoryDialog, AvctThumbnailDialog } from './dialogs';
+import { AvctClipHistoryDialog } from './dialogs/clip-history';
+import { AvctThumbnailDialog } from './dialogs/thumbnail';
 import { send } from './api';
 import { styleMap } from 'lit-html/directives/style-map.js';
 
@@ -65,7 +69,7 @@ export class AvctClipThumb extends ClipCellElementBase {
         });
     }
 
-    renderContent() {
+    renderContent(): TemplateResult {
         return html`${this.item.hasThumb ? until(this.item.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : null}`;
     }
 }
@@ -75,7 +79,7 @@ export class AvctClipName extends ClipCellElementBase {
         send('clip/delete', { id: this.item.id });
     }
 
-    renderContent() {
+    renderContent(): TemplateResult {
         return html`
             <span class="resolution-indicator" title="${this.item.resolution + 'p'}" style="${styleMap({ 'background': resolutionToColor(this.item.resolution) })}"></span>
             ${this.item.getFile()}
@@ -92,7 +96,7 @@ export class AvctClipRace extends ClipCellElementBase {
     private abortEdit(): void { this.edit = false; }
     private selects(e: CustomEvent<Race>): Promise<void> { this.edit = false; return this.item.update('race', e.detail, this); }
     
-    renderContent() {
+    renderContent(): TemplateResult {
         return html`
             ${this.item.race}
             <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
@@ -119,7 +123,7 @@ export class AvctClipRole extends ClipCellElementBase {
     }
     private selects(e: CustomEvent<Role[]>): Promise<void> { this.edit = false; return this.item.update('role', e.detail, this); }
     
-    renderContent() {
+    renderContent(): TemplateResult {
         return html`
             ${this.item.roles.map(role => html`<span>${role}</span>`)}
             <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
@@ -147,7 +151,7 @@ export class AvctClipNote extends ClipCellElementBase {
     }
     private done(e: CustomEvent<string>): Promise<void> { this.edit = false; return this.item.update('sourceNote', e.detail, this); }
 
-    renderContent() {
+    renderContent(): TemplateResult {
         return html`
             ${this.item.note}
             <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
@@ -171,7 +175,7 @@ export class AvctClipTags extends ClipCellElementBase {
         return this.item.update('tags', newTags, this);
     }
 
-    renderContent() {
+    renderContent(): TemplateResult {
         return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => this.item.tags.map(id => (tagMap as Map<number, TagJson>).get(id)))}" @avct-select="${this.selectTag}" @avct-remove="${this.removeTag}"></${AvctTagList}>`;
     }
 }
@@ -207,7 +211,7 @@ export class AvctClipScore extends ClipCellElementBase {
         }
     }
     
-    renderContent() {
+    renderContent(): TemplateResult {
         const rating = this.item.score;
         return html`<div @click="${this.handleClick}" @mouseover="${this.handleMouseOver}" @mouseout="${this.handleMouseOut}">${Array.from(Array(5).keys()).map(index => 
             html`<button class="${classMap({ 'preview': this.preview > index })}" value="${String(index + 1)}">${(rating > index) ? '★' : '☆'}</button>`
@@ -220,7 +224,7 @@ class AvctClipHistory extends ClipCellElementBase {
         globalDialog({ type: AvctClipHistoryDialog, params: this.item.id });
     }
 
-    renderContent() {
+    renderContent(): TemplateResult {
         if (!this.item.lastPlay) { return html`Never played`; }
         const diffDays = (new Date().getTime() / 1000 - this.item.lastPlay) / (3600 * 24);
         return html`${this.item.totalPlay} times (${(diffDays > 10) ? String(Math.round(diffDays)) : diffDays.toPrecision(2)} days ago)
@@ -229,7 +233,7 @@ class AvctClipHistory extends ClipCellElementBase {
 }
 
 class AvctClipDuration extends ClipCellElementBase {
-    renderContent() {
+    renderContent(): string {
         const duration = this.item.duration;
         if (duration < 60) { return duration + 's'; }
         const minutes = Math.floor(duration / 60);
@@ -251,10 +255,13 @@ export class AvctClips extends LitElement {
         this.rows = Array.from(this.clips!.keys());
     }
 
-    updated(changedProps: Map<keyof AvctClips, any>) {
+    updated(changedProps: Map<keyof AvctClips, any>): ReturnType<LitElement['updated']> {
         if (changedProps.has('clips')) {
             this.applyFilter();
         }
+        requestAnimationFrame(now => {
+            console.log(`RENDER FIN @${now}`);
+        });
     }
 
     createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }

@@ -1,5 +1,4 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
-import { customElement } from 'lit-element/decorators/custom-element.js';
 import { html } from './registry';
 import { MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
@@ -25,6 +24,7 @@ export class AvctToastContainer extends LitElement {
             position: fixed;
             bottom: 0;
             width: 100%;
+            z-index: 3;
         }
         div {
             width: 280px;
@@ -58,7 +58,7 @@ export class AvctToastContainer extends LitElement {
         });
     };
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return html`${asyncReplace(this.toaster.value(), value => {
             const list = value as Toast[];
             if (!list.length) { return null; }

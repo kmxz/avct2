@@ -1,3 +1,5 @@
 /node_modules/
 /package-lock.json
-/*.js
+*.js
+*.js.map
+!/rollup.config.js

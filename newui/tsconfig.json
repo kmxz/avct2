@@ -5,7 +5,9 @@
         "moduleResolution": "node",
         "lib": ["es2017", "dom"],
         "experimentalDecorators": true,
-        "strict": true
-    },    
-    "files": ["index.ts", "./DialogBase.ts"]
+        "strict": true,
+        "sourceMap": true,
+        "rootDir": "./src"
+    },
+    "files": ["src/index.ts"],
 }

@@ -10,11 +10,11 @@ export abstract class DialogBase<I, O> extends LitElement {
     @property({ attribute: false })
     params!: I;
 
-    protected done(detail: O) {
+    protected done(detail: O): void {
         this.dispatchEvent(new CustomEvent('avct-select', { detail }));
     }
 
-    protected abort() {
+    protected abort(): void {
         this.dispatchEvent(new CustomEvent('avct-close'));
     }
 }
@@ -97,7 +97,7 @@ export class AvctDialogContainer extends LitElement {
         this.handleClose(((e.currentTarget as HTMLSpanElement).parentNode as HTMLDivElement).parentNode as HTMLDivElement, void 0);
     }
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return html`${asyncReplace(this.dialogs.value(), value => {
             const list = value as Dialog<any, any>[];
             return list.length ? repeat(list, dialog => dialog.id, dialog => html`

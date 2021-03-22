@@ -162,7 +162,7 @@ export class AvctTableColumnEdit extends LitElement {
         return repeat(columns, entry => entry.id, entry => html`<li data-column-id="${String(entry.id)}" class="${classMap({ 'shadow': entry.id === movingId })}" @mousedown="${this.handleMouseDown}">${entry.title}</li>`);
     }
     
-    render() {
+    render(): ReturnType<LitElement['render']> {
         const moving = this.moving;
         return html`
             <ul class="active">
@@ -248,7 +248,7 @@ export class AvctTable<T extends RowData> extends LitElement {
         }
     }
 
-    updated() {
+    updated(): ReturnType<LitElement['updated']> {
         if (this.scrollTopToRecover >= 0) {
             requestAnimationFrame(this.restoreScrollPosition);
         }
@@ -257,7 +257,7 @@ export class AvctTable<T extends RowData> extends LitElement {
     @query('.load-more')
     loadMoreTd!: HTMLTableDataCellElement;
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         const visibleColumns = this.columns.filter(column => column.width);
         const visibleRows = this.rows.slice(0, this.visibleRows);
         const config = html`
@@ -293,5 +293,5 @@ export class AvctTable<T extends RowData> extends LitElement {
         `;
     }
 
-    createRenderRoot() { return this; }
+    createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
 }

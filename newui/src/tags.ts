@@ -15,63 +15,6 @@ const sortOrder: Record<TagType, number> = {
 
 const normalize = (input: string): string => input.toLowerCase().replace(/\s+/g, ' ').trim();
 
-export class AvctTagList extends LitElement {
-    @property({ attribute: false })
-    tags: TagJson[] = [];
-
-    createRenderRoot() { return this; }
-
-    @property({ attribute: false })
-    add = false;
-
-    private tagIds: Set<number> = new Set();
-
-    update(changedParams: PropertyValues) {
-        if (changedParams.has('tags')) {
-            this.tagIds = new Set(this.tags.map(tag => tag.id));
-        }
-        super.update(changedParams);
-    }
-
-    private onAddTag(): void { this.add = true; }
-    private abortAdd(): void { globalToast('Tag selection discarded.'); this.add = false; }
-
-    private removeTag(e: MouseEvent): void { 
-        const button = e.target as HTMLButtonElement;
-        const id = parseInt(button.dataset['tagId']!);
-        if (isNaN(id)) { globalToast('Not a valid tag.'); }
-        const tagElement = this.tags.find(tag => tag.id === id);
-        if (window.confirm(`Remove tag ${tagElement?.name ?? '[unknown]'}?`)) {
-            this.dispatchEvent(new CustomEvent<number>('avct-remove', { detail: id }));
-        }
-    }
-
-    private selectTag(e: CustomEvent<number>): void {
-        this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: e.detail }));
-        this.add = false;
-    }
-
-    render(): ReturnType<LitElement['render']> {
-        this.tags.sort((a, b) => {
-            const byType = sortOrder[a.type] - sortOrder[b.type];
-            return byType || (a.name.localeCompare(b.name));
-        });
-        return html`${
-            this.tags.map(tag => html`
-                <span class="${'tag-type-' + tag.type.toLowerCase()}">
-                    ${tag.name}
-                    <${AvctCtxMenu} title="${tag.type} tag"><button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button></${AvctCtxMenu}>
-                </span>
-            `)}
-            <button class="td-hover round-button" @click="${this.onAddTag}">+</button>
-            ${this.add ? html`
-                <${AvctCtxMenu} shown shadow title="Add a tag" @avct-close="${this.abortAdd}">
-                    <${AvctTagSelect} @avct-select="${this.selectTag}" .existing="${this.tagIds}"></${AvctTagSelect}>
-                </${AvctCtxMenu}>`
-            : null}`;
-    }
-}
-
 export class AvctTagSelect extends LitElement {
     static styles = css`
         .anchor {
@@ -252,7 +195,7 @@ export class AvctTagSelect extends LitElement {
         e.preventDefault(); // https://stackoverflow.com/a/57630197
     }
 
-    updated() {
+    updated(): ReturnType<LitElement['updated']> {
         const li = this.selectedLi;
         if (!li) { return; }
         const bcr = li.getBoundingClientRect();
@@ -290,5 +233,62 @@ export class AvctTagSelect extends LitElement {
             </div>
             <button @click="${this.emit}" ?loading="${this.tagCreationInProgress}" ?disabled="${this.tagCreationInProgress || !this.selectedTag}">Done</button>
         `;
+    }
+}
+
+export class AvctTagList extends LitElement {
+    @property({ attribute: false })
+    tags: TagJson[] = [];
+
+    createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
+
+    @property({ attribute: false })
+    add = false;
+
+    private tagIds: Set<number> = new Set();
+
+    update(changedParams: PropertyValues): ReturnType<LitElement['updated']> {
+        if (changedParams.has('tags')) {
+            this.tagIds = new Set(this.tags.map(tag => tag.id));
+        }
+        super.update(changedParams);
+    }
+
+    private onAddTag(): void { this.add = true; }
+    private abortAdd(): void { globalToast('Tag selection discarded.'); this.add = false; }
+
+    private removeTag(e: MouseEvent): void { 
+        const button = e.target as HTMLButtonElement;
+        const id = parseInt(button.dataset['tagId']!);
+        if (isNaN(id)) { globalToast('Not a valid tag.'); }
+        const tagElement = this.tags.find(tag => tag.id === id);
+        if (window.confirm(`Remove tag ${tagElement?.name ?? '[unknown]'}?`)) {
+            this.dispatchEvent(new CustomEvent<number>('avct-remove', { detail: id }));
+        }
+    }
+
+    private selectTag(e: CustomEvent<number>): void {
+        this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: e.detail }));
+        this.add = false;
+    }
+
+    render(): ReturnType<LitElement['render']> {
+        this.tags.sort((a, b) => {
+            const byType = sortOrder[a.type] - sortOrder[b.type];
+            return byType || (a.name.localeCompare(b.name));
+        });
+        return html`${
+            this.tags.map(tag => html`
+                <span class="${'tag-type-' + tag.type.toLowerCase()}">
+                    ${tag.name}
+                    <${AvctCtxMenu} title="${tag.type} tag"><button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button></${AvctCtxMenu}>
+                </span>
+            `)}
+            <button class="td-hover round-button" @click="${this.onAddTag}">+</button>
+            ${this.add ? html`
+                <${AvctCtxMenu} shown shadow title="Add a tag" @avct-close="${this.abortAdd}">
+                    <${AvctTagSelect} @avct-select="${this.selectTag}" .existing="${this.tagIds}"></${AvctTagSelect}>
+                </${AvctCtxMenu}>`
+            : null}`;
     }
 }

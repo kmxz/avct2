@@ -1,8 +1,8 @@
 import { send } from './api';
 import { globalDialog } from './components/dialog';
-import { AvctClipsUpdates } from './dialogs';
+import { AvctClipsUpdates } from './dialogs/clips-updates';
 import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb } from './clips';
-import { TagJson, ClipCallback, RowData, ClipJson, Store, MultiStore, Race, Role, RACES } from './model';
+import { TagJson, ClipCallback, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
 import { ElementType } from './components/registry';
 
 const tagListReq = send('tag/list');
@@ -92,7 +92,7 @@ export class Clip implements RowData {
 
     private changeRequested = false;
 
-    async update(key: string, value: any, from: ClipCallback): Promise<void> {
+    async update(key: string, value: number | string | number[] | string[], from: ClipCallback): Promise<void> {
         if (this.changeRequested) {
             alert('Another change is already pending!');
             return;

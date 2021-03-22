@@ -94,9 +94,9 @@ export class AvctCtxMenu extends LitElement {
     @property({ type: String, reflect: true })
     direction?: string;
 
-    private leftCompensate: number = 0;
+    private leftCompensate = 0;
 
-    update(changedParams: PropertyValues) {
+    update(changedParams: PropertyValues): void {
         if (changedParams.has('shown') && this.shown) {
             this.setDirections();
         }
@@ -105,14 +105,14 @@ export class AvctCtxMenu extends LitElement {
 
     registeredParent?: HTMLElement;
 
-    connectedCallback() {
+    connectedCallback(): ReturnType<LitElement['connectedCallback']> {
         super.connectedCallback();
         this.registeredParent = this.offsetParent as HTMLElement;
         this.registeredParent.addEventListener('mouseenter', this.parentMouseEnter);
         this.registeredParent.addEventListener('mouseleave', this.parentMouseLeave);
     }
 
-    disconnectedCallback() {
+    disconnectedCallback(): ReturnType<LitElement['disconnectedCallback']>  {
         super.disconnectedCallback();
         this.registeredParent?.removeEventListener('mouseenter', this.parentMouseEnter);
         this.registeredParent?.removeEventListener('mouseleave', this.parentMouseLeave);
@@ -138,12 +138,11 @@ export class AvctCtxMenu extends LitElement {
         this.leftCompensate = onLeftHalf ? Math.max(0, 120 - xCenter) : Math.min(0, windowWidth - xCenter - 120);
     }
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         this.style.left = `calc(50% + ${this.leftCompensate}px)`;
-        const arrowStyle = styleMap({ left: `calc(50% - ${this.leftCompensate}px)` });
         return this.shown ? html`
             <div class="proper"><slot></slot></div>
-            <div class="arrow" style="${arrowStyle}"></div>
+            <div class="arrow" style="${styleMap({ left: `calc(50% - ${this.leftCompensate}px)` })}"></div>
         ` : null;
     }
 }

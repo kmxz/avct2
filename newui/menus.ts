@@ -24,7 +24,7 @@ export class AvctRaceSelection extends LitElement {
         this.dispatchEvent(new CustomEvent<Race>('avct-select', { detail: ((e.target as HTMLInputElement).value as Race) }));
     }
     
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return RACES.map(race => html`<label><input type="radio" @click="${this.emit}" value="${race}" ?checked="${this.selected === race}" />${race}</label>`);
     }
 }
@@ -55,7 +55,7 @@ export class AvctRoleSelection extends LitElement {
         this.dispatchEvent(new CustomEvent<Role[]>('avct-select', { detail }));
     }
     
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return html`
             <link rel="stylesheet" href="./shared.css" />
             ${ROLES.map(role => html`<label><input type="checkbox" value="${role}" ?checked="${this.selected.includes(role)}" @click="${this.check}" />${role}</label>`)}
@@ -94,7 +94,7 @@ export class AvctTextEdit extends LitElement {
         if (e.code === 'Enter') { this.emit(); e.preventDefault(); }
     }
     
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return html`
             <link rel="stylesheet" href="./shared.css" />
             <input type="text" value="${this.value}" @input="${this.change}" @keydown="${this.handleKeyDown}" />
@@ -162,7 +162,7 @@ export class AvctClipPlay extends LitElement {
         globalDialog({ type: AvctSimilarClipsDialog, title: 'Similar clips', params: this.clipId });
     }
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return html`
             <link rel="stylesheet" href="./shared.css" />
             <div class="btn-group default" data-player="">${this.insideSpecial ? html`<button name="no-record">Default player</button>` : html`<button name="record">Default player</button><button name="no-record">w/o REC</button>`}</div>

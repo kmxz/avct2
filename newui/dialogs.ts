@@ -24,7 +24,7 @@ export class AvctClipsUpdates extends DialogBase<{ added: string[], disappeared:
         }
     `;
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         if (!this.params) { return null; }
         return html`
             ${this.params.added.length ? html`<h3>Files added</h3><p>Those clips are just added. Refresh to see them.</p><ul>${this.params.added.map(item => html`<li>${item}</li>`)}</ul>` : null}
@@ -61,7 +61,7 @@ export class AvctClipHistoryDialog extends DialogBase<number, void> {
         }
     }
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return html`<link rel="stylesheet" href="./shared.css" /><ul>${this.history?.map(item => html`<li>${AvctClipHistoryDialog.ymdhis(item)}</li>`)}</ul>`;
     }
 }
@@ -93,7 +93,7 @@ export class AvctSimilarClipsDialog extends DialogBase<number, void> {
         }
     }
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         if (!this.apiResponse) { return 'Loading not started...'; }
         const clipId = this.params;
         return html`
@@ -182,7 +182,7 @@ export class AvctThumbnailDialog extends DialogBase<{ id: number, thumb: Promise
         fr.readAsDataURL(fileInput.files![0]);
     }
 
-    render() {
+    render(): ReturnType<LitElement['render']> {
         return html`
             <link rel="stylesheet" href="./shared.css" />
             <div class="canvas-wrap"><canvas width="1" height="1"></canvas></div>
