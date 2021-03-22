@@ -20,7 +20,9 @@ import { AvctToastContainer } from './components/toast';
 export class AvctRootElement extends LitElement {
   render(): ReturnType<LitElement['render']> {
     return html`
-      <${AvctClips} .clips="${asyncReplace(clips.value())}" .tags="${asyncReplace(tags.value())}"></${AvctClips}>
+      <div id="main">
+        <${AvctClips} .clips="${asyncReplace(clips.value())}" .tags="${asyncReplace(tags.value())}"></${AvctClips}>
+      </div>
       <${AvctDialogContainer}></${AvctDialogContainer}>
       <${AvctToastContainer}></${AvctToastContainer}>
     `;

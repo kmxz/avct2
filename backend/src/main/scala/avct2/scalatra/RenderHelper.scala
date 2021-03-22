@@ -92,7 +92,7 @@ trait RenderHelper {
   }
 
   def updateRaceAutomaticallyAccordingToStudio(clipId: Int, studioTagIds: Set[Int])(implicit db: Database) = async {
-    if (studioTagIds.isEmpty) Unit else {
+    if (studioTagIds.isEmpty) () else {
       val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId inSet studioTagIds).map(_.clipId)).map(_.race).result))
       if (otherClips.nonEmpty) {
         val map = scala.collection.mutable.Map[Race.Value, Int]()
@@ -111,7 +111,7 @@ trait RenderHelper {
   }
 
   def updateRolesAutomaticallyAccordingToStudio(clipId: Int, studioTagIds: Set[Int])(implicit db: Database) = async {
-    if (studioTagIds.isEmpty) Unit else {
+    if (studioTagIds.isEmpty) () else {
       val otherClips = await(db.run(Tables.clip.filter(clip => clip.clipId in Tables.clipTag.filter(_.tagId inSet studioTagIds).map(_.clipId)).map(_.role).result))
       if (otherClips.nonEmpty) {
         val map = scala.collection.mutable.Map[Role.Value, Int]()

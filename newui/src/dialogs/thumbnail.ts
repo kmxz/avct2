@@ -4,6 +4,7 @@ import { send } from '../api';
 import { DialogBase } from '../components/dialog';
 import { loadImgToCover, loadImgUrlToCover } from '../components/canvas-util';
 import { query } from '@lit/reactive-element/decorators/query.js';
+import { property } from '@lit/reactive-element/decorators/property.js';
 
 export class AvctThumbnailDialog extends DialogBase<{ id: number; thumb: Promise<string> | null }, Blob> {
     static styles = css`
@@ -18,9 +19,18 @@ export class AvctThumbnailDialog extends DialogBase<{ id: number; thumb: Promise
     @query('canvas')
     canvas!: HTMLCanvasElement;
 
+    @property({ attribute: false })
+    private locked = false;
+
+    @property({ attribute: false })
+    private thumbSet = false;
+
     get canvasCtx(): CanvasRenderingContext2D { return this.canvas.getContext('2d')!; }
 
-    updated(): ReturnType<LitElement['updated']>  {
+    updated(changedProps: Map<keyof AvctThumbnailDialog, any>): ReturnType<LitElement['updated']> {
+        if (!changedProps.has('params')) {
+            return;
+        }
         if (this.params.thumb) {
             this.params.thumb.then(url => {
                 loadImgUrlToCover(url, this.canvasCtx);
@@ -31,16 +41,28 @@ export class AvctThumbnailDialog extends DialogBase<{ id: number; thumb: Promise
     }
 
     private async onLaunchShoot(): Promise<void> {
+        if (this.locked) { return; }
+        this.locked = true;
+        try {
+            await this.onLaunchShootImpl();
+        } finally {
+            this.locked = false;
+        }
+    }
+
+    private async onLaunchShootImpl(): Promise<void> {
         const blob: Blob = await send('clip/shot', {'id': this.params.id });
         const url = URL.createObjectURL(blob);
         try {
             await loadImgUrlToCover(url, this.canvasCtx);
+            this.thumbSet = true;
         } finally {
             URL.revokeObjectURL(url);
         }
     }
 
     private onAcceptShoot(): void {
+        if (!this.thumbSet) { return; }
         this.canvas.toBlob(blob => this.done(blob!));
     }
 
@@ -49,7 +71,8 @@ export class AvctThumbnailDialog extends DialogBase<{ id: number; thumb: Promise
         const fr = new FileReader();
         fr.onload = fe => {
             const url = fe.target!.result;
-            loadImgUrlToCover(url as string, this.canvasCtx)
+            loadImgUrlToCover(url as string, this.canvasCtx);
+            this.thumbSet = true;
         };
         fr.readAsDataURL(fileInput.files![0]);
     }
@@ -61,9 +84,9 @@ export class AvctThumbnailDialog extends DialogBase<{ id: number; thumb: Promise
             <hr />
             <input type="file" @change="${this.onFileSelected}" /><br />
             Or<br />
-            <button @click="${this.onLaunchShoot}">Launch screenshooter</button>
+            <button @click="${this.onLaunchShoot}" ?disabled="${this.locked}">Launch screenshooter</button>
             <hr />
-            <button @click="${this.onAcceptShoot}">Accept</button>
+            <button @click="${this.onAcceptShoot}" ?disabled="${!this.thumbSet}">Accept</button>
         `;
     }
 }

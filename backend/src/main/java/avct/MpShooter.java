@@ -4,7 +4,6 @@ import avct2.Avct2Conf;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -164,7 +163,7 @@ public class MpShooter {
                         lastSize = size;
                         continue;
                     }
-                    output.copy(fis);
+                    output.resolve(fis);
                     System.out.println("Copying " + preview_img_file.getCanonicalPath());
                     close(false);
                     break;

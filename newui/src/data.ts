@@ -155,7 +155,7 @@ export class Clip implements RowData {
         const tagsData = (await tags.value().next()).value;
         clips.update(oldMap => {
             const newMap = new Map(oldMap);
-            const newClip = this.clone({ thumbImgPromise: undefined }, tagsData);
+            const newClip = this.clone({ thumbImgPromise: undefined, hasThumb: true }, tagsData);
             newMap.set(this.id, newClip);
             return newMap;
         });

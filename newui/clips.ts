@@ -223,8 +223,8 @@ class AvctClipHistory extends ClipCellElementBase {
     renderContent() {
         if (!this.item.lastPlay) { return html`Never played`; }
         const diffDays = (new Date().getTime() / 1000 - this.item.lastPlay) / (3600 * 24);
-        return html`${this.item.totalPlay} times (${(diffDays > 10) ? String(Math.round(diffDays)) : diffDays.toPrecision(2)} days ago)
-        <button class="td-hover round-button" @click="${this.popupView}">⏲</button>`;
+        const diffDaysText = (diffDays < 0.01) ? 'just now' : ((diffDays > 10) ? String(Math.round(diffDays)) : diffDays.toPrecision(2) + ' days ago');
+        return html`${this.item.totalPlay} times (${diffDaysText}) <button class="td-hover round-button" @click="${this.popupView}">⏲</button>`;
     }
 }
 

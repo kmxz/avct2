@@ -1,7 +1,6 @@
 package avct2.scalatra
 
 import java.io.{File, InputStream}
-
 import scala.async.Async.{async, await}
 import avct.{MpShooter, Output}
 import avct2.Avct2Conf
@@ -11,6 +10,7 @@ import avct2.modules.{ClipTagCheck, Difference}
 import avct2.schema.MctImplicits._
 import avct2.schema.Utilities._
 import avct2.schema._
+
 import javax.sql.rowset.serial.SerialBlob
 import org.json4s.JsonAST.JNull
 import org.scalatra.CorsSupport
@@ -19,7 +19,7 @@ import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 import slick.jdbc.HsqldbProfile.api._
 
 import scala.compat.Platform
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 
 class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with FutureSupport with RenderHelper with CorsSupport {
 
@@ -129,9 +129,11 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       if (!file.isFile) {
         terminate(503, "File does not exist.")
       }
+      val promise = Promise[InputStream]
       MpShooter.run(file, new Output {
-        override def copy(s: InputStream) = org.scalatra.util.io.copy(s, response.getOutputStream)
+        override def resolve(s: InputStream) = promise.success(s)
       })
+      promise.future
     }
   }
 
@@ -167,12 +169,13 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
 
   post("/clip/:id/edit") {
     val id = params("id").toInt
+    val key = params("key")
     val value = params("value")
     withDb { implicit db =>
       val clipRowQuery = Tables.clip.filter(_.clipId === id)
       db.run(clipRowQuery.map(clip => (clip.race, clip.role)).result.head)
         .flatMap(clipRow => {
-          params("key") match {
+          key match {
             case "race" =>
               val race = try {
                 Race.withName(value)
