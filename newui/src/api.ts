@@ -4,7 +4,7 @@ import Throttle from './throttle';
 import { handle } from './fake';
 import { globalToast } from './components/toast';
 
-const FAKE = false;
+const FAKE = true;
 const ROOT = 'http://localhost:8080';
 
 const uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;

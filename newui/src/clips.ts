@@ -2,7 +2,7 @@ import { AvctTable, column } from './components/table';
 import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { arrayNonEq, TagJson, ClipCallback, Race, Role } from './model';
+import { arrayNonEq, recordNonEq, TagJson, ClipCallback, Race, Role } from './model';
 import { tags, Clip } from './data';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { until } from 'lit-html/directives/until.js';
@@ -17,14 +17,23 @@ import { AvctTextEdit } from './menus/text-edit';
 import { AvctTagList } from './tags';
 import { AvctClipHistoryDialog } from './dialogs/clip-history';
 import { AvctThumbnailDialog } from './dialogs/thumbnail';
+import { SortModel } from './quickjerk-mechanism';
 import { send } from './api';
 import { styleMap } from 'lit-html/directives/style-map.js';
+
+interface SortedClip {
+    clip: Clip;
+    rating: number;
+    sortedBy: SortModel;
+}
 
 const resolutionToColor = (resolution: number): string => resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000';
 
 abstract class ClipCellElementBase extends LitElement implements ClipCallback {
     @property({ attribute: false })
-    item!: Clip;
+    row!: SortedClip;
+
+    get item(): Clip { return this.row.clip; }
 
     @property({ type: Boolean, reflect: true })
     loading = false;
@@ -227,8 +236,7 @@ class AvctClipHistory extends ClipCellElementBase {
     renderContent(): TemplateResult {
         if (!this.item.lastPlay) { return html`Never played`; }
         const diffDays = (new Date().getTime() / 1000 - this.item.lastPlay) / (3600 * 24);
-        return html`${this.item.totalPlay} times (${(diffDays > 10) ? String(Math.round(diffDays)) : diffDays.toPrecision(2)} days ago)
-        <button class="td-hover round-button" @click="${this.popupView}">⏲</button>`;
+        return html`${this.item.totalPlay} times (${this.item.getLastPlayText()}) <button class="td-hover round-button" @click="${this.popupView}">⏲</button>`;
     }
 }
 
@@ -241,6 +249,12 @@ class AvctClipDuration extends ClipCellElementBase {
     }
 }
 
+class AvctClipSorting extends ClipCellElementBase {
+    renderContent(): TemplateResult {
+        return html`${this.row.rating.toFixed(2)} <${AvctCtxMenu}>Test</${AvctCtxMenu}>`;
+    }
+}
+
 export class AvctClips extends LitElement {
     @property({ attribute: false })
     clips?: Map<number, Clip>;
@@ -248,17 +262,27 @@ export class AvctClips extends LitElement {
     @property({ attribute: false })
     tags?: Map<number, TagJson>;
 
-    @property({ attribute: false, hasChanged: arrayNonEq() })
-    rows: number[] = [];
+    @property({ attribute: false, hasChanged: arrayNonEq(recordNonEq()) })
+    rows: SortedClip[] = [];
+
+    @property({ attribute: false })
+    quickjerk: SortModel = new SortModel([]);
 
     applyFilter(): void {
-        this.rows = Array.from(this.clips!.keys());
+        const sortedBy = this.quickjerk;
+        this.rows = Array.from(this.clips?.values() ?? []).map(clip => ({
+            clip, rating: sortedBy.score(clip), sortedBy
+        })).sort((a, b) => b.rating - a.rating);
     }
 
-    updated(changedProps: Map<keyof AvctClips, any>): ReturnType<LitElement['updated']> {
-        if (changedProps.has('clips')) {
+    update(changedProps: Map<keyof AvctClips, any>): ReturnType<LitElement['update']> {
+        if (changedProps.has('clips') || changedProps.has('quickjerk')) {
             this.applyFilter();
         }
+        return super.update(changedProps);
+    }
+
+    updated(): ReturnType<LitElement['updated']> {
         requestAnimationFrame(now => {
             console.log(`RENDER FIN @${now}`);
         });
@@ -269,19 +293,24 @@ export class AvctClips extends LitElement {
     private static columns = [
         column('Thumb', AvctClipThumb),
         column('Name', AvctClipName),
-        column('Score', AvctClipScore),
+        column('Rating', AvctClipScore),
         column('Roles', AvctClipRole),
         column('Race', AvctClipRace),
         column('Tags', AvctClipTags),
         column('Note', AvctClipNote),
         column('History', AvctClipHistory, false),
-        column('Duration', AvctClipDuration, false)
+        column('Duration', AvctClipDuration, false),
+        column('Rank', AvctClipSorting)
     ];
 
     render(): ReturnType<LitElement['render']> {
         if (!this.clips) {
             return html`Loading...`;
         }
-        return html`<${AvctTable} .rows="${this.rows.map(id => this.clips!.get(id))}" .columns="${AvctClips.columns}"></${AvctTable}>`;
+        return html`
+            <${AvctTable}
+                .rows="${this.rows}"
+                .columns="${AvctClips.columns}">
+            </${AvctTable}>`;
     }
 }

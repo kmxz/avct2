@@ -77,7 +77,7 @@ ijkl.module('quickjerkmechanism', ['es5Array'], function () {
                 return hit.length ? {score: 1, message: "found: " + hit.join(", ")} : {score: 0, message: "not found"};
             });
         },
-        grade: function (treatVoid) {
+            grade: function (treatVoid) {
             return new Criterion("Grade", function (clip) {
                 return clip.grade ? {
                     score: (clip.grade - 1) / 4,

@@ -280,7 +280,7 @@ export class AvctTable<T extends RowData> extends LitElement {
                         row => guard([row, this.columns], () => 
                             html`<tr>${visibleColumns.map(column => 
                                 html`<td>
-                                    <${column.cellType} .item="${row}"></${column.cellType}>
+                                    <${column.cellType} .row="${row}"></${column.cellType}>
                                 </td>`
                             )}</tr>`
                         )

@@ -77,22 +77,6 @@ export class DedupeStore<T> {
     constructor(public instance: T, private readonly notEqual: (a: T, b: T) => boolean) {}
 }
 
-export class Store<T> {
-    loaded: boolean = false;
-    error?: any;
-    value?: T;
-
-    constructor(public readonly promise: Promise<T>) {
-        promise.then(value => {
-            this.value = value;
-            this.loaded = true;
-        }, error => {
-            this.error = error;
-            this.loaded = true;
-        });
-    }
-}
-
 export class MultiStore<T> {
     private resolve?: (value: Promise<T>) => void;
     private oldPromise?: Promise<T>;

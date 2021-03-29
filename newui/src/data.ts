@@ -90,6 +90,12 @@ export class Clip implements RowData {
 
     getFile(): string { return this.path.split('/').pop()!; }
 
+    getLastPlayText(): string | null {
+        if (!this.lastPlay) { return null; }
+        const diffDays = (new Date().getTime() / 1000 - this.lastPlay) / (3600 * 24);
+        return ((diffDays > 10) ? String(Math.round(diffDays)) : diffDays.toPrecision(2)) + ' days ago';
+    }
+
     private changeRequested = false;
 
     async update(key: string, value: number | string | number[] | string[], from: ClipCallback): Promise<void> {
