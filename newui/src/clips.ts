@@ -2,7 +2,7 @@ import { AvctTable, column } from './components/table';
 import { LitElement, TemplateResult, css } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { TagJson, ClipCallback, Race, Role, RowData } from './model';
+import { TagJson, EditingCallback, Race, Role, RowData } from './model';
 import { tags, Clip } from './data';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { until } from 'lit-html/directives/until.js';
@@ -28,7 +28,7 @@ interface SortedClip extends RowData {
     sortedBy: SortModel;
 }
 
-abstract class ClipCellElementBase extends LitElement implements ClipCallback {
+abstract class ClipCellElementBase extends LitElement implements EditingCallback {
     static styles = css`
         :host {
             user-select: none;
@@ -155,7 +155,7 @@ export class AvctClipRace extends ClipCellElementBase {
 
     private startEdit(): void { this.edit = true; }
     private abortEdit(): void { this.edit = false; }
-    private selects(e: CustomEvent<Race>): Promise<void> { e.stopPropagation(); this.edit = false; return this.item.update('race', e.detail, this); }
+    private selects(e: CustomEvent<Race>): Promise<void> { this.edit = false; return this.item.update('race', e.detail, this); }
     
     renderContent(): TemplateResult {
         return html`
@@ -182,7 +182,7 @@ export class AvctClipRole extends ClipCellElementBase {
         if (this.dirty) { globalToast('Role editor discarded.'); }
         this.edit = false;
     }
-    private selects(e: CustomEvent<Role[]>): Promise<void> { e.stopPropagation(); this.edit = false; return this.item.update('role', e.detail, this); }
+    private selects(e: CustomEvent<Role[]>): Promise<void> { this.edit = false; return this.item.update('role', e.detail, this); }
     
     renderContent(): TemplateResult {
         return html`
@@ -232,7 +232,6 @@ export class AvctClipTags extends ClipCellElementBase {
     }
 
     private selectTag(e: CustomEvent<number>): Promise<void> {
-        e.stopPropagation();
         const newTags = this.item.tags.concat(e.detail);
         return this.item.update('tags', newTags, this);
     }

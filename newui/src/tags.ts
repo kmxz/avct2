@@ -1,7 +1,7 @@
 import { LitElement, css, PropertyValues } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { arrayNonEq, TagJson, TagType, TAG_TYPES } from './model';
+import { arrayNonEq, MultiStore, TagJson, TagType, TAG_TYPES } from './model';
 import { globalToast } from './components/toast';
 import { query } from 'lit-element/decorators/query.js';
 import { tags } from './data';
@@ -170,11 +170,7 @@ export class AvctTagSelect extends LitElement {
             this.tagCreationInProgress = true;
             const newTag = await sendTypedApi('!tag/create', { name, type });
             id = newTag['id'];
-            tags.update(oldMap => {
-                const newMap = new Map(oldMap);
-                newMap.set(id, { id, name, type, best: 0, parent: [], description: '' });
-                return newMap;
-            });
+            tags.update(MultiStore.mapUpdater<number, TagJson>(id, { id, name, type, best: 0, parent: [], description: '' }));
             this.tagCreationInProgress = false;
         }
         this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: id }));

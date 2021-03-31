@@ -4,14 +4,20 @@ import { html } from '../components/registry';
 import { Clip, clips, tags } from '../data';
 import { DialogBase } from '../components/dialog';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
-import { ClipId, TagJson } from '../model';
+import { ClipId, MultiStore, TagJson } from '../model';
 import { AvctTable, column } from '../components/table';
 import { AvctCtxMenu } from '../components/menu';
 import { AvctClipPlay } from '../menus/clip-play';
 import { AvctTagList } from '../tags';
-import { MAX_GOOD_INTEGER } from '../components/utils';
+import { MAX_GOOD_INTEGER, simpleStat } from '../components/utils';
+import { sendTypedApi } from '../api';
+import { globalToast } from '../components/toast';
+import { AvctTextEdit } from '../menus/text-edit';
 
 abstract class TagCellElementBase extends LitElement {
+    @property({ type: Boolean, reflect: true })
+    loading = false;
+
     @property({ attribute: false })
     row!: TagJson;
 
@@ -31,21 +37,70 @@ abstract class TagCellElementBase extends LitElement {
     abstract renderContent(): ReturnType<LitElement['render']>;
 }
 
-class AvctTagName extends TagCellElementBase {
+abstract class AvctTagNameOrDescription extends TagCellElementBase {
+    @property({ attribute: false })
+    edit = false;
+
+    protected abstract fieldName: 'name' | 'description';
+
+    private dirty = false;
+
+    private markDirty(): void { this.dirty = true; }
+    private startEdit(): void { this.edit = true; this.dirty = false; }
+    private abortEdit(): void { 
+        if (!this.edit) { return; }
+        if (this.dirty) { globalToast(`Tag ${this.fieldName} editor discarded.`); }
+        this.edit = false;
+    }
+    private async done(e: CustomEvent<string>): Promise<void> { 
+        this.edit = false; 
+        try {
+            this.loading = true;
+            await this.executeActualUpdate(e.detail);
+        } finally {
+            this.loading = false;
+        }
+    }
+    
+    protected abstract executeActualUpdate(newValue: string): Promise<void>;
+
     renderContent(): ReturnType<LitElement['render']> {
-        return this.row.name; // TODO: edit
+        return html`
+            ${this.row[this.fieldName]}
+            <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
+            ${this.edit ? html`
+                <${AvctCtxMenu} shown shadow title="Edit ${this.fieldName}" @avct-close="${this.abortEdit}">
+                    <${AvctTextEdit} value="${this.row[this.fieldName]}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
+                </${AvctCtxMenu}>`
+            : null}
+        `;
+    }
+}
+
+class AvctTagName extends AvctTagNameOrDescription {
+    protected fieldName = 'name' as const;
+
+    protected async executeActualUpdate(newValue: string): Promise<void> {
+        await sendTypedApi('!tag/$/edit', { id: this.row.id, name: newValue });
+        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, name: newValue }));
     }
 }
 
 class AvctTagType extends TagCellElementBase {
+    @property({ attribute: false })
+    edit = false;
+
     renderContent(): ReturnType<LitElement['render']> {
         return html`<span class="tag-chip tag-type-${this.row.type.toLowerCase()}">${this.row.type}</span>`;
     }
 }
 
-class AvctTagDescription extends TagCellElementBase {
-    renderContent(): ReturnType<LitElement['render']> {
-        return this.row.description; // TODO: edit
+class AvctTagDescription extends AvctTagNameOrDescription {
+    protected fieldName = 'description' as const;
+
+    protected async executeActualUpdate(newValue: string): Promise<void> {
+        await sendTypedApi('!tag/$/description', { id: this.row.id, description: newValue });
+        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, description: newValue }));
     }
 }
 
@@ -61,22 +116,36 @@ class AvctTagBest extends TagCellElementBase {
 
 class AvctTagStat extends TagCellElementBase {
     renderContent(): ReturnType<LitElement['render']> {
+        const tagId = this.row.id;
         return asyncReplace(clips.value(), clipsMap => {
-            // TODO(kmxz)
+            const relevantClips = Array.from((clipsMap as Map<number, Clip>).values()).filter(clip => clip.tags.includes(tagId));
+            if (!relevantClips.length) { return 'not used in any clips'; }
+            const scores = relevantClips.map(item => item.score).filter(score => score);
+            const scoreText = scores.length ? (
+                ((scores.length === relevantClips.length) ? '' : `(${(scores.length)} rated) `) + simpleStat(scores)
+            ) : 'none has a rating';
+            return html`used in ${relevantClips.length} clips; ${scoreText}`;
         });
     }
 }
 
 class AvctTagParent extends TagCellElementBase {
     private removeTag(e: CustomEvent<number>): Promise<void> {
-        const newTags = this.row.parent.filter(id => id !== e.detail);
-        // TODO
+        return this.setParentTags(this.row.parent.filter(id => id !== e.detail));
     }
 
     private selectTag(e: CustomEvent<number>): Promise<void> {
-        e.stopPropagation();
-        const newTags = this.row.parent.concat(e.detail);
-        // TODO
+        return this.setParentTags(this.row.parent.concat(e.detail));
+    }
+
+    private async setParentTags(parent: number[]): Promise<void> {
+        try {
+            this.loading = true;
+            await sendTypedApi('!tag/$/parent', { id: this.row.id, parent });
+            tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, parent }));
+        } finally {
+            this.loading = false;
+        }
     }
 
     renderContent(): ReturnType<LitElement['render']> {
@@ -128,7 +197,7 @@ export class AvctClipHistoryDialogInner extends LitElement {
         }
         return html`
             <${AvctTable}
-                .rows="${Array.from(this.tags.values())}"
+                .rows="${Array.from(this.tags.values()).sort((a, b) => a.name.localeCompare(b.name))}"
                 .columns="${AvctClipHistoryDialogInner.columns}"
                 .visibleRows="${MAX_GOOD_INTEGER}">
             </${AvctTable}>`;

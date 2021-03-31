@@ -13,7 +13,7 @@ export interface RowData {
     id: number | string;
 }
 
-export interface ClipCallback {
+export interface EditingCallback {
     loading: boolean;
 }
 
@@ -95,6 +95,14 @@ export class MultiStore<T> {
         if (!this.resolve || !this.oldPromise) { throw new TypeError('Initializtion not done yet!'); }
         this.resolve(this.oldPromise.then(updater));
         this.next();
+    }
+
+    static mapUpdater<K, V>(key: K, value: V): ((old: Map<K, V>) => Map<K, V>) {
+        return oldMap => {
+            const newMap = new Map(oldMap);
+            newMap.set(key, value);
+            return newMap;
+        };
     }
 
     async *value(): AsyncGenerator<T, never, never> {

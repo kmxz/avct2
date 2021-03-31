@@ -2,7 +2,7 @@ import { sendTypedApi } from './api';
 import { globalDialog } from './components/dialog';
 import { AvctClipsUpdates } from './dialogs/clips-updates';
 import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb } from './clips';
-import { TagJson, ClipCallback, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
+import { TagJson, EditingCallback, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
 import { ElementType } from './components/registry';
 
 const tagListReq = sendTypedApi('tag/list');
@@ -25,16 +25,13 @@ Promise.all([tagListReq, clipListReq]).then(() => sendTypedApi('!clip/autocrawl'
     const tagsData = (await tags.value().next()).value;
     if (response.disappeared.length) {
         const disappearedFiles = new Set(response.disappeared);
-        clips.update(oldMap => {
-            const newMap = new Map(Array.from(oldMap.entries()).map(entry => {
-                if (disappearedFiles.has(entry[1].path)) {
-                    return [entry[0], entry[1].clone({ exists: false }, tagsData)];
-                } else {
-                    return entry;
-                }
-            }));
-            return newMap;
-        });
+        clips.update(oldMap => new Map(Array.from(oldMap.entries()).map(entry => {
+            if (disappearedFiles.has(entry[1].path)) {
+                return [entry[0], entry[1].clone({ exists: false }, tagsData)];
+            } else {
+                return entry;
+            }
+        })));
     }
     if (response.disappeared.length || response.added.length) {
         globalDialog({ title: 'Clip files changed', type: AvctClipsUpdates, params: response });
@@ -102,7 +99,7 @@ export class Clip implements RowData {
 
     private changeRequested = false;
 
-    async update(key: string, value: number | string | number[] | string[], from: ClipCallback): Promise<void> {
+    async update(key: string, value: number | string | number[] | string[], from: EditingCallback): Promise<void> {
         if (this.changeRequested) {
             alert('Another change is already pending!');
             return;
@@ -111,12 +108,7 @@ export class Clip implements RowData {
         try {
             const json = await sendTypedApi('!clip/$/edit', { id: this.id, key, value });
             const tagsData = (await tags.value().next()).value;
-            clips.update(oldMap => {
-                const newMap = new Map(oldMap);
-                const newClip = new Clip(json, tagsData, this);
-                newMap.set(this.id, newClip);
-                return newMap;
-            });
+            clips.update(MultiStore.mapUpdater(this.id, new Clip(json, tagsData, this)));
         } finally {
             from.loading = false;
         }
@@ -163,11 +155,6 @@ export class Clip implements RowData {
 
     async notifyThumbChange(): Promise<void> {
         const tagsData = (await tags.value().next()).value;
-        clips.update(oldMap => {
-            const newMap = new Map(oldMap);
-            const newClip = this.clone({ thumbImgPromise: undefined, hasThumb: true }, tagsData);
-            newMap.set(this.id, newClip);
-            return newMap;
-        });
+        clips.update(MultiStore.mapUpdater(this.id, this.clone({ thumbImgPromise: undefined, hasThumb: true }, tagsData)));
     }
 }
