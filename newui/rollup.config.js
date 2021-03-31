@@ -7,9 +7,8 @@ import replace from '@rollup/plugin-replace';
 import { parseLiterals } from 'parse-literals';
 
 export default {
-  input: 'index.js',
   output: {
-    file: 'index.bundled.js',
+    file: 'index.js',
     format: 'esm',
   },
   onwarn(warning) {

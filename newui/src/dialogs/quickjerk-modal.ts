@@ -89,6 +89,10 @@ export class QuickjerkModal extends DialogBase<ScorerBuilder<any>[], SortModel> 
         this.done(new SortModel(this.params));
     }
 
+    private clearAll(): void {
+        this.params = [];
+    }
+
     render(): ReturnType<LitElement['render']> {
         return html`
             <link rel="stylesheet" href="./shared.css" />
@@ -108,6 +112,7 @@ export class QuickjerkModal extends DialogBase<ScorerBuilder<any>[], SortModel> 
                 </tbody>
             </table>
             <footer>
+                <button @click="${this.clearAll}">Clear</button>
                 <button @click="${this.handleSubmit}">Done</button>
             </footer>
         `;

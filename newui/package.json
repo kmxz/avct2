@@ -5,7 +5,9 @@
   },
   "scripts": {
     "dev": "tmux new-session 'tsc --watch' \\; split-window 'web-dev-server --node-resolve --root-dir './src' --watch' \\; select-layout even-vertical",
-    "build": "tsc && rollup -c -i src/index.js",
+    "build": "tsc && rollup -c -i src/index.js && npm run build-resources && npm run move",
+    "build-resources": "rm -rf dist && mkdir dist && cp src/*.css dist/ && cp src/*.jpg dist/ && cp src/index.html dist/ && mv index.js dist/",
+    "move": "rm -rf ../backend/src/main/webapp/webui && mv dist ../backend/src/main/webapp/webui",
     "lint": "npm run lint:lit-analyzer && npm run lint:eslint",
     "lint:eslint": "eslint 'src/**/*.ts'",
     "lint:lit-analyzer": "lit-analyzer 'src/**/*.ts'",

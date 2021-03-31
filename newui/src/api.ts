@@ -1,21 +1,19 @@
 // Copied from original; not adopted to TS.
 
 import Throttle from './throttle';
-import { handle } from './fake';
 import { globalToast } from './components/toast';
 import { ClipJson, TagJson, TagType } from './model';
 
-const FAKE = true;
-const ROOT = 'http://localhost:8080';
+const ROOT = '';
 
 const uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
 const dbConnId = window.location.search.substring(1);
 
-if (!FAKE && !uuidRegex.test(dbConnId)) {
+if (!uuidRegex.test(dbConnId)) {
     window.alert('DB connection unspecified.');
 }
 
-const throttle = new Throttle(8); // only allow 10 parallel XHR requests to avoid Chrome fail.
+const throttle = new Throttle(8); // only allow 8 parallel XHR requests to avoid Chrome fail.
 
 type TypedApi = {
     // boot
@@ -23,7 +21,7 @@ type TypedApi = {
     // info
     (api: 'players'): Promise<string[]>;
     // clip
-    (api: 'clip/list'): Promise<ClipJson[]>;
+    (api: 'clip'): Promise<ClipJson[]>;
     (api: '!clip/$/delete', params: { id: number }): Promise<null>;
     (api: 'clip/$/thumb', params: { id: number }): Promise<Blob>;
     (api: '!clip/$/saveshot', params: { id: number, file: Blob }): Promise<null>;
@@ -34,7 +32,7 @@ type TypedApi = {
     (api: 'clip/$/history', params: { id: number }): Promise<number[]>;
     (api: 'clip/$/similar', params: { id: number }): Promise<{ clipId: number, scores: Record<string, number>, total: number }[]>;
     // tag
-    (api: 'tag/list'): Promise<TagJson[]>;
+    (api: 'tag'): Promise<TagJson[]>;
     (api: '!tag/create', params: { name: string; type: TagType; }): Promise<{ id: number }>;
     (api: '!tag/$/parent', params: { id: number; parent: number[]; }): Promise<null>;
     (api: '!tag/$/edit', params: { id: number; name: string; }): Promise<null>;
@@ -62,10 +60,6 @@ export const sendTypedApi: TypedApi = (api: string, params: { [key: string]: any
             }
             formData!.append(key, value);
         }
-    }
-    if (FAKE) {
-        const legacyApiName = api.replace('!', '').replace('/$/', '/');
-        return handle(legacyApiName, params);
     }
     return throttle.add(async () => {
         try {

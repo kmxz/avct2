@@ -70,7 +70,7 @@ abstract class AvctTagNameOrDescription extends TagCellElementBase {
             <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit ${this.fieldName}" @avct-close="${this.abortEdit}">
-                    <${AvctTextEdit} value="${this.row[this.fieldName]}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
+                    <${AvctTextEdit} .value="${this.row[this.fieldName]}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
                 </${AvctCtxMenu}>`
             : null}
         `;

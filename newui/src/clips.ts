@@ -3,7 +3,7 @@ import { LitElement, TemplateResult, css } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
 import { TagJson, EditingCallback, Race, Role, RowData } from './model';
-import { tags, Clip } from './data';
+import { tags, Clip, clips } from './data';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { until } from 'lit-html/directives/until.js';
 import { classMap } from 'lit-html/directives/class-map.js';
@@ -127,8 +127,18 @@ export class AvctClipName extends ClipCellElementBase {
         ];
     };
 
-    private onDeleteClip(): void {
-        sendTypedApi('!clip/$/delete', { id: this.item.id });
+    private async onDeleteClip(): Promise<void> {
+        try {    
+            this.loading = true;
+            await sendTypedApi('!clip/$/delete', { id: this.item.id });
+            clips.update(tagsMap => {
+                const newMap = new Map(tagsMap);
+                newMap.delete(this.item.id);
+                return newMap;
+            });
+        } finally {
+            this.loading = false;
+        }
     }
 
     private static resolutionToColor(resolution: number): string { return resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000'; }
@@ -218,7 +228,7 @@ export class AvctClipNote extends ClipCellElementBase {
             <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit Source note" @avct-close="${this.abortEdit}">
-                    <${AvctTextEdit} value="${this.item.note}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
+                    <${AvctTextEdit} .value="${this.item.note}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
                 </${AvctCtxMenu}>`
             : null}
         `;

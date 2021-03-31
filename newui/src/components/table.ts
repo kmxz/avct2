@@ -338,9 +338,13 @@ export class AvctTable<T extends RowData> extends LitElement {
         const loadMoreElement = this.loadMoreTd!.getBoundingClientRect();
         if (loadMoreElement.top + loadMoreElement.bottom < scrollHost.bottom * 2) {
             this.scrollTopToRecover = this.scrollTop;
-            this.visibleRows += 10;
+            this.loadMore();
         }
     };
+
+    private loadMore(): void {
+        this.visibleRows += 10;
+    }
 
     private readonly restoreScrollPosition = (): void => {
         if (this.scrollTopToRecover < 0) { return; }
@@ -406,7 +410,7 @@ export class AvctTable<T extends RowData> extends LitElement {
                     )}
                 </tbody>
                 <tfoot>
-                    <tr><td class="load-more" colspan="${visibleColumns.length}">${(visibleRows.length >= this.rows.length ? html`All ${visibleRows.length} rows have been rendered` : html`Load more...`)}</td></tr>
+                    <tr><td class="load-more" colspan="${visibleColumns.length}" @click="${this.loadMore}">${(visibleRows.length >= this.rows.length ? html`All ${visibleRows.length} rows have been rendered` : html`Load more...`)}</td></tr>
                 </tfoot>
             </table>
         `;

@@ -5,8 +5,8 @@ import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, 
 import { TagJson, EditingCallback, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
 import { ElementType } from './components/registry';
 
-const tagListReq = sendTypedApi('tag/list');
-const clipListReq = sendTypedApi('clip/list');
+const tagListReq = sendTypedApi('tag');
+const clipListReq = sendTypedApi('clip');
 
 export const tags: MultiStore<Map<number, TagJson>> = new MultiStore(tagListReq.then(raw => new Map(raw.map(tagJson => [tagJson.id, tagJson]))));
 
