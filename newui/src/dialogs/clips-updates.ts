@@ -8,6 +8,7 @@ export class AvctClipsUpdates extends DialogBase<{ added: string[]; disappeared:
             font-size: 15px;
             margin: 16px 0 12px;
         }
+        h3:first-child { margin-top: 0; }
         p {
             margin: 12px 0;
         }

@@ -8,14 +8,17 @@ import { AvctTagListSimple } from '../tags';
 export class QuickjerkModal extends DialogBase<ScorerBuilder<any>[], SortModel> {
 
     static styles = css`
-        :host { text-align: center; }
+        :host { display: block; max-width: 560px; }
         header button {
             margin: 2px;
         }
         table {
             border-collapse: collapse;
             width: 100%;
+            text-align: center;
+            margin: 16px 0;
         }
+        footer { text-align: center; }
     `;
 
     private getScorerIndex(e: Event): number {

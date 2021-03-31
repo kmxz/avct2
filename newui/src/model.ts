@@ -39,6 +39,7 @@ export interface TagJson {
     readonly best: ClipId;
     readonly parent: TagId[];
     readonly type: TagType;
+    readonly description: string;
 }
 
 export const arrayNonEq = <T>(elementNonEq?: (a: T, b: T) => boolean): ((aArr: T[] | null | undefined, bArr: T[] | null | undefined) => boolean) => (aArr, bArr) => {

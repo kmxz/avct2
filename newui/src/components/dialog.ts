@@ -38,9 +38,8 @@ const globalDialogs = new MultiStore<Dialog<any, any>[]>(Promise.resolve([]));
 
 const uniqId = seq();
 
-export const globalDialog = <I, O>(dialog: Partial<DialogOptions<I, O>> & Pick<DialogOptions<I, O>, 'type'>): Promise<O> => new Promise((res, rej) => 
+export const globalDialog = <I, O>(dialog: Partial<DialogOptions<I, O>> & Pick<DialogOptions<I, O>, 'type' | 'title'>): Promise<O> => new Promise((res, rej) => 
     globalDialogs.update(list => list.concat({
-        title: 'Dialog',
         cancellable: true,
         params: void 0,
         ...dialog,
@@ -53,10 +52,10 @@ export const globalDialog = <I, O>(dialog: Partial<DialogOptions<I, O>> & Pick<D
 export class AvctDialogContainer extends LitElement {
     static styles = css`
         .dialog-modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0, 0, 0, 0.2); display: flex; justify-content: center; z-index: 2; padding: 32px; }
-        .dialog-proper { align-self: center; background: #fff; padding: 0 16px 16px 16px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25); max-height: 100%; overflow-y: auto; }
+        .dialog-proper { align-self: center; background: #fff; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25); max-height: 100%; display: flex; flex-direction: column; }
         h2 {
             font-size: 16px;
-            margin: 0 -16px 16px -16px;
+            margin: 0;
             background-color: #f6f9fd;
             padding: 12px 16px;
             display: flex;
@@ -65,6 +64,11 @@ export class AvctDialogContainer extends LitElement {
             position: sticky;
             top: 0;
             z-index: 1;
+            flex-grow: 0;
+        }
+        .dialog-content {
+            padding: 16px;
+            overflow-y: auto;
         }
         .dialog-title button { margin-left: 16px; }
     `;
@@ -105,7 +109,7 @@ export class AvctDialogContainer extends LitElement {
                 <div class="dialog-modal">
                     <div class="dialog-proper" data-dialog-id="${String(dialog.id)}">
                         <h2><span>${dialog.title}</span>${dialog.cancellable ? html`<button class="round-button" @click="${this.handleCloseButton}">🗙</button>` : null}</h2>
-                        <${dialog.type} .params=${dialog.params} @avct-select="${this.handleChildSelect}" @avct-close="${this.handleChildClose}" .params="${dialog.params}"></${dialog.type}>
+                        <${dialog.type} .params=${dialog.params} @avct-select="${this.handleChildSelect}" @avct-close="${this.handleChildClose}" .params="${dialog.params}" class="dialog-content"></${dialog.type}>
                     </div>
                 </div>
             `) : null;

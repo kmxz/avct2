@@ -51,10 +51,10 @@ export class AvctSimilarClipsDialog extends DialogBase<number, void> {
                     <tbody>
                         ${list.map(([tuple, clipObj]) => html`
                             <tr class="main">
-                                <td>${clipObj.getFile()}<${AvctCtxMenu} title="Play ${clipObj.getFile()}"><${AvctClipPlay} .clipId="${clipObj.id}" .path="${clipObj.path}" insideSpecial></${AvctClipPlay}></${AvctCtxMenu}></td>
+                                <td class="ctx-menu-host">${clipObj.getFile()}<${AvctCtxMenu} title="Play ${clipObj.getFile()}"><${AvctClipPlay} .clipId="${clipObj.id}" .path="${clipObj.path}" insideSpecial></${AvctClipPlay}></${AvctCtxMenu}></td>
                                 <td>${clipObj.hasThumb ? until(clipObj.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : '(none)'}</td>
                                 <td>${clipObj.note}</td>
-                                <td>
+                                <td class="ctx-menu-host">
                                     ${tuple.total}
                                     <${AvctCtxMenu} title="Score details">
                                         <table>

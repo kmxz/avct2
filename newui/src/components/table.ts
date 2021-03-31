@@ -5,7 +5,7 @@ import { guard } from 'lit-html/directives/guard.js';
 import { ElementType, html } from './registry';
 import { arrayNonEq, recordNonEq, RowData } from '../model';
 import { query } from 'lit-element/decorators/query.js';
-import { seq } from './utils';
+import { MAX_GOOD_INTEGER, seq } from './utils';
 import { AvctCtxMenu } from './menu';
 import { styleMap } from 'lit-html/directives/style-map.js';
 import { classMap } from 'lit-html/directives/class-map.js';
@@ -143,7 +143,7 @@ export class AvctTableColumnEdit extends LitElement {
                 } else if (!toBeActive && columnToMove.width) {
                     columnToMove = { ...columnToMove, width: 0 };
                 }
-                columnsCopy.splice((insertBefore === INSERT_AT_END) ? Number.MAX_SAFE_INTEGER : columnsCopy.findIndex(column => column.id === insertBefore), 0, columnToMove);
+                columnsCopy.splice((insertBefore === INSERT_AT_END) ? MAX_GOOD_INTEGER : columnsCopy.findIndex(column => column.id === insertBefore), 0, columnToMove);
                 this.columns = columnsCopy;
             }
         });
@@ -177,10 +177,114 @@ export class AvctTableColumnEdit extends LitElement {
 }
 
 export class AvctTable<T extends RowData> extends LitElement {
+    static styles = css`
+        :host {
+            overflow: auto;
+            height: 100%;
+            display: block;
+            position: relative;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
+        th {
+            border-bottom: 1px solid #c5c5cc;
+            position: sticky;
+            z-index: 1;
+            background: #FFF;
+            top: 0;
+            padding: 4px 2px;
+            user-select: none;
+        }
+        
+        th span { /* resize handle */
+            position: absolute;
+            visibility: hidden;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            display: block;
+            background: #e0e0e0;
+            cursor: e-resize;
+        }
+        
+        th:hover span {
+            visibility: visible;
+        }
+        
+        th:hover span:hover {
+            background: #c5c5cc;
+        }
+        
+        th span.active {
+            visibility: visible;
+            background: #7986CB;
+        }
+        
+        tbody td {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 2px;
+            position: relative; 
+        }
+
+        ::part(td-hover) {
+            opacity: 0.25;
+        }
+
+        td:hover ::part(td-hover) {
+            opacity: 1;
+        } 
+        
+        .table-settings {
+            visibility: hidden;
+            position: absolute;
+            right: 2px;
+            top: 2px;
+        }
+        
+        tr:hover .table-settings {
+            visibility: visible;
+        }
+        
+        .handle-drag-modal {
+            position: fixed;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.025);
+            z-index: 100;
+        }
+        
+        .handle-drag-modal.resize { cursor: e-resize; }
+        
+        tfoot td {
+            text-align: center;
+            padding: 16px;
+        }
+
+        th:first-child, tbody td:first-child {
+            padding-left: 8px;
+        }
+
+        th:last-child, tbody td:last-child {
+            padding-right: 8px;
+        }
+    `;
+
     constructor() {
         super();
         this.addEventListener('scroll', this.scrollListener);
+        this.tableId = `avct-table-${AvctTable.instancesSeq()}`;
     }
+
+    private static instancesSeq = seq();
+
+    private readonly tableId: string;
 
     @property({ attribute: false, hasChanged: arrayNonEq()})
     rows: T[] = [];
@@ -208,11 +312,11 @@ export class AvctTable<T extends RowData> extends LitElement {
             modal.removeEventListener('mousemove', mouseMove);
             modal.removeEventListener('mouseup', end);
             resizeHandle.classList.remove('active');
-            document.body.removeChild(modal);
+            this.renderRoot.removeChild(modal);
             e.preventDefault();
         };
         modal.addEventListener('mouseup', end);
-        document.body.appendChild(modal);
+        this.renderRoot.appendChild(modal);
         e.preventDefault();
     }
 
@@ -220,7 +324,7 @@ export class AvctTable<T extends RowData> extends LitElement {
     editingColumns = false;
 
     @property({ attribute: false })
-    visibleRows = 20;
+    visibleRows = 10;
 
     private columnsChanged(event: CustomEvent<Column[]>): void { this.columns = event.detail; }
     private editColumns(): void { this.editingColumns = true; }
@@ -257,6 +361,20 @@ export class AvctTable<T extends RowData> extends LitElement {
     @query('.load-more')
     loadMoreTd!: HTMLTableDataCellElement;
 
+    static getSibling(anchor: HTMLElement, id: RowData['id']): HTMLElement | null {
+        let current: Node | null = anchor;
+        while (current) {
+            if (current.nodeType === 11) {
+                current = (current as ShadowRoot).host;
+            }
+            if (current instanceof AvctTable) {
+                return current.renderRoot.querySelector(`#${current.tableId}-${id}`);
+            }
+            current = current.parentNode;
+        }
+        throw new RangeError('Host AvctTable not found');
+    }
+
     render(): ReturnType<LitElement['render']> {
         const visibleColumns = this.columns.filter(column => column.width);
         const visibleRows = this.rows.slice(0, this.visibleRows);
@@ -268,17 +386,18 @@ export class AvctTable<T extends RowData> extends LitElement {
                 </${AvctCtxMenu}>` 
             : null}
         `;
-        return html`
+        return html`    
+            <link rel="stylesheet" href="./shared.css" />
             <table>
                 <thead>
                     <tr>
-                        ${visibleColumns.map((column, index, list) => html`<th width="${column.width}" data-index="${index}">${column.title}${(index === list.length - 1) ? config : null}<span @mousedown="${this.handleResizeMouseDown}"></span></th>`)}
+                        ${visibleColumns.map((column, index, list) => html`<th width="${column.width}" data-index="${index}" class="${classMap({ 'ctx-menu-host': index === list.length - 1 })}">${column.title}${(index === list.length - 1) ? config : null}<span @mousedown="${this.handleResizeMouseDown}"></span></th>`)}
                     </tr>
                 </thead>
                 <tbody>
                     ${repeat(visibleRows, row => row.id, 
                         row => guard([row, this.columns], () => 
-                            html`<tr>${visibleColumns.map(column => 
+                            html`<tr id="${this.tableId}-${row.id}">${visibleColumns.map(column => 
                                 html`<td>
                                     <${column.cellType} .row="${row}"></${column.cellType}>
                                 </td>`
@@ -292,6 +411,4 @@ export class AvctTable<T extends RowData> extends LitElement {
             </table>
         `;
     }
-
-    createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
 }

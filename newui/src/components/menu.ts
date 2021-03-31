@@ -105,9 +105,27 @@ export class AvctCtxMenu extends LitElement {
 
     registeredParent?: HTMLElement;
 
+    private static findEffctiveOffsetParent(from: Node | null): HTMLElement {
+        let current: Node | null = from;
+        while (current) {
+            if (current.nodeType === 11) {
+                current = (current as ShadowRoot).host;
+            }
+            if (current.nodeType === 1) {
+                if (current instanceof LitElement) {
+                    return current;
+                } else if ((current as HTMLElement).classList.contains('ctx-menu-host')) {
+                    return current as HTMLElement;
+                }
+            }
+            current = current.parentNode;
+        }
+        throw new RangeError('Context menu host not found');
+    }
+
     connectedCallback(): ReturnType<LitElement['connectedCallback']> {
         super.connectedCallback();
-        this.registeredParent = this.offsetParent as HTMLElement;
+        this.registeredParent = AvctCtxMenu.findEffctiveOffsetParent(this.parentNode);
         this.registeredParent.addEventListener('mouseenter', this.parentMouseEnter);
         this.registeredParent.addEventListener('mouseleave', this.parentMouseLeave);
     }

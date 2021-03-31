@@ -28,7 +28,7 @@ const getClassUniqueTag = (klass: Constructor<LitElement>): WrappedStatic => {
         return wrapped;
     }
     const tag = toDashCase(klass.name);
-    customElements.define(tag, klass);
+    customElements.define(tag, klass); // Let errors be thown if there are duplicates.
     const ret = unsafeStatic(tag);
     registeredElements.set(klass, ret);
     return ret;

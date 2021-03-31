@@ -8,6 +8,7 @@ import { tags } from './data';
 import { send } from './api';
 import { AvctCtxMenu } from './components/menu';
 import { classMap } from 'lit-html/directives/class-map.js';
+import { MAX_GOOD_INTEGER } from './components/utils';
 
 const sortOrder: Record<TagType, number> = {
     'Studio': 1, 'Content': 2, 'Format': 3, 'Special': 4
@@ -86,9 +87,9 @@ export class AvctTagSelect extends LitElement {
     private static matchTagValue(tagName: string, normalizedInput: string): number {
         const normalizedTagName = normalize(tagName);
         if (normalizedTagName === normalizedInput) {
-            return Number.MAX_SAFE_INTEGER;
+            return MAX_GOOD_INTEGER;
         } else if (normalizedTagName.startsWith(normalizedInput)) {
-            return Number.MAX_SAFE_INTEGER - normalizedTagName.length;
+            return MAX_GOOD_INTEGER - normalizedTagName.length;
         } else if (normalizedTagName.indexOf(normalizedInput) >= 0) {
             return 0 - normalizedTagName.length;
         }
@@ -171,7 +172,7 @@ export class AvctTagSelect extends LitElement {
             id = newTag['id'];
             tags.update(oldMap => {
                 const newMap = new Map(oldMap);
-                newMap.set(id, { id, name, type, best: 0, parent: [] });
+                newMap.set(id, { id, name, type, best: 0, parent: [], description: '' });
                 return newMap;
             });
             this.tagCreationInProgress = false;
@@ -285,12 +286,12 @@ export class AvctTagList extends LitElement {
         });
         return html`${
             this.tags.map(tag => html`
-                <span class="tag-chip ${'tag-type-' + tag.type.toLowerCase()}">
+                <span class="tag-chip ctx-menu-host ${'tag-type-' + tag.type.toLowerCase()}">
                     ${tag.name}
-                    <${AvctCtxMenu} title="${tag.type} tag"><button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button></${AvctCtxMenu}>
+                    <${AvctCtxMenu} title="${tag.type} tag"><button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button><hr /><b>${tag.name}</b>: ${tag.description}</${AvctCtxMenu}>
                 </span>
             `)}
-            <button class="td-hover round-button" @click="${this.onAddTag}">+</button>
+            <button part="td-hover" class="round-button" @click="${this.onAddTag}">+</button>
             ${this.add ? html`
                 <${AvctCtxMenu} shown shadow title="Add a tag" @avct-close="${this.abortAdd}">
                     <${AvctTagSelect} @avct-select="${this.selectTag}" .existing="${this.tagIds}" .allowCreation="${this.allowCreation}"></${AvctTagSelect}>

@@ -1,5 +1,5 @@
 import { AvctTable, column } from './components/table';
-import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
+import { LitElement, TemplateResult, css } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
 import { TagJson, ClipCallback, Race, Role, RowData } from './model';
@@ -28,9 +28,27 @@ interface SortedClip extends RowData {
     sortedBy: SortModel;
 }
 
-const resolutionToColor = (resolution: number): string => resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000';
-
 abstract class ClipCellElementBase extends LitElement implements ClipCallback {
+    static styles = css`
+        :host {
+            user-select: none;
+        }
+
+        .error {
+            background: #d32f2f;
+            font-size: 12px;
+            color: #fff;
+            display: inline-block;
+            line-height: 18px;
+            height: 18px;
+            border-radius: 9px;
+            padding: 0 6px;
+            margin: 2px;
+        }
+
+        .error::before { content: '⚠ '; }
+    `;
+
     @property({ attribute: false })
     row!: SortedClip;
 
@@ -48,15 +66,24 @@ abstract class ClipCellElementBase extends LitElement implements ClipCallback {
     render(): ReturnType<LitElement['render']> {
         // console.log(`Rendering ${this.tagName} for ${this.item.id}`);
         const errors = this.item.errors?.get(this.constructor as any);
-        return html`${this.renderContent()}${errors?.map(item => html`<span class="error">${item}</span>`)}`;
+        return html`
+            <link rel="stylesheet" href="./shared.css" />
+            ${this.renderContent()}
+            ${errors?.map(item => html`<span class="error">${item}</span>`)}
+        `;
     }
-
-    createRenderRoot() { return this; }
 
     abstract renderContent(): TemplateResult | string;
 }
 
 export class AvctClipThumb extends ClipCellElementBase {
+    static get styles() {
+        return [
+            super.styles,
+            css`img { max-width: 100%; }`
+        ];
+    };
+
     constructor() {
         super();
         this.addEventListener('click', async () => {
@@ -85,13 +112,30 @@ export class AvctClipThumb extends ClipCellElementBase {
 }
 
 export class AvctClipName extends ClipCellElementBase {
+    static get styles() {
+        return [
+            super.styles,
+            css`
+                .resolution-indicator {
+                    border-radius: 50%;
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    vertical-align: middle;
+                }
+            `
+        ];
+    };
+
     private onDeleteClip(): void {
         send('clip/delete', { id: this.item.id });
     }
 
+    private static resolutionToColor(resolution: number): string { return resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000'; }
+
     renderContent(): TemplateResult {
         return html`
-            <span class="resolution-indicator" title="${this.item.resolution + 'p'}" style="${styleMap({ 'background': resolutionToColor(this.item.resolution) })}"></span>
+            <span class="resolution-indicator" title="${this.item.resolution + 'p'}" style="${styleMap({ 'background': AvctClipName.resolutionToColor(this.item.resolution) })}"></span>
             ${this.item.getFile()}
             ${this.item.exists ? html`<${AvctCtxMenu} title="Play ${this.item.getFile()}"><${AvctClipPlay} .clipId="${this.item.id}" .path="${this.item.path}"></${AvctClipPlay}></${AvctCtxMenu}>` : html`<button class="round-button" @click="${this.onDeleteClip}">🗑</button>`}
         `;
@@ -99,6 +143,13 @@ export class AvctClipName extends ClipCellElementBase {
 }
 
 export class AvctClipRace extends ClipCellElementBase {
+    static get styles() {
+        return [
+            super.styles,
+            css`.round-button { margin-left: 4px; }`
+        ];
+    };
+
     @property({ attribute: false })
     edit = false;
 
@@ -109,7 +160,7 @@ export class AvctClipRace extends ClipCellElementBase {
     renderContent(): TemplateResult {
         return html`
             ${this.item.race}
-            <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
+            <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit race" @avct-close="${this.abortEdit}">
                     <${AvctRaceSelection} .selected="${this.item.race}" @avct-select="${this.selects}"></${AvctRaceSelection}>
@@ -136,7 +187,7 @@ export class AvctClipRole extends ClipCellElementBase {
     renderContent(): TemplateResult {
         return html`
             ${this.item.roles.map(role => html`<span class="tag-chip">${role}</span>`)}
-            <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
+            <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit roles" @avct-close="${this.abortEdit}">
                     <${AvctRoleSelection} .selected="${this.item.roles}" @avct-touch="${this.markDirty}" @avct-select="${this.selects}"></${AvctRoleSelection}>
@@ -164,7 +215,7 @@ export class AvctClipNote extends ClipCellElementBase {
     renderContent(): TemplateResult {
         return html`
             ${this.item.note}
-            <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
+            <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit Source note" @avct-close="${this.abortEdit}">
                     <${AvctTextEdit} value="${this.item.note}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
@@ -192,6 +243,22 @@ export class AvctClipTags extends ClipCellElementBase {
 }
 
 export class AvctClipScore extends ClipCellElementBase {
+    static get styles() {
+        return [
+            super.styles,
+            css`
+                button, button:hover, :active {
+                    background: none; border: 0 none; padding: 0; margin: 0; cursor: pointer; box-shadow: none;
+                }
+                
+                button.preview {
+                    color: #4E1379;
+                    text-shadow: 0 1px 1px #9a23a1;
+                }
+            `
+        ];
+    };
+
     @property({ attribute: false })
     preview = 0;
 
@@ -232,13 +299,13 @@ export class AvctClipScore extends ClipCellElementBase {
 
 class AvctClipHistory extends ClipCellElementBase {
     private popupView(): void {
-        globalDialog({ type: AvctClipHistoryDialog, params: this.item.id });
+        globalDialog({ type: AvctClipHistoryDialog, params: this.item.id, title: 'History' });
     }
 
     renderContent(): TemplateResult {
         if (!this.item.lastPlay) { return html`Never played`; }
         const diffDays = (new Date().getTime() / 1000 - this.item.lastPlay) / (3600 * 24);
-        return html`${this.item.totalPlay} times (${this.item.getLastPlayText()}) <button class="td-hover round-button" @click="${this.popupView}">⏲</button>`;
+        return html`${this.item.totalPlay} times (${this.item.getLastPlayText()}) <button part="td-hover" class="round-button" @click="${this.popupView}">⏲</button>`;
     }
 }
 
@@ -295,7 +362,7 @@ export class AvctClips extends LitElement {
 
     createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
 
-    private static columns = [
+    private static readonly columns = [
         column('Thumb', AvctClipThumb),
         column('Name', AvctClipName),
         column('Rating', AvctClipScore),

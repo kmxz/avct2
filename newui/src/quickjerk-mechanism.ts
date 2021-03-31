@@ -211,9 +211,11 @@ export const POSSIBLE_SCORERS: ScorerDefinition<any>[] = [
 export class SortModel {
     private readonly residualRandomScorer = RANDOM.factory();
     private readonly scorers: Scorer[];
+    readonly ruleCount: number;
 
     constructor(builders: ScorerBuilder<any>[]) {
         this.scorers = builders.map(SortModel.build);
+        this.ruleCount = this.scorers.length;
     }
 
     // Instances should be reused whereever possible.
@@ -245,6 +247,6 @@ export class SortModel {
 
     edit(): Promise<SortModel> {
         const builders = this.scorers.map(item => ({ ...item }));
-        return globalDialog({ type: QuickjerkModal, params: builders });
+        return globalDialog({ type: QuickjerkModal, params: builders, title: 'Quickjerm sorting config' });
     }
 }
