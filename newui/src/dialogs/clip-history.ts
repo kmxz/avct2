@@ -1,7 +1,7 @@
 import { css, LitElement } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
-import { send } from '../api';
+import { sendTypedApi } from '../api';
 import { DialogBase } from '../components/dialog';
 
 export class AvctClipHistoryDialog extends DialogBase<number, void> {
@@ -25,7 +25,7 @@ export class AvctClipHistoryDialog extends DialogBase<number, void> {
     updated(changedProps: Map<keyof AvctClipHistoryDialog, any>): ReturnType<LitElement['updated']> {
         if (changedProps.has('params')) {
             this.loading = true;
-            send('clip/history', { id: this.params }).then((response: number[]) => {
+            sendTypedApi('clip/$/history', { id: this.params }).then((response: number[]) => {
                 this.loading = false;
                 this.history = response;
             });

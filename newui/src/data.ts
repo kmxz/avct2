@@ -1,23 +1,27 @@
-import { send } from './api';
+import { sendTypedApi } from './api';
 import { globalDialog } from './components/dialog';
 import { AvctClipsUpdates } from './dialogs/clips-updates';
 import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb } from './clips';
 import { TagJson, ClipCallback, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
 import { ElementType } from './components/registry';
 
-const tagListReq = send('tag/list');
-const clipListReq = send('clip/list');
+const tagListReq = sendTypedApi('tag/list');
+const clipListReq = sendTypedApi('clip/list');
 
-export const tags: MultiStore<Map<number, TagJson>> = new MultiStore(tagListReq.then((raw: TagJson[]) => new Map(raw.map(tagJson => [tagJson.id, tagJson]))));
+export const tags: MultiStore<Map<number, TagJson>> = new MultiStore(tagListReq.then(raw => new Map(raw.map(tagJson => [tagJson.id, tagJson]))));
 
 export const clips: MultiStore<Map<number, Clip>> = new MultiStore(
-    Promise.all([tags.value().next().then(res => res.value), clipListReq]).then(
-        ([tags, raw]: [Map<number, TagJson>, ClipJson[]]) => new Map(raw.map(clipJson => [clipJson[0], new Clip(clipJson, tags)])))
+    Promise.all([
+        tags.value().next(), 
+        clipListReq
+    ] as const).then(
+        ([tagsIter, raw]) => new Map(raw.map(clipJson => [clipJson[0], new Clip(clipJson, tagsIter.value)]))
+    )
 );
 
-export const players: Promise<string[]> = send('players');
+export const players: Promise<string[]> = sendTypedApi('players');
 
-Promise.all([tagListReq, clipListReq]).then(() => send('clip/autocrawl')).then(async (response: { added: string[], disappeared: string[] }) => {
+Promise.all([tagListReq, clipListReq]).then(() => sendTypedApi('!clip/autocrawl')).then(async response => {
     const tagsData = (await tags.value().next()).value;
     if (response.disappeared.length) {
         const disappearedFiles = new Set(response.disappeared);
@@ -83,7 +87,7 @@ export class Clip implements RowData {
     getThumb(): Promise<string> {
         if (!this.hasThumb) { throw new TypeError(`Thumb not set for clip ${this.id}.`); }
         if (!this.thumbImgPromise) {
-            this.thumbImgPromise = send('clip/thumb', { id: this.id }).then((blob: Blob) => URL.createObjectURL(blob));
+            this.thumbImgPromise = sendTypedApi('clip/$/thumb', { id: this.id }).then((blob: Blob) => URL.createObjectURL(blob));
         }
         return this.thumbImgPromise;
     }
@@ -105,7 +109,7 @@ export class Clip implements RowData {
         }
         from.loading = true;
         try {
-            const json = await send('clip/edit', { id: this.id, key, value });
+            const json = await sendTypedApi('!clip/$/edit', { id: this.id, key, value });
             const tagsData = (await tags.value().next()).value;
             clips.update(oldMap => {
                 const newMap = new Map(oldMap);

@@ -1,6 +1,6 @@
 import { css, LitElement } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
-import { send } from '../api';
+import { sendTypedApi } from '../api';
 import { DialogBase } from '../components/dialog';
 import { loadImgToCover, loadImgUrlToCover } from '../components/canvas-util';
 import { query } from '@lit/reactive-element/decorators/query.js';
@@ -51,7 +51,7 @@ export class AvctThumbnailDialog extends DialogBase<{ id: number; thumb: Promise
     }
 
     private async onLaunchShootImpl(): Promise<void> {
-        const blob: Blob = await send('clip/shot', {'id': this.params.id });
+        const blob: Blob = await sendTypedApi('!clip/$/shot', {'id': this.params.id });
         const url = URL.createObjectURL(blob);
         try {
             await loadImgUrlToCover(url, this.canvasCtx);

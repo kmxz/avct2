@@ -1,7 +1,7 @@
 import { css, LitElement } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
-import { send } from '../api';
+import { sendTypedApi } from '../api';
 import { DialogBase } from '../components/dialog';
 import { until } from 'lit-html/directives/until.js';
 import { clips } from '../data';
@@ -31,7 +31,7 @@ export class AvctSimilarClipsDialog extends DialogBase<number, void> {
 
     updated(changedProps: Map<keyof AvctSimilarClipsDialog, any>): ReturnType<LitElement['updated']> {
         if (changedProps.has('params')) {
-            this.apiResponse = send('clip/similar', { id: this.params });
+            this.apiResponse = sendTypedApi('clip/$/similar', { id: this.params });
         }
     }
 

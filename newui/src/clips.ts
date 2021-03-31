@@ -19,7 +19,7 @@ import { AvctTagList } from './tags';
 import { AvctClipHistoryDialog } from './dialogs/clip-history';
 import { AvctThumbnailDialog } from './dialogs/thumbnail';
 import { SortModel } from './quickjerk-mechanism';
-import { send } from './api';
+import { sendTypedApi } from './api';
 import { styleMap } from 'lit-html/directives/style-map.js';
 
 interface SortedClip extends RowData {
@@ -101,7 +101,7 @@ export class AvctClipThumb extends ClipCellElementBase {
                 globalToast('Thumb not changed.');
                 return;
             }
-            await send('clip/saveshot', { 'id': this.item.id, 'file': blob });
+            await sendTypedApi('!clip/$/saveshot', { 'id': this.item.id, 'file': blob });
             await this.item.notifyThumbChange();
         });
     }
@@ -128,7 +128,7 @@ export class AvctClipName extends ClipCellElementBase {
     };
 
     private onDeleteClip(): void {
-        send('clip/delete', { id: this.item.id });
+        sendTypedApi('!clip/$/delete', { id: this.item.id });
     }
 
     private static resolutionToColor(resolution: number): string { return resolution ? 'hsl(' + (Math.pow(Math.min(Math.max(0, (resolution - 160)) / 1280, 1), 2 / 3) * 120) + ', 100%, 50%)' : '#000'; }

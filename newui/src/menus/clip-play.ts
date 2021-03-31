@@ -3,7 +3,7 @@ import { html } from '../components/registry';
 import { property } from 'lit-element/decorators/property.js';
 import { until } from 'lit-html/directives/until.js';
 import { players } from '../data';
-import { send } from '../api';
+import { sendTypedApi } from '../api';
 import { globalDialog } from '../components/dialog';
 import { AvctSimilarClipsDialog } from '../dialogs/similar-clips';
 
@@ -36,7 +36,7 @@ export class AvctClipPlay extends LitElement {
             let record: boolean;
             switch (button.name) {
                 case 'folder':
-                    send('clip/folder', { id: this.clipId });
+                    sendTypedApi('!clip/$/folder', { id: this.clipId });
                     return;
                 case 'record':
                     record = true;
@@ -48,8 +48,8 @@ export class AvctClipPlay extends LitElement {
                     return;
             }
             const btnGroup = button.parentNode as HTMLDivElement;
-            const player = btnGroup.dataset['player'];
-            send('clip/open', { record, player, id: this.clipId });
+            const player = btnGroup.dataset['player']!;
+            sendTypedApi('!clip/$/open', { record, player, id: this.clipId });
         });
     }
 

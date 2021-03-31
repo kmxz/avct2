@@ -5,7 +5,7 @@ import { arrayNonEq, TagJson, TagType, TAG_TYPES } from './model';
 import { globalToast } from './components/toast';
 import { query } from 'lit-element/decorators/query.js';
 import { tags } from './data';
-import { send } from './api';
+import { sendTypedApi } from './api';
 import { AvctCtxMenu } from './components/menu';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { MAX_GOOD_INTEGER } from './components/utils';
@@ -168,7 +168,7 @@ export class AvctTagSelect extends LitElement {
         let id = this.selectedTag.id;
         if (!id) {
             this.tagCreationInProgress = true;
-            const newTag = await send('tag/create', { name, type });
+            const newTag = await sendTypedApi('!tag/create', { name, type });
             id = newTag['id'];
             tags.update(oldMap => {
                 const newMap = new Map(oldMap);
