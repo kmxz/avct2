@@ -2,7 +2,7 @@ import { AvctTable, column } from './components/table';
 import { LitElement, TemplateResult } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { arrayNonEq, recordNonEq, TagJson, ClipCallback, Race, Role } from './model';
+import { TagJson, ClipCallback, Race, Role, RowData } from './model';
 import { tags, Clip } from './data';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { until } from 'lit-html/directives/until.js';
@@ -11,6 +11,7 @@ import { globalToast } from './components/toast';
 import { globalDialog } from './components/dialog';
 import { AvctCtxMenu } from './components/menu';
 import { AvctClipPlay } from './menus/clip-play';
+import { QuickjerkScore } from './menus/quickjerk-score';
 import { AvctRaceSelection } from './menus/race-selection';
 import { AvctRoleSelection } from './menus/role-selection';
 import { AvctTextEdit } from './menus/text-edit';
@@ -21,7 +22,7 @@ import { SortModel } from './quickjerk-mechanism';
 import { send } from './api';
 import { styleMap } from 'lit-html/directives/style-map.js';
 
-interface SortedClip {
+interface SortedClip extends RowData {
     clip: Clip;
     rating: number;
     sortedBy: SortModel;
@@ -103,7 +104,7 @@ export class AvctClipRace extends ClipCellElementBase {
 
     private startEdit(): void { this.edit = true; }
     private abortEdit(): void { this.edit = false; }
-    private selects(e: CustomEvent<Race>): Promise<void> { this.edit = false; return this.item.update('race', e.detail, this); }
+    private selects(e: CustomEvent<Race>): Promise<void> { e.stopPropagation(); this.edit = false; return this.item.update('race', e.detail, this); }
     
     renderContent(): TemplateResult {
         return html`
@@ -130,11 +131,11 @@ export class AvctClipRole extends ClipCellElementBase {
         if (this.dirty) { globalToast('Role editor discarded.'); }
         this.edit = false;
     }
-    private selects(e: CustomEvent<Role[]>): Promise<void> { this.edit = false; return this.item.update('role', e.detail, this); }
+    private selects(e: CustomEvent<Role[]>): Promise<void> { e.stopPropagation(); this.edit = false; return this.item.update('role', e.detail, this); }
     
     renderContent(): TemplateResult {
         return html`
-            ${this.item.roles.map(role => html`<span>${role}</span>`)}
+            ${this.item.roles.map(role => html`<span class="tag-chip">${role}</span>`)}
             <button class="td-hover round-button" @click="${this.startEdit}">✎</button>
             ${this.edit ? html`
                 <${AvctCtxMenu} shown shadow title="Edit roles" @avct-close="${this.abortEdit}">
@@ -180,12 +181,13 @@ export class AvctClipTags extends ClipCellElementBase {
     }
 
     private selectTag(e: CustomEvent<number>): Promise<void> {
+        e.stopPropagation();
         const newTags = this.item.tags.concat(e.detail);
         return this.item.update('tags', newTags, this);
     }
 
     renderContent(): TemplateResult {
-        return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => this.item.tags.map(id => (tagMap as Map<number, TagJson>).get(id)))}" @avct-select="${this.selectTag}" @avct-remove="${this.removeTag}"></${AvctTagList}>`;
+        return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => this.item.tags.map(id => (tagMap as Map<number, TagJson>).get(id)))}" @avct-select="${this.selectTag}" @avct-remove="${this.removeTag}" allowCreation></${AvctTagList}>`;
     }
 }
 
@@ -251,7 +253,10 @@ class AvctClipDuration extends ClipCellElementBase {
 
 class AvctClipSorting extends ClipCellElementBase {
     renderContent(): TemplateResult {
-        return html`${this.row.rating.toFixed(2)} <${AvctCtxMenu}>Test</${AvctCtxMenu}>`;
+        return html`
+            ${this.row.rating.toFixed(2)}
+            <${AvctCtxMenu}><${QuickjerkScore} .clip="${this.row.clip}" .sortedBy="${this.row.sortedBy}"></${QuickjerkScore}></${AvctCtxMenu}>
+        `;
     }
 }
 
@@ -262,16 +267,16 @@ export class AvctClips extends LitElement {
     @property({ attribute: false })
     tags?: Map<number, TagJson>;
 
-    @property({ attribute: false, hasChanged: arrayNonEq(recordNonEq()) })
+    // Purely-derived property. No need to check.
     rows: SortedClip[] = [];
 
     @property({ attribute: false })
-    quickjerk: SortModel = new SortModel([]);
+    quickjerk!: SortModel;
 
     applyFilter(): void {
         const sortedBy = this.quickjerk;
         this.rows = Array.from(this.clips?.values() ?? []).map(clip => ({
-            clip, rating: sortedBy.score(clip), sortedBy
+            clip, rating: sortedBy.score(clip), sortedBy, id: clip.id
         })).sort((a, b) => b.rating - a.rating);
     }
 

@@ -78,6 +78,9 @@ export class AvctTagSelect extends LitElement {
     tagCreationInProgress = false;
 
     @property({ attribute: false })
+    allowCreation = true;
+
+    @property({ attribute: false })
     selectedTag?: Pick<TagJson, 'id' | 'type' | 'name'>;
 
     private static matchTagValue(tagName: string, normalizedInput: string): number {
@@ -223,12 +226,12 @@ export class AvctTagSelect extends LitElement {
                 ${this.selectedTag?.id ? (
                     this.existing.has(this.selectedTag.id) ? html`Tag already added.` : html`An existing ${this.selectedTag.type} tag.`
                 ) : (
-                    (this.input?.value ?? '').trim().length ? html`
+                    (this.input?.value ?? '').trim().length ? (this.allowCreation ? html`
                         Create a new tag?
                         <div class="types">
                             ${TAG_TYPES.map(type => html`<label><input type="radio" name="tag-type" value="${type}" @click="${this.selectType}" ?disabled="${this.tagCreationInProgress}" />${type}</label>`)}
                         </div>
-                    ` : 'Tag name cannot be empty.'
+                    ` : `Such tag does not exist.`) : 'Tag name cannot be empty.'
                 )}
             </div>
             <button @click="${this.emit}" ?loading="${this.tagCreationInProgress}" ?disabled="${this.tagCreationInProgress || !this.selectedTag}">Done</button>
@@ -244,6 +247,9 @@ export class AvctTagList extends LitElement {
 
     @property({ attribute: false })
     add = false;
+
+    @property({ type: Boolean })
+    allowCreation!: boolean;
 
     private tagIds: Set<number> = new Set();
 
@@ -279,7 +285,7 @@ export class AvctTagList extends LitElement {
         });
         return html`${
             this.tags.map(tag => html`
-                <span class="${'tag-type-' + tag.type.toLowerCase()}">
+                <span class="tag-chip ${'tag-type-' + tag.type.toLowerCase()}">
                     ${tag.name}
                     <${AvctCtxMenu} title="${tag.type} tag"><button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button></${AvctCtxMenu}>
                 </span>
@@ -287,8 +293,38 @@ export class AvctTagList extends LitElement {
             <button class="td-hover round-button" @click="${this.onAddTag}">+</button>
             ${this.add ? html`
                 <${AvctCtxMenu} shown shadow title="Add a tag" @avct-close="${this.abortAdd}">
-                    <${AvctTagSelect} @avct-select="${this.selectTag}" .existing="${this.tagIds}"></${AvctTagSelect}>
+                    <${AvctTagSelect} @avct-select="${this.selectTag}" .existing="${this.tagIds}" .allowCreation="${this.allowCreation}"></${AvctTagSelect}>
                 </${AvctCtxMenu}>`
             : null}`;
     }
+}
+
+export class AvctTagListSimple extends LitElement {
+    static styles = css`
+        :host { position: relative; }
+    `;
+
+    @property({ attribute: false })
+    tags: TagJson[] = [];
+
+    private async addTag(e: CustomEvent<number>): Promise<void> {
+        const allTags = (await tags.value().next()).value;
+        if (this.tags.some(tag => tag.id === e.detail)) { return; }
+        const matching = allTags.get(e.detail)!;
+        this.dispatchEvent(new CustomEvent<TagJson[]>('avct-bubble-change', { detail: [...this.tags, matching], bubbles: true }));
+    }
+
+    private removeTag(e: CustomEvent<number>): void {
+        const newTags = this.tags.filter(tag => tag.id !== e.detail);
+        if (newTags.length === this.tags.length) { return; }
+        this.dispatchEvent(new CustomEvent<TagJson[]>('avct-bubble-change', { detail: newTags, bubbles: true }));
+    }
+
+    render() {
+        return html`
+            <link rel="stylesheet" href="./shared.css" />
+            <${AvctTagList} .tags="${this.tags}" @avct-select="${this.addTag}" @avct-remove="${this.removeTag}"></${AvctTagList}>
+        `;
+    }
+
 }

@@ -6,7 +6,7 @@ html, body { margin: 0; padding: 0; font-size: 15px; overflow-x: hidden; height:
 
 avct-root { width: 100%; height: 100%; }
 
-#main { width: 100%; height: 100%; display: flex; }
+main { width: 100%; height: 100%; display: flex; flex-direction: column; }
 
 img { max-width: 100%; }
 
@@ -109,6 +109,8 @@ tfoot td {
 }
 
 avct-clips {
+    height: 0;
+    flex-grow: 1;
 }
 
 avct-clip-score, avct-clip-race, avct-clip-role {
@@ -125,15 +127,6 @@ avct-clip-score button.preview {
 }
 
 avct-clip-race > .round-button { margin-left: 4px; }
-
-avct-clip-role > span, avct-tag-list > span {
-    display: inline-block;
-    background: #DEBEDF;
-    padding: 2px 4px;
-    margin: 2px;
-    border-radius: 4px;
-    position: relative;
-}
 
 .resolution-indicator {
     border-radius: 50%;
