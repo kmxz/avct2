@@ -36,11 +36,10 @@ export interface ScorerBuilder<T extends ScorerParams> {
     readonly implementation: ScorerDefinition<T>;
     readonly config: T;
     readonly weight: number;
+    built?: ScorerFunction;
 }
 
-interface Scorer extends ScorerBuilder<any> {
-    built: ScorerFunction;
-}
+type Scorer = Required<ScorerBuilder<any>>;
 
 export const MAXIMUM_WEIGHT = 1e2;
 export const MINIMUM_WEIGHT = 1e-1;
@@ -94,12 +93,7 @@ const TEXT_SEARCH: ScorerDefinition<{ keywords: string; includeNotes: boolean; }
 const TAGS: ScorerDefinition<{ value: TagJson[] }> = {
     name: 'Tags (match any of)',
     factory: ({ value }) => clip => {
-        const hit: string[] = [];
-        for (const tag of value) {
-            if (clip.tags.indexOf(tag.id) > -1) {
-                hit.push(tag.name);
-            }
-        }
+        const hit: string[] = value.filter(tag => clip.tags.has(tag.id)).map(tag => tag.name);
         return hit.length ? { score: 1, message: 'found: ' + hit.join(', ') } : { score: 0, message: 'not found: ' + value.map(tag => tag.name).join(', ') };
     },
     default: { value: [] },
@@ -220,9 +214,8 @@ export class SortModel {
 
     // Instances should be reused whereever possible.
     private static build(builder: ScorerBuilder<any> | Scorer): Scorer {
-        const out = builder as Scorer;
-        if (!out.built) { out.built = out.implementation.factory(out.config); }
-        return out;
+        if (!builder.built) { builder.built = builder.implementation.factory(builder.config); }
+        return builder as Scorer;
     }
 
     static readonly DEFAULT = new SortModel([
@@ -247,6 +240,6 @@ export class SortModel {
 
     edit(): Promise<SortModel> {
         const builders = this.scorers.map(item => ({ ...item }));
-        return globalDialog({ type: QuickjerkModal, params: builders, title: 'Quickjerm sorting config' });
+        return globalDialog({ type: QuickjerkModal, params: builders, title: 'Quickjerm sorting config' }, true);
     }
 }

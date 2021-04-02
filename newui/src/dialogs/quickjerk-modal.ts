@@ -21,17 +21,22 @@ export class QuickjerkModal extends DialogBase<ScorerBuilder<any>[], SortModel> 
         footer { text-align: center; }
     `;
 
-    private getScorerIndex(e: Event): number {
+    private updateScorer(e: Event, updater: (old: ScorerBuilder<any>) => ScorerBuilder<any>) {
         const td = e.currentTarget as HTMLTableDataCellElement;
         const tr = td.parentNode as HTMLTableRowElement;
         const key = tr.dataset['scorerKey']!;
-        return this.params.findIndex(item => item.key === key);
+        const index = this.params.findIndex(item => item.key === key);
+        const newParams = [...this.params];
+        const newEntry = updater(newParams[index]);
+        delete newEntry.built;
+        newParams[index] = newEntry;
+        this.params = newParams;
     }
 
     private handleParamChange(e: Event): void {
         const input = e.target as HTMLInputElement | HTMLSelectElement;
         const name = input.name;
-        let value;
+        let value: any;
         if (input instanceof HTMLInputElement) {
             switch (input.type) {
                 case 'text':
@@ -46,29 +51,19 @@ export class QuickjerkModal extends DialogBase<ScorerBuilder<any>[], SortModel> 
         } else if (input instanceof HTMLSelectElement) {
             value = input.value || void 0;
         }
-
-        const newParams = [...this.params];
-        const index = this.getScorerIndex(e);
-        newParams[index] = { ...newParams[index], config: { ...newParams[index].config, [name]: value } };
-        this.params = newParams;
+        this.updateScorer(e, oldEntry => ({ ...oldEntry, config: { ...oldEntry.config, [name]: value } }));
     }
 
     private handleAvctParamChange(e: CustomEvent<any>): void {
         if (e.target instanceof AvctTagListSimple) {
-            const newParams = [...this.params];
-            const index = this.getScorerIndex(e);
-            newParams[index] = { ...newParams[index], config: { ...newParams[index].config, value: e.detail } };
-            this.params = newParams;
+            this.updateScorer(e, oldEntry => ({ ...oldEntry, config: { ...oldEntry.config, value: e.detail } }));
         }
     }
 
     private handleWeightChange(e: Event): void {
         const weight = parseFloat((e.target as HTMLInputElement).value);
 
-        const newParams = [...this.params];
-        const index = this.getScorerIndex(e);
-        newParams[index] = { ...newParams[index], weight };
-        this.params = newParams;
+        this.updateScorer(e, oldEntry => ({ ...oldEntry, weight }));
     }
 
     private onRemoveScorer(e: Event): void {

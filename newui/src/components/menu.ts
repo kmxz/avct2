@@ -126,6 +126,9 @@ export class AvctCtxMenu extends LitElement {
     connectedCallback(): ReturnType<LitElement['connectedCallback']> {
         super.connectedCallback();
         this.registeredParent = AvctCtxMenu.findEffctiveOffsetParent(this.parentNode);
+        if (getComputedStyle(this.registeredParent).position === 'static') { // XXX: this is dirty, but works
+            this.registeredParent.style.position = 'relative';
+        }
         this.registeredParent.addEventListener('mouseenter', this.parentMouseEnter);
         this.registeredParent.addEventListener('mouseleave', this.parentMouseLeave);
     }

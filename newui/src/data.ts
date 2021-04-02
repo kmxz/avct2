@@ -25,7 +25,7 @@ Promise.all([tagListReq, clipListReq]).then(() => sendTypedApi('!clip/autocrawl'
     const tagsData = (await tags.value().next()).value;
     if (response.disappeared.length) {
         const disappearedFiles = new Set(response.disappeared);
-        clips.update(oldMap => new Map(Array.from(oldMap.entries()).map(entry => {
+        clips.update(oldMap => new Map(Array.from(oldMap.entries(), entry => {
             if (disappearedFiles.has(entry[1].path)) {
                 return [entry[0], entry[1].clone({ exists: false }, tagsData)];
             } else {
@@ -34,7 +34,7 @@ Promise.all([tagListReq, clipListReq]).then(() => sendTypedApi('!clip/autocrawl'
         })));
     }
     if (response.disappeared.length || response.added.length) {
-        globalDialog({ title: 'Clip files changed', type: AvctClipsUpdates, params: response });
+        globalDialog({ title: 'Clip files changed', type: AvctClipsUpdates, params: response }, false);
     }
 });
 
@@ -45,7 +45,7 @@ export class Clip implements RowData {
     readonly roles: Role[];
     readonly score: number;
     readonly duration: number;
-    readonly tags: number[];
+    readonly tags: Set<number>;
     readonly totalPlay: number;
     readonly lastPlay: number;
     readonly hasThumb: boolean;
@@ -65,7 +65,7 @@ export class Clip implements RowData {
         this.roles = data[3];
         this.score = data[4];
         this.duration = data[6];
-        this.tags = data[7];
+        this.tags = new Set(data[7]);
         this.totalPlay = data[8];
         this.lastPlay = data[9];
         this.hasThumb = data[10];
@@ -108,7 +108,7 @@ export class Clip implements RowData {
         try {
             const json = await sendTypedApi('!clip/$/edit', { id: this.id, key, value });
             const tagsData = (await tags.value().next()).value;
-            clips.update(MultiStore.mapUpdater(this.id, new Clip(json, tagsData, this)));
+            clips.update(MultiStore.mapUpdater(this.id, new Clip(json, tagsData, this), this));
         } finally {
             from.loading = false;
         }
@@ -131,7 +131,7 @@ export class Clip implements RowData {
             errors.set(AvctClipScore, ['No rating']);
         }
 
-        const tagEntities = this.tags.map(id => tags.get(id));
+        const tagEntities = Array.from(this.tags, id => tags.get(id));
         const tagErrors = [];
         if (!tagEntities.find(tag => tag?.type === 'Studio')) {
             tagErrors.push('No studio');
@@ -155,6 +155,6 @@ export class Clip implements RowData {
 
     async notifyThumbChange(): Promise<void> {
         const tagsData = (await tags.value().next()).value;
-        clips.update(MultiStore.mapUpdater(this.id, this.clone({ thumbImgPromise: undefined, hasThumb: true }, tagsData)));
+        clips.update(MultiStore.mapUpdater(this.id, this.clone({ thumbImgPromise: undefined, hasThumb: true }, tagsData), this));
     }
 }

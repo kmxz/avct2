@@ -24,7 +24,7 @@ export class AvctRootElement extends LitElement {
     qj: SortModel = SortModel.DEFAULT;
 
     private editTags() {
-        globalDialog({ type: AvctTagManagerDialog, title: 'Tag manager' });
+        globalDialog({ type: AvctTagManagerDialog, title: 'Tag manager' }, false);
     }
 
     render(): ReturnType<LitElement['render']> {

@@ -13,12 +13,12 @@ import avct2.schema._
 
 import javax.sql.rowset.serial.SerialBlob
 import org.json4s.JsonAST.JNull
-import org.scalatra.CorsSupport
-import org.scalatra.FutureSupport
+import org.scalatra.{AsyncResult, CorsSupport, FutureSupport}
 import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
 import slick.jdbc.HsqldbProfile.api._
 
 import scala.compat.Platform
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Future, Promise}
 
 class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with FutureSupport with RenderHelper with CorsSupport {
@@ -211,7 +211,9 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
                   tagsIncludingParents <- Future.sequence(tags.map(tag => getParentOrChildTags(tag, true, true))).map(_.fold(Set[Int]())(_ ++ _) ++ tags) // duplicates removed
                 } yield tagsIncludingParents)
                 .flatMap(tagsIncludingParents =>
-                  db.run(Tables.clipTag.map(row => (row.clipId, row.tagId)) ++= tagsIncludingParents.map(tag => (id, tag)))
+                  if (tagsIncludingParents.nonEmpty)
+                    db.run(Tables.clipTag.map(row => (row.clipId, row.tagId)) ++= tagsIncludingParents.map(tag => (id, tag)))
+                  else Future.unit
                 )
             case "sourceNote" =>
               db.run(clipRowQuery.map(_.sourceNote).update(value))
@@ -312,23 +314,11 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
           terminate(409, "Forming cycles or different types are not allowed.")
         }
       }).flatMap(_ => db.run(Tables.tagRelationship.filter(_.childTag === id).delete))
-        .flatMap(_ => db.run(Tables.tagRelationship.map(row => (row.parentTag, row.childTag)) ++= parents.toSeq.map(parent => (parent, id))))
+        .flatMap(_ =>
+          if (parents.nonEmpty) db.run(Tables.tagRelationship.map(row => (row.parentTag, row.childTag)) ++= parents.toSeq.map(parent => (parent, id)))
+          else Future.unit
+        )
         .map(_ => JNull)
-    }
-  }
-
-  post("/tag/auto") {
-    val dryRun = params("dry").toBoolean
-    withDb { implicit db =>
-      db.run(Tables.clip.map(clip => (clip.clipId, clip.file)).result)
-        .flatMap(clips => Future.sequence(clips.map(entry => async {
-          val tagIds = await(ClipTagCheck.check(entry._1))
-          if (!dryRun) {
-            await(ClipTagCheck.actualRun(entry._1, tagIds))
-          }
-          new ClipTagCheck(entry._2, await(ClipTagCheck.tagNames(tagIds)))
-        })))
-        .map(_.filter(_.problematicTags.nonEmpty))
     }
   }
 

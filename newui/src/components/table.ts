@@ -188,6 +188,7 @@ export class AvctTable<T extends RowData> extends LitElement {
         table {
             border-collapse: collapse;
             width: 100%;
+            table-layout: fixed;
         }
         
         th {
@@ -290,7 +291,14 @@ export class AvctTable<T extends RowData> extends LitElement {
     rows: T[] = [];
 
     @property({ attribute: false, hasChanged: arrayNonEq<Column>(recordNonEq<any>()) })
+    defaultColumns: Column[] = [];
+
+    @property({ attribute: false })
     columns: Column[] = [];
+
+    firstUpdated(): ReturnType<LitElement['firstUpdated']> {
+        this.columns = this.defaultColumns;
+    }
 
     private handleResizeMouseDown(e: MouseEvent) {
         const resizeHandle = e.currentTarget as HTMLElement;

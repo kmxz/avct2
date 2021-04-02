@@ -96,7 +96,7 @@ export class AvctClipThumb extends ClipCellElementBase {
                         id: this.item.id,
                         thumb: this.item.hasThumb ? this.item.getThumb() : null
                     }
-                });
+                }, true);
             } catch (e) {
                 globalToast('Thumb not changed.');
                 return;
@@ -116,6 +116,9 @@ export class AvctClipName extends ClipCellElementBase {
         return [
             super.styles,
             css`
+                :host {
+                    overflow-wrap: break-word;
+                }
                 .resolution-indicator {
                     border-radius: 50%;
                     display: inline-block;
@@ -236,18 +239,25 @@ export class AvctClipNote extends ClipCellElementBase {
 }
 
 export class AvctClipTags extends ClipCellElementBase {
+    static get styles() {
+        return [
+            super.styles,
+            css`.tag-best::before { content: '★'; margin-right: -2px; opacity: 0.5; }`
+        ];
+    };
+
     private removeTag(e: CustomEvent<number>): Promise<void> {
-        const newTags = this.item.tags.filter(id => id !== e.detail);
+        const newTags = Array.from(this.item.tags).filter(id => id !== e.detail);
         return this.item.update('tags', newTags, this);
     }
 
     private selectTag(e: CustomEvent<number>): Promise<void> {
-        const newTags = this.item.tags.concat(e.detail);
+        const newTags = Array.from(this.item.tags).concat(e.detail);
         return this.item.update('tags', newTags, this);
     }
 
     renderContent(): TemplateResult {
-        return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => this.item.tags.map(id => (tagMap as Map<number, TagJson>).get(id)))}" @avct-select="${this.selectTag}" @avct-remove="${this.removeTag}" allowCreation></${AvctTagList}>`;
+        return html`<${AvctTagList} .tags="${asyncReplace(tags.value(), tagMap => Array.from(this.item.tags, id => (tagMap as Map<number, TagJson>).get(id)))}" @avct-select="${this.selectTag}" @avct-remove="${this.removeTag}" allowCreation .clipContext="${this.item.id}"></${AvctTagList}>`;
     }
 }
 
@@ -308,7 +318,7 @@ export class AvctClipScore extends ClipCellElementBase {
 
 class AvctClipHistory extends ClipCellElementBase {
     private popupView(): void {
-        globalDialog({ type: AvctClipHistoryDialog, params: this.item.id, title: 'History' });
+        globalDialog({ type: AvctClipHistoryDialog, params: this.item.id, title: 'History' }, false);
     }
 
     renderContent(): TemplateResult {
@@ -340,9 +350,6 @@ export class AvctClips extends LitElement {
     @property({ attribute: false })
     clips?: Map<number, Clip>;
 
-    @property({ attribute: false })
-    tags?: Map<number, TagJson>;
-
     // Purely-derived property. No need to check.
     rows: SortedClip[] = [];
 
@@ -351,7 +358,7 @@ export class AvctClips extends LitElement {
 
     applyFilter(): void {
         const sortedBy = this.quickjerk;
-        this.rows = Array.from(this.clips?.values() ?? []).map(clip => ({
+        this.rows = Array.from(this.clips?.values() ?? [], clip => ({
             clip, rating: sortedBy.score(clip), sortedBy, id: clip.id
         })).sort((a, b) => b.rating - a.rating);
     }
@@ -391,7 +398,7 @@ export class AvctClips extends LitElement {
         return html`
             <${AvctTable}
                 .rows="${this.rows}"
-                .columns="${AvctClips.columns}">
+                .defaultColumns="${AvctClips.columns}">
             </${AvctTable}>`;
     }
 }

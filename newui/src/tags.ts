@@ -9,12 +9,35 @@ import { sendTypedApi } from './api';
 import { AvctCtxMenu } from './components/menu';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { MAX_GOOD_INTEGER } from './components/utils';
+import { globalDialog } from './components/dialog';
+import { AvctBestOfTagDialog } from './dialogs/best-of-tag';
 
 const sortOrder: Record<TagType, number> = {
     'Studio': 1, 'Content': 2, 'Format': 3, 'Special': 4
 };
 
 const normalize = (input: string): string => input.toLowerCase().replace(/\s+/g, ' ').trim();
+
+const matchTagValue = (tagName: string, normalizedInput: string): number => {
+    const normalizedTagName = normalize(tagName);
+    if (normalizedTagName === normalizedInput) {
+        return MAX_GOOD_INTEGER;
+    } else if (normalizedTagName.startsWith(normalizedInput)) {
+        return MAX_GOOD_INTEGER - normalizedTagName.length;
+    } else if (normalizedTagName.indexOf(normalizedInput) >= 0) {
+        return 0 - normalizedTagName.length;
+    }
+    return -MAX_GOOD_INTEGER;
+};
+
+export const searchTags = (allTags: Map<number, TagJson>, inputValue: string): TagJson[] => {
+    const normalizedInput = normalize(inputValue);
+    return Array.from(allTags.values())
+        .map(tag => [tag, matchTagValue(tag.name, normalizedInput)] as const)
+        .filter(entry => entry[1] > -MAX_GOOD_INTEGER)
+        .sort((a, b) => (b[1] - a[1]) || (a[0].name.localeCompare(b[0].name)))
+        .map(entry => entry[0]);
+};
 
 export class AvctTagSelect extends LitElement {
     static styles = css`
@@ -84,32 +107,16 @@ export class AvctTagSelect extends LitElement {
     @property({ attribute: false })
     selectedTag?: Pick<TagJson, 'id' | 'type' | 'name'>;
 
-    private static matchTagValue(tagName: string, normalizedInput: string): number {
-        const normalizedTagName = normalize(tagName);
-        if (normalizedTagName === normalizedInput) {
-            return MAX_GOOD_INTEGER;
-        } else if (normalizedTagName.startsWith(normalizedInput)) {
-            return MAX_GOOD_INTEGER - normalizedTagName.length;
-        } else if (normalizedTagName.indexOf(normalizedInput) >= 0) {
-            return 0 - normalizedTagName.length;
-        }
-        return Number.MIN_SAFE_INTEGER;
-    }
-
     private async updateCandidates(e: Event): Promise<void> {
         const inputValue = (e.target as HTMLInputElement).value;
-        const normalizedInput = normalize(inputValue);
         const allTags = (await tags.value().next()).value;
-        const matchedTags = Array.from(allTags.values()).map(tag => [
-            tag,
-            AvctTagSelect.matchTagValue(tag.name, normalizedInput)
-        ] as const).filter(entry => entry[1] > Number.MIN_SAFE_INTEGER).sort((a, b) => (b[1] - a[1]) || (a[0].name.localeCompare(b[0].name)));
-        if (matchedTags.length && (matchedTags[0][0].name === inputValue)) { // Before normalization!
-            this.selectedTag = matchedTags[0][0];
+        const matchedTags = searchTags(allTags, inputValue);
+        if (matchedTags.length && (matchedTags[0].name === inputValue)) { // Before normalization!
+            this.selectedTag = matchedTags[0];
         } else {
             this.selectedTag = void 0;
         }
-        this.hintTags = matchedTags.map(entry => entry[0]);
+        this.hintTags = matchedTags;
         this.highlightedHintTag = 0;
     }
 
@@ -170,7 +177,7 @@ export class AvctTagSelect extends LitElement {
             this.tagCreationInProgress = true;
             const newTag = await sendTypedApi('!tag/create', { name, type });
             id = newTag['id'];
-            tags.update(MultiStore.mapUpdater<number, TagJson>(id, { id, name, type, best: 0, parent: [], description: '' }));
+            tags.update(MultiStore.mapUpdater<number, TagJson>(id, { id, name, type, best: 0, parent: [], description: '' }, void 0));
             this.tagCreationInProgress = false;
         }
         this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: id }));
@@ -248,6 +255,9 @@ export class AvctTagList extends LitElement {
     @property({ type: Boolean })
     allowCreation!: boolean;
 
+    @property({ attribute: false })
+    clipContext?: number;
+
     private tagIds: Set<number> = new Set();
 
     update(changedParams: PropertyValues): ReturnType<LitElement['updated']> {
@@ -270,6 +280,19 @@ export class AvctTagList extends LitElement {
         }
     }
 
+    private async setBest(e: MouseEvent): Promise<void> { 
+        const button = e.target as HTMLButtonElement;
+        const id = parseInt(button.dataset['tagId']!);
+        if (isNaN(id)) { globalToast('Not a valid tag.'); }
+        const tag = this.tags.find(tag => tag.id === id)!;
+        const clip = this.clipContext!;
+        const updated = await globalDialog({ title: `Best of tag ${tag.name}`, type: AvctBestOfTagDialog, params: { tag: id, clip } }, false);
+        if (updated) {
+            await sendTypedApi('!tag/$/setbest', { id, clip });
+            tags.update(MultiStore.mapUpdater(id, { ...tag, best: clip }, tag));
+        }
+    }
+
     private selectTag(e: CustomEvent<number>): void {
         this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: e.detail }));
         this.add = false;
@@ -282,9 +305,15 @@ export class AvctTagList extends LitElement {
         });
         return html`${
             this.tags.map(tag => html`
-                <span class="tag-chip ctx-menu-host ${'tag-type-' + tag.type.toLowerCase()}">
+                <span class="${classMap({
+                    'tag-chip': true, 'ctx-menu-host': true, ['tag-type-' + tag.type.toLowerCase()]: true, 'tag-best': tag.best === this.clipContext 
+                })}">
                     ${tag.name}
-                    <${AvctCtxMenu} title="${tag.type} tag"><button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button><hr /><b>${tag.name}</b>: ${tag.description}</${AvctCtxMenu}>
+                    <${AvctCtxMenu} title="${tag.type} tag">
+                        <button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button>
+                        <hr /><b>${tag.name}</b>: ${tag.description}
+                        ${this.clipContext ? html`<hr /><button @click="${this.setBest}" data-tag-id="${String(tag.id)}">Set as best</button>` : null}    
+                    </${AvctCtxMenu}>
                 </span>
             `)}
             <button part="td-hover" class="round-button" @click="${this.onAddTag}">+</button>

@@ -60,12 +60,12 @@ const generateFakeClip = (id: number): ClipJson => {
 
 const fakeClips: ClipJson[] = [];
 
-for (let i = 1; i < 100; i++) {
+for (let i = 1; i < 10; i++) {
     fakeClips.push(generateFakeClip(i));
 }
 
 const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
-    'clip/list': (): ClipJson[] => fakeClips,
+    'clip': (): ClipJson[] => fakeClips,
     'clip/edit': params => {
         const clip = fakeClips[params['id'] - 1]!;
         const indices: Record<string, number> = { 'grade': 4, 'race': 2, 'role': 3, 'tags': 7, 'sourceNote': 11 };
@@ -76,10 +76,10 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
         }
         return clip;
     },
-    'tag/list': (): TagJson[] => [
+    'tag': (): TagJson[] => [
         { id: 1, name: 'tag 1', best: 2, parent: [17], type: 'Studio', description: 'foo description 1' },
         { id: 2, name: 'tag 2', best: 2, parent: [], type: 'Content', description: 'foo description 2' },
-        { id: 3, name: 'tag 3', best: 2, parent: [], type: 'Content', description: 'foo description 3' },
+        { id: 3, name: 'tag 3', best: 7, parent: [], type: 'Content', description: 'foo description 3' },
         { id: 4, name: 'tag 4', best: 3333, parent: [], type: 'Format', description: 'foo description 4' },
         { id: 5, name: 'tag 5', best: 0, parent: [2], type: 'Content', description: 'foo description 5' },
         { id: 6, name: 'tag 6', best: 0, parent: [2], type: 'Content', description: 'foo description 6' },
@@ -99,6 +99,7 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
         const id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
         return { id };
     },
+    'tag/setbest': () => null,
     'clip/autocrawl': () => {
         const newLcg = new Lcg(BigInt(Date.now()));
         const disappeared = fakeClips.filter(_ => newLcg.nextFloat() < 0.0025).map(item => item[1]);
@@ -135,7 +136,7 @@ export const handle = (api: string, params?: { [key: string]: any }): Promise<an
     return new Promise((res, rej) => {
         const mapper = FAKE_RESULTS[api];
         console.log(`API ${api} called with ${JSON.stringify(params ?? null)}.`);
-        if (!mapper) { rej('Not mocked!'); } else { setTimeout(() => res(mapper(params!)), 500); }
+        if (!mapper) { rej(`API ${api} not mocked!`); } else { setTimeout(() => res(mapper(params!)), 3000); }
     }).catch(e => {
         globalToast(`Mock API error: ${e}`);
         throw e;

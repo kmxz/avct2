@@ -2,16 +2,17 @@ import { LitElement, css } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
 import { Clip, clips, tags } from '../data';
-import { DialogBase } from '../components/dialog';
+import { DialogBase, globalDialog } from '../components/dialog';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { ClipId, MultiStore, TagJson } from '../model';
 import { AvctTable, column } from '../components/table';
 import { AvctCtxMenu } from '../components/menu';
 import { AvctClipPlay } from '../menus/clip-play';
-import { AvctTagList } from '../tags';
+import { AvctTagList, searchTags } from '../tags';
 import { MAX_GOOD_INTEGER, simpleStat } from '../components/utils';
 import { sendTypedApi } from '../api';
 import { globalToast } from '../components/toast';
+import { AvctClipTagAutoUpdateDialog, ClipAutoUpdateTask } from './clip-tag-auto-update';
 import { AvctTextEdit } from '../menus/text-edit';
 
 abstract class TagCellElementBase extends LitElement {
@@ -82,7 +83,7 @@ class AvctTagName extends AvctTagNameOrDescription {
 
     protected async executeActualUpdate(newValue: string): Promise<void> {
         await sendTypedApi('!tag/$/edit', { id: this.row.id, name: newValue });
-        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, name: newValue }));
+        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, name: newValue }, this.row));
     }
 }
 
@@ -100,7 +101,7 @@ class AvctTagDescription extends AvctTagNameOrDescription {
 
     protected async executeActualUpdate(newValue: string): Promise<void> {
         await sendTypedApi('!tag/$/description', { id: this.row.id, description: newValue });
-        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, description: newValue }));
+        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, description: newValue }, this.row));
     }
 }
 
@@ -118,7 +119,7 @@ class AvctTagStat extends TagCellElementBase {
     renderContent(): ReturnType<LitElement['render']> {
         const tagId = this.row.id;
         return asyncReplace(clips.value(), clipsMap => {
-            const relevantClips = Array.from((clipsMap as Map<number, Clip>).values()).filter(clip => clip.tags.includes(tagId));
+            const relevantClips = Array.from((clipsMap as Map<number, Clip>).values()).filter(clip => clip.tags.has(tagId));
             if (!relevantClips.length) { return 'not used in any clips'; }
             const scores = relevantClips.map(item => item.score).filter(score => score);
             const scoreText = scores.length ? (
@@ -128,6 +129,44 @@ class AvctTagStat extends TagCellElementBase {
         });
     }
 }
+const autoUpdate = async (tagId?: number): Promise<void> => {
+    const [{ value: clipsMap }, { value: tagsMap }] = await Promise.all([
+        clips.value().next(),
+        tags.value().next()
+    ] as const);
+    const ancestorsCache = new Map<number, number[]>();
+    const ancestorsOf = (tag: number): number[] => {
+        const cached = ancestorsCache.get(tag);
+        if (cached) { return cached; }
+        const parents = tagsMap.get(tag)!.parent;
+        const ancestors = parents.map(parentId => ancestorsOf(parentId));
+        const result = Array.from(new Set(parents.concat(...ancestors)));
+        ancestorsCache.set(tag, result);
+        return result;
+    };
+    let clipsToBeInspected = Array.from(clipsMap.values());
+    if (tagId) { 
+        clipsToBeInspected = clipsToBeInspected.filter(clip => clip.tags.has(tagId));
+    }
+    const updates: ClipAutoUpdateTask[] = [];
+    for (const clip of clipsToBeInspected) {
+        const expectedTags = Array.from(new Set(Array.from(clip.tags).concat(...Array.from(clip.tags, ancestorsOf))));
+        if (expectedTags.length != clip.tags.size) {
+            updates.push({
+                clip, newTags: expectedTags, changedTags: expectedTags.filter(id => !clip.tags.has(id)).map(id => tagsMap.get(id)!)
+            });
+        }
+    }
+    if (!updates.length) {
+        if (!tagId) { globalToast('No mismatches detected.'); }
+        return;
+    }
+    try {
+        await globalDialog({ title: 'Clip tag matching', cancellable: false, type: AvctClipTagAutoUpdateDialog, params: updates }, true);
+    } catch (e) {
+        globalToast('Clip with wrong tags are NOT corrected.');
+    }
+};
 
 class AvctTagParent extends TagCellElementBase {
     private removeTag(e: CustomEvent<number>): Promise<void> {
@@ -142,7 +181,8 @@ class AvctTagParent extends TagCellElementBase {
         try {
             this.loading = true;
             await sendTypedApi('!tag/$/parent', { id: this.row.id, parent });
-            tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, parent }));
+            tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, parent }, this.row));
+            autoUpdate(this.row.id);
         } finally {
             this.loading = false;
         }
@@ -161,7 +201,11 @@ class AvctTagChildren extends TagCellElementBase {
     private goToTag(e: Event): void {
         const id = (e.target as HTMLElement).dataset['tagId']!;
         const sibling = AvctTable.getSibling(e.target as HTMLElement, id);
-        sibling!.scrollIntoView();
+        if (sibling) {
+            sibling.scrollIntoView();
+        } else {
+            globalToast('Tag not visible due to text filter.');
+        }
     } 
 
     renderContent(): ReturnType<LitElement['render']> {
@@ -176,40 +220,66 @@ class AvctTagChildren extends TagCellElementBase {
 export class AvctClipHistoryDialogInner extends LitElement {
     static styles = css`
         :host { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+        header { border-bottom: 1px solid #e0e0e9; padding-bottom: 12px; display: flex; flex-direction: row; }
+        header input { flex-grow: 1; margin-right: 8px; }
     `;
 
     @property({ attribute: false })
     tags?: Map<number, TagJson>;
 
+    @property({ attribute: false })
+    search = '';
+
+    // Purely-derived property. No need to check.
+    rows: TagJson[] | null = null;
+
+    update(changedProps: Map<keyof AvctClipHistoryDialogInner, any>): ReturnType<LitElement['update']> {
+        if ((changedProps.has('tags') || changedProps.has('search')) && this.tags) {
+            this.rows = searchTags(this.tags, this.search);
+        }
+        return super.update(changedProps);
+    }
+
     private static readonly columns = [
         column('Name', AvctTagName),
         column('Type', AvctTagType),
         column('Description', AvctTagDescription),
-        column('Best', AvctTagBest),
-        column('Stat', AvctTagStat),
+        column('Best', AvctTagBest, false),
+        column('Stat', AvctTagStat, false),
         column('Parent', AvctTagParent),
         column('Child', AvctTagChildren),
     ];
 
+    private updateSearchText(e: Event): void {
+        this.search = (e.target as HTMLInputElement).value;
+    }
+
+    private checkForAutoUpdate(): Promise<void> {
+        return autoUpdate();
+    }
+
     render(): ReturnType<LitElement['render']> {
-        if (!this.tags) {
+        if (!this.rows) {
             return html`Loading...`;
         }
         return html`
+            <link rel="stylesheet" href="./shared.css" />
+            <header>
+                <input type="text" placeholder="Search..." value="${this.search}" @input="${this.updateSearchText}" />
+                <button @click="${this.checkForAutoUpdate}">Check</button>
+            </header>
             <${AvctTable}
-                .rows="${Array.from(this.tags.values()).sort((a, b) => a.name.localeCompare(b.name))}"
-                .columns="${AvctClipHistoryDialogInner.columns}"
+                .rows="${this.rows}"
+                .defaultColumns="${AvctClipHistoryDialogInner.columns}"
                 .visibleRows="${MAX_GOOD_INTEGER}">
             </${AvctTable}>`;
     }
 }
 
 export class AvctTagManagerDialog extends DialogBase<void, void> {
-    static styles = css`
-        :host { display: flex; flex-direction: column; overflow: hidden; padding: 0 !important; }
-    `;
-
     render(): ReturnType<LitElement['render']> {
-        return html`<${AvctClipHistoryDialogInner} .tags="${asyncReplace(tags.value())}"></${AvctClipHistoryDialogInner}>`;
+        return html`
+            <${AvctClipHistoryDialogInner} .tags="${asyncReplace(tags.value())}"></${AvctClipHistoryDialogInner}>
+        `;
     }
 }

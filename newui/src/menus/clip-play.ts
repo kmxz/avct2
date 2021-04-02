@@ -6,6 +6,7 @@ import { players } from '../data';
 import { sendTypedApi } from '../api';
 import { globalDialog } from '../components/dialog';
 import { AvctSimilarClipsDialog } from '../dialogs/similar-clips';
+import { globalToast } from '../components/toast';
 
 export class AvctClipPlay extends LitElement {
     static styles = css`
@@ -26,7 +27,7 @@ export class AvctClipPlay extends LitElement {
             margin-top: 0;
         }
         hr { border: 0; border-bottom: 1px solid #c7c7c7; }
-        .path { white-space: normal; }
+        .path { white-space: normal; overflow-wrap: break-word; }
     `;
 
     firstUpdated(): ReturnType<LitElement['firstUpdated']>  {
@@ -37,6 +38,9 @@ export class AvctClipPlay extends LitElement {
             switch (button.name) {
                 case 'folder':
                     sendTypedApi('!clip/$/folder', { id: this.clipId });
+                    return;
+                case 'copy':
+                    this.copyText();
                     return;
                 case 'record':
                     record = true;
@@ -62,8 +66,16 @@ export class AvctClipPlay extends LitElement {
     @property({ type: Boolean })
     insideSpecial!: boolean;
 
+    private copyText(): void {
+        const encoded = `'${this.path.replace(/'/g, `'"'"'`)}'`;
+        navigator.clipboard.writeText(' ' + encoded).then(
+            () => globalToast('Copied to clipboard!'),
+            () => globalToast('Failed to copy: ' + encoded)
+        );
+    }
+
     private openSimilar(): void {
-        globalDialog({ type: AvctSimilarClipsDialog, title: 'Similar clips', params: this.clipId });
+        globalDialog({ type: AvctSimilarClipsDialog, title: 'Similar clips', params: this.clipId }, false);
     }
 
     render(): ReturnType<LitElement['render']> {
@@ -72,7 +84,7 @@ export class AvctClipPlay extends LitElement {
             <div class="btn-group default" data-player="">${this.insideSpecial ? html`<button name="no-record">Default player</button>` : html`<button name="record">Default player</button><button name="no-record">w/o REC</button>`}</div>
             ${until(players.then(list => list.map(name => html`<div class="btn-group" data-player="${name}">${this.insideSpecial ? html`<button name="no-record">${name}</button>` : html`<button name="record">${name}</button><button name="no-record">w/o REC</button>`}</div>`)), html`<span loading></span>`)}
             <hr />
-            <div class="path"><button name="folder">Open in folder</button> (${this.path})</div>
+            <div class="path"><button name="folder">Open in folder</button> (${this.path} <button name="copy">Copy</button>)</div>
             ${this.insideSpecial ? null : html`<hr /><button name="similar" @click="${this.openSimilar}">Similar clips</button>`}
         `;
     }

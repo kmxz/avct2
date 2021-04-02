@@ -1,7 +1,7 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { Clip, players } from '../data';
+import { Clip } from '../data';
 import { ScoreItem, SortModel } from '../quickjerk-mechanism';
 
 export class QuickjerkScore extends LitElement {

@@ -97,10 +97,23 @@ export class MultiStore<T> {
         this.next();
     }
 
-    static mapUpdater<K, V>(key: K, value: V): ((old: Map<K, V>) => Map<K, V>) {
+    // Note that V cannot be a function.
+    static _DEPRECATED_mapUpdater<K, V>(key: K, valueOrMapper: V | ((old: V | undefined) => V)): ((old: Map<K, V>) => Map<K, V>) {
         return oldMap => {
             const newMap = new Map(oldMap);
-            newMap.set(key, value);
+            const newValue = (typeof valueOrMapper === 'function') ? (valueOrMapper as any)(oldMap.get(key)) : valueOrMapper;
+            newMap.set(key, newValue);
+            return newMap;
+        };
+    }
+
+    static mapUpdater<K, V>(key: K, newValue: V, checkOldValue: V | undefined): ((old: Map<K, V>) => Map<K, V>) {
+        return oldMap => {
+            if (oldMap.get(key) !== checkOldValue) {
+                console.error('Error: updating a stale reference. Expected and actual:', checkOldValue, oldMap.get(key));
+            }
+            const newMap = new Map(oldMap);
+            newMap.set(key, newValue);
             return newMap;
         };
     }

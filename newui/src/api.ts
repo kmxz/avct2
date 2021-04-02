@@ -1,15 +1,18 @@
 // Copied from original; not adopted to TS.
 
 import Throttle from './throttle';
+import { handle } from './fake';
 import { globalToast } from './components/toast';
 import { ClipJson, TagJson, TagType } from './model';
 
-const ROOT = '';
+const ROOT = 'http://192.168.1.5:8080';
 
 const uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
 const dbConnId = window.location.search.substring(1);
 
-if (!uuidRegex.test(dbConnId)) {
+const FAKE = dbConnId === 'FAKE';
+
+if (!(FAKE || uuidRegex.test(dbConnId))) {
     window.alert('DB connection unspecified.');
 }
 
@@ -37,7 +40,6 @@ type TypedApi = {
     (api: '!tag/$/parent', params: { id: number; parent: number[]; }): Promise<null>;
     (api: '!tag/$/edit', params: { id: number; name: string; }): Promise<null>;
     (api: '!tag/$/description', params: { id: number; description: string; }): Promise<null>;
-    (api: '!tag/auto', params: { dry: boolean }): Promise<{ clip: string; problematicTags: string[]; }[]>;
     (api: '!tag/$/setbest', params: { id: number; clip: number; }): Promise<null>;
 }
 
@@ -60,6 +62,10 @@ export const sendTypedApi: TypedApi = (api: string, params: { [key: string]: any
             }
             formData!.append(key, value);
         }
+    }
+    if (FAKE) {
+        const legacyApiName = api.replace('!', '').replace('/$/', '/');
+        return handle(legacyApiName, params);
     }
     return throttle.add(async () => {
         try {
