@@ -19,7 +19,7 @@ class Tags(tag: T) extends Table[(Option[Int], String, Option[String], Option[In
   def * = (tagId.?, name, description, bestOfTag, tagType)
 }
 
-class Clip(tag: T) extends Table[(Option[Int], String, Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Dimensions)](tag, "clip") {
+class Clip(tag: T) extends Table[(Option[Int], String, Race.Value, Option[Blob], Int, Role.ValueSet, Long, Int, String, Dimensions, Int)](tag, "clip") {
   import MctImplicits._
 
   def clipId = column[Int]("clip_id", O.PrimaryKey, O.AutoInc)
@@ -42,9 +42,11 @@ class Clip(tag: T) extends Table[(Option[Int], String, Race.Value, Option[Blob],
 
   def dimensions = column[Dimensions]("dimensions")
 
+  def lastEdit = column[Int]("last_edit")
+
   index("index_file", file, unique = true)
 
-  def * = (clipId.?, file, race, thumb, grade, role, size, length, sourceNote, dimensions)
+  def * = (clipId.?, file, race, thumb, grade, role, size, length, sourceNote, dimensions, lastEdit)
 }
 
 class Record(tag: T) extends Table[(Int, Int)](tag, "record") {

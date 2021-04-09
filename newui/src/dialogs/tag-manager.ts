@@ -4,7 +4,7 @@ import { html } from '../components/registry';
 import { Clip, clips, tags } from '../data';
 import { DialogBase, globalDialog } from '../components/dialog';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
-import { ClipId, MultiStore, TagJson } from '../model';
+import { ClipId, MultiStore, TagJson, TagType, TAG_TYPES } from '../model';
 import { AvctTable, column } from '../components/table';
 import { AvctCtxMenu } from '../components/menu';
 import { AvctClipPlay } from '../menus/clip-play';
@@ -63,7 +63,10 @@ abstract class AvctTagNameOrDescription extends TagCellElementBase {
         }
     }
     
-    protected abstract executeActualUpdate(newValue: string): Promise<void>;
+    protected async executeActualUpdate(newValue: string): Promise<void> {
+        await sendTypedApi('!tag/$/edit', { id: this.row.id, key: this.fieldName, value: newValue });
+        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, [this.fieldName]: newValue }, this.row));
+    }
 
     renderContent(): ReturnType<LitElement['render']> {
         return html`
@@ -80,29 +83,54 @@ abstract class AvctTagNameOrDescription extends TagCellElementBase {
 
 class AvctTagName extends AvctTagNameOrDescription {
     protected fieldName = 'name' as const;
-
-    protected async executeActualUpdate(newValue: string): Promise<void> {
-        await sendTypedApi('!tag/$/edit', { id: this.row.id, name: newValue });
-        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, name: newValue }, this.row));
-    }
 }
 
 class AvctTagType extends TagCellElementBase {
+    static styles = css`
+        .types {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 8px;
+        }
+    `;
+
     @property({ attribute: false })
     edit = false;
 
+    private startEdit(): void { this.edit = true; }
+    private abortEdit(): void { this.edit = false; }
+    
+    private async selectType(e: Event): Promise<void> {
+        const radio = e.target as HTMLInputElement;
+        if (!radio.checked) { return; }
+        const destination = radio.value as TagType;
+        this.loading = true;
+        this.edit = false;
+        try {
+            await sendTypedApi('!tag/$/edit', { id: this.row.id, key: 'type', value: destination });
+            tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, type: destination }, this.row));
+        } finally {
+            this.loading = false;
+        }
+    }
+
     renderContent(): ReturnType<LitElement['render']> {
-        return html`<span class="tag-chip tag-type-${this.row.type.toLowerCase()}">${this.row.type}</span>`;
+        return html`
+            <span class="tag-chip tag-type-${this.row.type.toLowerCase()}">${this.row.type}</span>
+            <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
+            ${this.edit ? html`
+                <${AvctCtxMenu} shown shadow title="Edit tag type" @avct-close="${this.abortEdit}">                    
+                    <div class="types">
+                        ${TAG_TYPES.map(type => html`<label><input type="radio" name="tag-type" value="${type}" @click="${this.selectType}" />${type}</label>`)}
+                    </div>
+                </${AvctCtxMenu}>`
+            : null}
+        `;
     }
 }
 
 class AvctTagDescription extends AvctTagNameOrDescription {
     protected fieldName = 'description' as const;
-
-    protected async executeActualUpdate(newValue: string): Promise<void> {
-        await sendTypedApi('!tag/$/description', { id: this.row.id, description: newValue });
-        tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, description: newValue }, this.row));
-    }
 }
 
 class AvctTagBest extends TagCellElementBase {
@@ -200,7 +228,7 @@ class AvctTagChildren extends TagCellElementBase {
 
     private goToTag(e: Event): void {
         const id = (e.target as HTMLElement).dataset['tagId']!;
-        const sibling = AvctTable.getSibling(e.target as HTMLElement, id);
+        const sibling = AvctTable.getSibling(e.target as HTMLElement, parseInt(id));
         if (sibling) {
             sibling.scrollIntoView();
         } else {
@@ -277,6 +305,10 @@ export class AvctClipHistoryDialogInner extends LitElement {
 }
 
 export class AvctTagManagerDialog extends DialogBase<void, void> {
+    static styles = css`
+        :host { display: flex; }
+    `;
+
     render(): ReturnType<LitElement['render']> {
         return html`
             <${AvctClipHistoryDialogInner} .tags="${asyncReplace(tags.value())}"></${AvctClipHistoryDialogInner}>

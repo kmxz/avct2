@@ -1,8 +1,8 @@
 import { sendTypedApi } from './api';
 import { globalDialog } from './components/dialog';
 import { AvctClipsUpdates } from './dialogs/clips-updates';
-import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb } from './clips';
-import { TagJson, EditingCallback, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
+import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb, ClipCellElementBase } from './clips';
+import { TagJson, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
 import { ElementType } from './components/registry';
 
 const tagListReq = sendTypedApi('tag');
@@ -99,18 +99,22 @@ export class Clip implements RowData {
 
     private changeRequested = false;
 
-    async update(key: string, value: number | string | number[] | string[], from: EditingCallback): Promise<void> {
+    async update(key: string, value: number | string | number[] | string[], from?: ClipCellElementBase): Promise<void> {
         if (this.changeRequested) {
             alert('Another change is already pending!');
             return;
         }
-        from.loading = true;
+        const logLabel = `Updating ${key} of ${this.getFile()}`;
+        if (from) { from.loading = true; }
+        console.time(logLabel);
         try {
             const json = await sendTypedApi('!clip/$/edit', { id: this.id, key, value });
             const tagsData = (await tags.value().next()).value;
+            if (from) { from.row.sortedBy.freeze(from.row); }
             clips.update(MultiStore.mapUpdater(this.id, new Clip(json, tagsData, this), this));
         } finally {
-            from.loading = false;
+            if (from) { from.loading = false; }
+            console.timeEnd(logLabel);
         }
     }
 

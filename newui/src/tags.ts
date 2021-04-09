@@ -154,6 +154,8 @@ export class AvctTagSelect extends LitElement {
 
     @query('input')
     input!: HTMLInputElement;
+    
+    firstUpdated(): ReturnType<LitElement['firstUpdated']> { this.input.focus(); }
 
     @query('li.selected')
     selectedLi!: HTMLLIElement | null;

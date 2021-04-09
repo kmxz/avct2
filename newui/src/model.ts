@@ -9,8 +9,8 @@ export type TagType = typeof TAG_TYPES[number];
 export type TagId = number;
 export type ClipId = number;
 
-export interface RowData {
-    id: number | string;
+export interface RowData extends Record<string, any> {
+    id: number;
 }
 
 export interface EditingCallback {
@@ -67,15 +67,17 @@ export const recordNonEq = <V>(elementNonEq?: (a: V, b: V) => boolean): ((aObj: 
 };
 
 // Return the same instance if actual value not changed (using the given comparision function).
-export class DedupeStore<T> {
-    value(newValue: T): T { 
-        if (this.notEqual(newValue, this.instance)) {
-            this.instance = newValue;
-        }
-        return this.instance;
-    }
+export class DedupeMapObjectStore<K, V extends { [key: string]: any }> {
+    private readonly cache = new Map<K, V>();
 
-    constructor(public instance: T, private readonly notEqual: (a: T, b: T) => boolean) {}
+    instance(key: K, value: V): V {
+        const oldInstance = this.cache.get(key);
+        if (!oldInstance || !Array.from(Object.entries(value)).every(([k, v]) => oldInstance[k] === v)) { 
+            this.cache.set(key, value);
+            return value;
+        }
+        return oldInstance;
+    }
 }
 
 export class MultiStore<T> {
@@ -95,16 +97,6 @@ export class MultiStore<T> {
         if (!this.resolve || !this.oldPromise) { throw new TypeError('Initializtion not done yet!'); }
         this.resolve(this.oldPromise.then(updater));
         this.next();
-    }
-
-    // Note that V cannot be a function.
-    static _DEPRECATED_mapUpdater<K, V>(key: K, valueOrMapper: V | ((old: V | undefined) => V)): ((old: Map<K, V>) => Map<K, V>) {
-        return oldMap => {
-            const newMap = new Map(oldMap);
-            const newValue = (typeof valueOrMapper === 'function') ? (valueOrMapper as any)(oldMap.get(key)) : valueOrMapper;
-            newMap.set(key, newValue);
-            return newMap;
-        };
     }
 
     static mapUpdater<K, V>(key: K, newValue: V, checkOldValue: V | undefined): ((old: Map<K, V>) => Map<K, V>) {

@@ -66,12 +66,15 @@ export class AvctClipPlay extends LitElement {
     @property({ type: Boolean })
     insideSpecial!: boolean;
 
-    private copyText(): void {
+    private async copyText(): Promise<void> {
         const encoded = `'${this.path.replace(/'/g, `'"'"'`)}'`;
-        navigator.clipboard.writeText(' ' + encoded).then(
-            () => globalToast('Copied to clipboard!'),
-            () => globalToast('Failed to copy: ' + encoded)
-        );
+        try {
+            await navigator.clipboard.writeText(' ' + encoded);
+            globalToast('Copied to clipboard!');
+        } catch (e) {
+            globalToast('Failed to copy: ' + encoded);
+            console.warn(encoded);
+        }
     }
 
     private openSimilar(): void {

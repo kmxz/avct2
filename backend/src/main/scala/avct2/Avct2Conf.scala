@@ -76,6 +76,7 @@ object Avct2Conf {
       dbConnection.get.close()
     }
     dbConnection = Some(new DbConnection(getVideoDirSubDir.getCanonicalPath + "/Avct_dbv2.db"))
+    println(s">>>>>>>> Connection ID is ${dbConnection.get.id}!")
   }
 
 }

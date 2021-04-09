@@ -2,7 +2,7 @@ import { AvctTable, column } from './components/table';
 import { LitElement, TemplateResult, css } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { TagJson, EditingCallback, Race, Role, RowData } from './model';
+import { TagJson, EditingCallback, Race, Role, RowData, recordNonEq, DedupeMapObjectStore } from './model';
 import { tags, Clip, clips } from './data';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { until } from 'lit-html/directives/until.js';
@@ -21,14 +21,17 @@ import { AvctThumbnailDialog } from './dialogs/thumbnail';
 import { SortModel } from './quickjerk-mechanism';
 import { sendTypedApi } from './api';
 import { styleMap } from 'lit-html/directives/style-map.js';
+import { live } from 'lit-html/directives/live.js';
+import { bisect, bsearchDesc } from './components/utils';
+import { query } from '@lit/reactive-element/decorators/query.js';
 
 interface SortedClip extends RowData {
     clip: Clip;
     rating: number;
-    sortedBy: SortModel;
+    sortedBy: QuickjerkProxy;
 }
 
-abstract class ClipCellElementBase extends LitElement implements EditingCallback {
+export abstract class ClipCellElementBase extends LitElement implements EditingCallback {
     static styles = css`
         :host {
             user-select: none;
@@ -64,7 +67,7 @@ abstract class ClipCellElementBase extends LitElement implements EditingCallback
     }
 
     render(): ReturnType<LitElement['render']> {
-        // console.log(`Rendering ${this.tagName} for ${this.item.id}`);
+        console.debug(`Rendering ${this.tagName} for ${this.item.id}`);
         const errors = this.item.errors?.get(this.constructor as any);
         return html`
             <link rel="stylesheet" href="./shared.css" />
@@ -346,49 +349,165 @@ class AvctClipSorting extends ClipCellElementBase {
     }
 }
 
+export type ScoreThresholdData = {
+    thresholdAtScore: number;
+    clipsVisible: number;
+    clipsTotal: number;
+};
+
+export class QuickjerkScoreControl extends LitElement {
+    @property({ attribute: false, hasChanged: recordNonEq() })    
+    scoreThresholdData?: ScoreThresholdData;
+
+    createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
+
+    private static round(num: number): string {
+        if (num % 1 === 0) { return num.toString(); }
+        return num.toFixed(2);
+    }
+
+    private thresholdInput(e: Event): void {
+        const threshold = parseFloat((e.target as HTMLInputElement).value);
+        this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: threshold }));
+    }
+
+    render(): ReturnType<LitElement['render']> {
+        if (!this.scoreThresholdData || isNaN(this.scoreThresholdData.thresholdAtScore)) { return null; }
+        return html`
+            <span>
+                Showing scores > <input type="number" .value="${live(QuickjerkScoreControl.round(this.scoreThresholdData.thresholdAtScore))}" style="max-width: 60px" @input="${this.thresholdInput}" /> (${this.scoreThresholdData.clipsVisible} of ${this.scoreThresholdData.clipsTotal})
+            </span>
+        `;
+    }
+}
+
+class QuickjerkProxy {
+    readonly freeze: (clip: SortedClip) => void;
+    private readonly qj: SortModel;
+    private readonly frozenClip?: { clipId: number; score: number; };
+
+    constructor(clips: AvctClips) {
+        this.freeze = clip => { clips.frozenClip = { clipId: clip.id, score: clip.rating }; };
+        this.qj = clips.quickjerk;
+        this.frozenClip = clips.frozenClip;
+    }
+
+    score(clip: Clip): ReturnType<SortModel['score']> {
+        if (this.frozenClip?.clipId === clip.id) {
+            return this.frozenClip.score;
+        }
+        return this.qj.score(clip);
+    }
+
+    scoreForDetail(clip: Clip): ReturnType<SortModel['scoreForDetail']> {
+        const raw = this.qj.scoreForDetail(clip);
+        if (this.frozenClip?.clipId === clip.id) {
+            return raw.concat({
+                weight: 1, message: 'Temporary frozen since just edited', name: 'Frozen', score: this.frozenClip.score 
+            });
+        } else {
+            return raw;
+        }
+    }
+}
+
 export class AvctClips extends LitElement {
     @property({ attribute: false })
     clips?: Map<number, Clip>;
 
     // Purely-derived property. No need to check.
-    rows: SortedClip[] = [];
+    rowsAfterThresholding: SortedClip[] = [];
 
     @property({ attribute: false })
     quickjerk!: SortModel;
+    
+    @property({ attribute: false })
+    scoreThreshold!: number;
 
-    applyFilter(): void {
-        const sortedBy = this.quickjerk;
-        this.rows = Array.from(this.clips?.values() ?? [], clip => ({
-            clip, rating: sortedBy.score(clip), sortedBy, id: clip.id
-        })).sort((a, b) => b.rating - a.rating);
+    // A clip that will stay in the original position despite it's score changes.
+    // This is needed as we don't want a clip to move while being edited.
+    @property({ attribute: false })
+    frozenClip?: { clipId: number; score: number; };
+
+    // Cache sorting output to:
+    // - Prevent recomputation.
+    // - Ensure same instances are returned so no rerendering will be triggered.
+    private readonly rowInstancesCache = new Map<number, SortedClip>();
+
+    rows: SortedClip[] = [];
+
+    private applySorting(): void {
+        const sortedBy = new QuickjerkProxy(this);
+        this.rows = Array.from(this.clips?.values() ?? [], clip => {
+            const old = this.rowInstancesCache.get(clip.id);
+            if (old?.clip === clip) { return old; }
+            const sortedClip: SortedClip = {
+                clip, rating: sortedBy.score(clip), sortedBy, id: clip.id
+            };
+            this.rowInstancesCache.set(clip.id, sortedClip);
+            return sortedClip;
+        }).sort((a, b) => b.rating - a.rating);
+    }
+    
+    private emitStats(sortModelChanged: boolean): void {
+        const scores = this.rows.map(item => item.rating);
+        if (!Number.isFinite(this.scoreThreshold) || sortModelChanged) {
+            const clipsVisible = bisect(scores);
+            const splitAtScore = (clipsVisible < scores.length) ? (scores[clipsVisible - 1] + scores[clipsVisible]) / 2 : Number.NEGATIVE_INFINITY;
+            this.scoreThreshold = splitAtScore;
+        }
     }
 
+    private applyThreshold(): void {
+        const clipsVisible = bsearchDesc(this.rows, 'rating', this.scoreThreshold);
+        this.rowsAfterThresholding = this.rows.slice(0, clipsVisible);
+        const defaultSc: ScoreThresholdData = { clipsTotal: this.rows.length, clipsVisible, thresholdAtScore: this.scoreThreshold };
+        this.dispatchEvent(new CustomEvent<ScoreThresholdData>('avct-score-control', { detail: defaultSc }));
+    }
+
+    @query('#clips-table')
+    clipsTable?: AvctTable<SortedClip>;
+
     update(changedProps: Map<keyof AvctClips, any>): ReturnType<LitElement['update']> {
-        if (changedProps.has('clips') || changedProps.has('quickjerk')) {
-            this.applyFilter();
+        const sortModelChanged = changedProps.has('quickjerk');
+        const frozenClipChanged = changedProps.has('frozenClip');
+        if (sortModelChanged) {
+            this.rowInstancesCache.clear();
+            this.clipsTable?.resetRowLimit();
+        } else if (frozenClipChanged) {
+            const old = changedProps.get('frozenClip') as AvctClips['frozenClip'];
+            if (old) { this.rowInstancesCache.delete(old.clipId); }
+            if (this.frozenClip) { this.rowInstancesCache.delete(this.frozenClip.clipId); }
+        }
+        if (changedProps.has('clips') || sortModelChanged || frozenClipChanged) {
+            this.applySorting();
+            this.emitStats(sortModelChanged);
+            this.applyThreshold();
+        } else if (changedProps.has('scoreThreshold')) {
+            this.applyThreshold();
         }
         return super.update(changedProps);
     }
 
     updated(): ReturnType<LitElement['updated']> {
         requestAnimationFrame(now => {
-            console.log(`RENDER FIN @${now}`);
+            console.debug(`<${this.tagName}> render finished @${now}`);
         });
     }
 
     createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
 
     private static readonly columns = [
-        column('Thumb', AvctClipThumb),
-        column('Name', AvctClipName),
-        column('Rating', AvctClipScore),
-        column('Roles', AvctClipRole),
-        column('Race', AvctClipRace),
-        column('Tags', AvctClipTags),
-        column('Note', AvctClipNote),
+        column('Thumb', AvctClipThumb, 120),
+        column('Name', AvctClipName, 120),
+        column('Rating', AvctClipScore, 35),
+        column('Roles', AvctClipRole, 35),
+        column('Race', AvctClipRace, 35),
+        column('Tags', AvctClipTags, 150),
+        column('Note', AvctClipNote, 80),
         column('History', AvctClipHistory, false),
         column('Duration', AvctClipDuration, false),
-        column('Rank', AvctClipSorting)
+        column('Rank', AvctClipSorting, 35)
     ];
 
     render(): ReturnType<LitElement['render']> {
@@ -397,7 +516,8 @@ export class AvctClips extends LitElement {
         }
         return html`
             <${AvctTable}
-                .rows="${this.rows}"
+                id="clips-table"
+                .rows="${this.rowsAfterThresholding}"
                 .defaultColumns="${AvctClips.columns}">
             </${AvctTable}>`;
     }

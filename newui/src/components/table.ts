@@ -5,7 +5,7 @@ import { guard } from 'lit-html/directives/guard.js';
 import { ElementType, html } from './registry';
 import { arrayNonEq, recordNonEq, RowData } from '../model';
 import { query } from 'lit-element/decorators/query.js';
-import { MAX_GOOD_INTEGER, seq } from './utils';
+import { MAX_GOOD_INTEGER, seq, throttle } from './utils';
 import { AvctCtxMenu } from './menu';
 import { styleMap } from 'lit-html/directives/style-map.js';
 import { classMap } from 'lit-html/directives/class-map.js';
@@ -21,7 +21,7 @@ interface Column {
     readonly width: number;
 }
 
-export const column = (title: string, cellType: ElementType, show: boolean = true): Column => ({ id: `${uniqId()}`, title, cellType, width: show ? 100 : 0 });
+export const column = (title: string, cellType: ElementType, show: boolean | number = true): Column => ({ id: `${uniqId()}`, title, cellType, width: (typeof show === 'number') ? show : (show ? 100 : 0) });
 
 interface Moving {
     readonly id: string;
@@ -331,8 +331,12 @@ export class AvctTable<T extends RowData> extends LitElement {
     @property({ attribute: false })
     editingColumns = false;
 
+    private static readonly INITIAL_ROW_LIMIT = 10;
+
     @property({ attribute: false })
-    visibleRows = 10;
+    visibleRows = AvctTable.INITIAL_ROW_LIMIT;
+
+    resetRowLimit(): void { this.visibleRows = AvctTable.INITIAL_ROW_LIMIT; }
 
     private columnsChanged(event: CustomEvent<Column[]>): void { this.columns = event.detail; }
     private editColumns(): void { this.editingColumns = true; }
@@ -340,7 +344,7 @@ export class AvctTable<T extends RowData> extends LitElement {
 
     private scrollTopToRecover = -1;
 
-    private readonly scrollListener = (): void => {
+    private readonly scrollListener = throttle((): void => {
         if (this.visibleRows >= this.rows.length) { return; }
         const scrollHost = this.getBoundingClientRect();
         const loadMoreElement = this.loadMoreTd!.getBoundingClientRect();
@@ -348,7 +352,7 @@ export class AvctTable<T extends RowData> extends LitElement {
             this.scrollTopToRecover = this.scrollTop;
             this.loadMore();
         }
-    };
+    }, 1000);
 
     private loadMore(): void {
         this.visibleRows += 10;

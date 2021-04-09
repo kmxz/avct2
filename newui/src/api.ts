@@ -5,7 +5,8 @@ import { handle } from './fake';
 import { globalToast } from './components/toast';
 import { ClipJson, TagJson, TagType } from './model';
 
-const ROOT = 'http://192.168.1.5:8080';
+const LOCAL = ['localhost:8000', '127.0.0.1:8000'].includes(window.location.host);
+const ROOT = LOCAL ? 'http://192.168.1.5:8080' : '';
 
 const uuidRegex = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/;
 const dbConnId = window.location.search.substring(1);
@@ -38,8 +39,8 @@ type TypedApi = {
     (api: 'tag'): Promise<TagJson[]>;
     (api: '!tag/create', params: { name: string; type: TagType; }): Promise<{ id: number }>;
     (api: '!tag/$/parent', params: { id: number; parent: number[]; }): Promise<null>;
-    (api: '!tag/$/edit', params: { id: number; name: string; }): Promise<null>;
-    (api: '!tag/$/description', params: { id: number; description: string; }): Promise<null>;
+    (api: '!tag/$/edit', params: { id: number; key: 'name' | 'description'; value: string }): Promise<null>;
+    (api: '!tag/$/edit', params: { id: number; key: 'type'; value: TagType }): Promise<null>;
     (api: '!tag/$/setbest', params: { id: number; clip: number; }): Promise<null>;
 }
 
@@ -59,6 +60,8 @@ export const sendTypedApi: TypedApi = (api: string, params: { [key: string]: any
             let value = params[key];
             if (value instanceof Array) {
                 value = JSON.stringify(value); // XXX: to JSON only when it's an array
+            } else if (typeof value === 'string') {
+                value = value.trim();
             }
             formData!.append(key, value);
         }

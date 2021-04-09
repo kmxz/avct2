@@ -60,7 +60,7 @@ const generateFakeClip = (id: number): ClipJson => {
 
 const fakeClips: ClipJson[] = [];
 
-for (let i = 1; i < 10; i++) {
+for (let i = 1; i < 100; i++) {
     fakeClips.push(generateFakeClip(i));
 }
 
@@ -99,6 +99,7 @@ const FAKE_RESULTS: Record<string, (params: { [key: string]: any }) => any> = {
         const id = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
         return { id };
     },
+    'tag/edit': () => null,
     'tag/setbest': () => null,
     'clip/autocrawl': () => {
         const newLcg = new Lcg(BigInt(Date.now()));
@@ -136,7 +137,7 @@ export const handle = (api: string, params?: { [key: string]: any }): Promise<an
     return new Promise((res, rej) => {
         const mapper = FAKE_RESULTS[api];
         console.log(`API ${api} called with ${JSON.stringify(params ?? null)}.`);
-        if (!mapper) { rej(`API ${api} not mocked!`); } else { setTimeout(() => res(mapper(params!)), 3000); }
+        if (!mapper) { rej(`API ${api} not mocked!`); } else { setTimeout(() => res(mapper(params!)), 1000); }
     }).catch(e => {
         globalToast(`Mock API error: ${e}`);
         throw e;

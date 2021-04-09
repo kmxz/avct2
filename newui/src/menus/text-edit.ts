@@ -33,6 +33,8 @@ export class AvctTextEdit extends LitElement {
         if (e.code === 'Enter') { this.emit(); e.preventDefault(); }
     }
 
+    firstUpdated(): ReturnType<LitElement['firstUpdated']> { this.input.focus(); }
+
     render(): ReturnType<LitElement['render']> {
         return html`
             <link rel="stylesheet" href="./shared.css" />

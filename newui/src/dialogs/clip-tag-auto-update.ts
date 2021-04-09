@@ -46,7 +46,7 @@ export class AvctClipTagAutoUpdateDialog extends DialogBase<ClipAutoUpdateTask[]
             copy[i] = { ...entry, status: `In progress` };
             this.updates = copy;
             try {
-                await entry.clip.update('tags', entry.newTags, { loading: false });
+                await entry.clip.update('tags', entry.newTags);
                 copy[i] = { ...entry, status: `Done` };
             } catch (e) {
                 copy[i] = { ...entry, status: `Error: ${e}` };
