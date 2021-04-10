@@ -1,22 +1,40 @@
-import { LitElement, css, TemplateResult } from 'lit-element/lit-element.js';
+import { LitElement, css } from 'lit-element/lit-element.js';
 import { html, Constructor } from './registry';
-import { guardedRecordNonEq, MultiStore, recordNonEq } from '../model';
+import { guardedRecordNonEq, MultiStore } from '../model';
 import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
 import { seq } from './utils';
 
+class AvctPopupClosure {
+    constructor(readonly dirty: boolean) {}
+}
+
+export const popupClosed = <T>(callback: (dirty: boolean) => T): ((e: any) => T) => e => {
+    if (!(e instanceof AvctPopupClosure)) {
+        console.error('Closure value wrong', e);
+        throw new RangeError('Closure type unexpected!');
+    }
+    return callback(e.dirty);
+}
+
+export const noOp = popupClosed(() => void 0);
+
 export abstract class PopupBase<I, O> extends LitElement {
     @property({ attribute: false, hasChanged: guardedRecordNonEq() })
     params!: I;
 
     protected done(detail: O): void {
-        this.dispatchEvent(new CustomEvent('avct-select', { detail }));
+        this.dispatchEvent(new CustomEvent<O>('avct-select', { detail }));
     }
 
     protected abort(): void {
-        this.dispatchEvent(new CustomEvent('avct-close'));
+        this.dispatchEvent(new CustomEvent<void>('avct-close'));
+    }
+    
+    protected markDirty(): void {
+        this.dispatchEvent(new CustomEvent<void>('avct-touch'));
     }
 }
 
@@ -32,7 +50,8 @@ interface PopupOptions<I, O> {
 interface Popup<I, O> extends PopupOptions<I, O> {
     id: number;
     onSelect: (callbackParams: O) => void;
-    onCancel: () => void;
+    onCancel: (closure: AvctPopupClosure) => void;
+    instance?: PopupBase<I, O>;
 }
 
 interface PopupWithContext<I, O> extends Popup<I, O> {
@@ -50,36 +69,48 @@ const globalPopupMenus = new MultiStore<PopupWithContext<any, any>[]>(Promise.re
 
 const uniqId = seq();
 
-export const globalDialog = <I, O>(dialog: PopupSpec<I, O>, throwOnCancel: boolean): Promise<O> => new Promise((res, rej) => 
+export const globalDialog = <I, O>(dialog: PopupSpec<I, O>): Promise<O> => new Promise((res, rej) => 
     globalPopupDialogs.update(list => list.concat({
         cancellable: true,
         params: void 0,
         ...dialog,
         id: uniqId(),
         onSelect: res,
-        onCancel: throwOnCancel ? rej : () => {}
-    })));
-
-export const globalPopupMenu = <I, O>(menu: PopupSpec<I, O> & Pick<PopupWithContext<I, O>, 'reference'>): Promise<O> => new Promise((res, rej) => 
-    globalPopupMenus.update(list => list.concat({
-        cancellable: true,
-        params: void 0,
-        ...menu,
-        id: uniqId(),
-        onSelect: res,
         onCancel: rej
     })));
+
+export const globalPopupMenu = <I, O>(menu: PopupSpec<I, O>, referenceEvent: MouseEvent): Promise<O> => {
+    const element = referenceEvent.currentTarget as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    const reference: PopupWithContext<I, O>['reference'] = {
+        element,
+        // clientX and clientY can be zero in case of click events triggered by enter key.
+        xOffset: referenceEvent.clientX ? referenceEvent.clientX - (rect.left + rect.width / 2) : void 0,
+        yOffset: referenceEvent.clientY ? referenceEvent.clientY - (rect.top + rect.height / 2) : void 0
+    };
+    return new Promise((res, rej) => 
+        globalPopupMenus.update(list => list.concat({
+            cancellable: true,
+            params: void 0,
+            ...menu,
+            reference,
+            id: uniqId(),
+            onSelect: res,
+            onCancel: rej
+        }))
+    );
+};
 
 abstract class PopupContainer<T extends Popup<any, any>> extends LitElement {
     abstract popups: MultiStore<T[]>;
 
-    closePopup(id: number, result: CustomEvent<any> | undefined): void {
+    closePopup(id: number, result: CustomEvent<any> | boolean): void {
         this.popups.update(oldPopups => {
             const toRemove = oldPopups.find(item => item.id === id)!;
-            if (result) {
+            if (result instanceof CustomEvent) {
                 toRemove.onSelect(result.detail);
             } else {
-                toRemove.onCancel();
+                toRemove.onCancel(new AvctPopupClosure(result));
             }
             return oldPopups.filter(dialog => dialog !== toRemove);
         });
@@ -113,7 +144,7 @@ export class AvctDialogContainer extends PopupContainer<Popup<any, any>> {
     @property({ attribute: false })
     popups = globalPopupDialogs;
 
-    private handleClose(popupProper: HTMLDivElement, result: CustomEvent<any> | undefined) {
+    private handleClose(popupProper: HTMLDivElement, result: CustomEvent<any> | boolean) {
         const id = parseInt(popupProper.dataset['popupId']!);
         this.closePopup(id, result);
     }
@@ -123,11 +154,11 @@ export class AvctDialogContainer extends PopupContainer<Popup<any, any>> {
     }
 
     private handleChildClose(e: CustomEvent<void>): void {
-        this.handleClose((e.currentTarget as LitElement).parentNode as HTMLDivElement, void 0);
+        this.handleClose((e.currentTarget as LitElement).parentNode as HTMLDivElement, false);
     }
 
     private handleCloseButton(e: MouseEvent) {
-        this.handleClose(((e.currentTarget as HTMLSpanElement).parentNode as HTMLDivElement).parentNode as HTMLDivElement, void 0);
+        this.handleClose(((e.currentTarget as HTMLSpanElement).parentNode as HTMLDivElement).parentNode as HTMLDivElement,  false);
     }
 
     render(): ReturnType<LitElement['render']> {
@@ -152,7 +183,7 @@ const PHI = (Math.sqrt(5) - 1) / 2;
 
 export class AvctMenuRendering<I, O> extends LitElement {
     static styles = css`
-        .menu-envelope {
+        :host {
             position: fixed;
             display: flex;
             justify-content: center;
@@ -160,7 +191,6 @@ export class AvctMenuRendering<I, O> extends LitElement {
         }
         .menu-proper {
             width: auto;
-            margin: 0 auto;
             white-space: nowrap;
             border: 1px solid #999;
             border-radius: 4px;
@@ -255,15 +285,29 @@ export class AvctMenuRendering<I, O> extends LitElement {
 
         this.renderedParentState = parentRect;
         
+        Object.entries(envelopeStyle).forEach(([k, v]) => {
+            (this.style as any)[k] = v;
+        })
+
         return html`
-            <div class="menu-envelope" style="${styleMap(envelopeStyle as any)}" @mouseenter="${this.handleMouseEnter}" @mouseleave="${this.handleMouseLeave}">
-                <div class="menu-proper" data-popup-id="${String(menu.id)}">
-                    <h3>${menu.title}</h3>
-                    <${menu.type} .params=${menu.params} @avct-select="${this.finishCurrentMenu}" @avct-close="${this.abortCurrentMenu}" class="menu-content"></${menu.type}>
-                </div>
-                <div class="arrow ${arrowClass}" style="${styleMap(arrowStyle as any)}"></div>
+            <div class="menu-proper" data-popup-id="${String(menu.id)}">
+                <h3>${menu.title}</h3>
+                <${menu.type} .params=${menu.params} @avct-select="${this.finishCurrentMenu}" @avct-close="${this.abortCurrentMenu}" @avct-touch="${this.touchCurrentMenu}" class="menu-content"></${menu.type}>
             </div>
+            <div class="arrow ${arrowClass}" style="${styleMap(arrowStyle as any)}"></div>
         `;
+    }
+
+    private readonly handleMouseEnter = (): void => { this.lastMouseEnter = Date.now(); };
+    private readonly handleMouseLeave = (): void => { this.lastMouseLeave = Date.now(); };
+    private readonly handleClickOutside = (): void => { this.abortCurrentMenu(); };
+
+    constructor() {
+        super();
+        this.addEventListener('click', e => e.stopPropagation());
+        // Have to install those as we don't know the value of menu.cancellable yet.
+        this.addEventListener('mouseenter', this.handleMouseEnter);
+        this.addEventListener('mouseleave', this.handleMouseLeave);
     }
 
     updated(changedProps: Map<keyof AvctMenuRendering<I, O>, any>): ReturnType<LitElement['updated']> {
@@ -274,15 +318,21 @@ export class AvctMenuRendering<I, O> extends LitElement {
 
     connectedCallback(): void {
         super.connectedCallback();
-        this.menu.reference.element.addEventListener('mouseenter', this.handleMouseEnter);
-        this.menu.reference.element.addEventListener('mouseleave', this.handleMouseLeave);
+        if (this.menu.cancellable) {
+            this.menu.reference.element.addEventListener('mouseenter', this.handleMouseEnter);
+            this.menu.reference.element.addEventListener('mouseleave', this.handleMouseLeave);
+        }
+        requestAnimationFrame(() => document.body.addEventListener('click', this.handleClickOutside));
     }
 
     disconnectedCallback(): void {
         super.disconnectedCallback();
         if (this.animationFrame) { cancelAnimationFrame(this.animationFrame); }
-        this.menu.reference.element.removeEventListener('mouseenter', this.handleMouseEnter);
-        this.menu.reference.element.removeEventListener('mouseleave', this.handleMouseLeave);
+        if (this.menu.cancellable) {
+            this.menu.reference.element.removeEventListener('mouseenter', this.handleMouseEnter);
+            this.menu.reference.element.removeEventListener('mouseleave', this.handleMouseLeave);
+        }
+        requestAnimationFrame(() => document.body.removeEventListener('click', this.handleClickOutside));
     }
 
     private readonly frame = (): void => {
@@ -303,15 +353,14 @@ export class AvctMenuRendering<I, O> extends LitElement {
         this.requestUpdate();
     };
 
-    private readonly handleMouseEnter = (): void => { this.lastMouseEnter = Date.now(); };
-    private readonly handleMouseLeave = (): void => { this.lastMouseLeave = Date.now(); };
-
     private animationFrame?: ReturnType<Window['requestAnimationFrame']>;
     private lastMouseEnter = 0;
     private lastMouseLeave = 0;
 
+    private touched = false;
     private finishCurrentMenu(e: CustomEvent<O>): void { this.parentContainer.closePopup(this.menu.id, e); }
-    private abortCurrentMenu(): void { this.parentContainer.closePopup(this.menu.id, void 0); }
+    private abortCurrentMenu(): void { this.parentContainer.closePopup(this.menu.id, this.touched); }
+    private touchCurrentMenu(): void { this.touched = true; }
 }
 
 export class AvctPopupMenuContainer extends PopupContainer<PopupWithContext<any, any>> {
@@ -362,7 +411,6 @@ export class AvctCtxMenuHook<I, O> extends LitElement {
     connectedCallback(): ReturnType<LitElement['connectedCallback']> {
         super.connectedCallback();
         this.registeredParent = AvctCtxMenuHook.findEffctiveOffsetParent(this.parentNode);
-        console.log(this.registeredParent);
         this.registeredParent.addEventListener('mouseenter', this.parentMouseEnter);
     }
 
@@ -375,18 +423,11 @@ export class AvctCtxMenuHook<I, O> extends LitElement {
     private readonly parentMouseEnter = (e: MouseEvent): void => {
         if (this.active) { return; }
         this.active = true;
-        const parent = e.currentTarget as HTMLElement;
-        const rect = parent.getBoundingClientRect();
         globalPopupMenu({
             type: this.factory,
             params: this.params,
             title: this.title,
-            reference: {
-                element: parent,
-                xOffset: e.clientX - (rect.left + rect.width / 2),
-                yOffset: e.clientY - (rect.top + rect.height / 2)
-            }
-        }).then(
+        }, e).then(
             detail => this.dispatchEvent(new CustomEvent<O>('avct-select', { detail })),
             () => this.dispatchEvent(new CustomEvent<void>('avct-close'))
         ).finally(() => { this.active = false; });

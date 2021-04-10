@@ -5,7 +5,7 @@ import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { property } from 'lit-element/decorators/property.js';
 
 // Imports for custom element definitions.
-import { AvctDialogContainer, AvctPopupMenuContainer, globalDialog } from './components/dialog';
+import { AvctDialogContainer, AvctPopupMenuContainer, globalDialog, noOp, popupClosed } from './components/dialog';
 import { AvctClips, QuickjerkScoreControl, ScoreThresholdData } from './clips';
 import { AvctToastContainer, globalToast } from './components/toast';
 import { SortModel } from './quickjerk-mechanism';
@@ -15,16 +15,14 @@ export class AvctRootElement extends LitElement {
     private editQj(): void {
         this.qj.edit().then(newModel => {
             this.qj = newModel;
-        }).catch(() => {
-            globalToast('Quickjerk setting unchanged.');
-        });
+        }).catch(popupClosed(() => globalToast('Quickjerk setting unchanged.')));
     }
 
     @property({ attribute: false })
     qj: SortModel = SortModel.DEFAULT;
 
     private editTags(): void {
-        globalDialog({ type: AvctTagManagerDialog, title: 'Tag manager' }, false);
+        globalDialog({ type: AvctTagManagerDialog, title: 'Tag manager' }).catch(noOp);
     }
 
     // Not self-used. Only passing from AvctClips to QuickjerkScoreControl.

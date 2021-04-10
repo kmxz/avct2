@@ -2,11 +2,10 @@ import { LitElement, css } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
 import { Clip, clips, tags } from '../data';
-import { PopupBase, globalDialog, AvctCtxMenuHook } from '../components/dialog';
+import { PopupBase, globalDialog, AvctCtxMenuHook, globalPopupMenu, popupClosed, noOp } from '../components/dialog';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { ClipId, MultiStore, TagJson, TagType, TAG_TYPES } from '../model';
 import { AvctTable, column } from '../components/table';
-import { AvctCtxMenu } from '../components/menu';
 import { AvctClipPlay } from '../menus/clip-play';
 import { AvctTagList, searchTags } from '../tags';
 import { MAX_GOOD_INTEGER, simpleStat } from '../components/utils';
@@ -39,29 +38,34 @@ abstract class TagCellElementBase extends LitElement {
 }
 
 abstract class AvctTagNameOrDescription extends TagCellElementBase {
-    @property({ attribute: false })
-    edit = false;
-
     protected abstract fieldName: 'name' | 'description';
 
-    private dirty = false;
+    private edit = false;
 
-    private markDirty(): void { this.dirty = true; }
-    private startEdit(): void { this.edit = true; this.dirty = false; }
-    private abortEdit(): void { 
-        if (!this.edit) { return; }
-        if (this.dirty) { globalToast(`Tag ${this.fieldName} editor discarded.`); }
-        this.edit = false;
+    private startEdit(e: MouseEvent): void { 
+        if (this.edit) { return; }
+        this.edit = true;
+        globalPopupMenu({
+            title: `Edit ${this.fieldName}`,
+            type: AvctTextEdit,
+            params: this.row[this.fieldName],
+            cancellable: false
+        }, e)
+        .then(
+            this.done, 
+            popupClosed(dirty => { if (dirty) { globalToast(`Tag ${this.fieldName} editor discarded.`); }})
+        )
+        .finally(() => { this.edit = false; });
     }
-    private async done(e: CustomEvent<string>): Promise<void> { 
-        this.edit = false; 
+
+    private readonly done = async (detail: string): Promise<void> => { 
         try {
             this.loading = true;
-            await this.executeActualUpdate(e.detail);
+            await this.executeActualUpdate(detail);
         } finally {
             this.loading = false;
         }
-    }
+    };
     
     protected async executeActualUpdate(newValue: string): Promise<void> {
         await sendTypedApi('!tag/$/edit', { id: this.row.id, key: this.fieldName, value: newValue });
@@ -72,11 +76,6 @@ abstract class AvctTagNameOrDescription extends TagCellElementBase {
         return html`
             ${this.row[this.fieldName]}
             <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
-            ${this.edit ? html`
-                <${AvctCtxMenu} shown shadow title="Edit ${this.fieldName}" @avct-close="${this.abortEdit}">
-                    <${AvctTextEdit} .value="${this.row[this.fieldName]}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
-                </${AvctCtxMenu}>`
-            : null}
         `;
     }
 }
@@ -85,46 +84,55 @@ class AvctTagName extends AvctTagNameOrDescription {
     protected fieldName = 'name' as const;
 }
 
-class AvctTagType extends TagCellElementBase {
+class AvctTagTypeSelector extends PopupBase<TagType, TagType> {
     static styles = css`
-        .types {
-            display: grid;
+        :host {
+            display: grid !important;
             grid-template-columns: 1fr 1fr;
             column-gap: 8px;
         }
     `;
 
-    @property({ attribute: false })
-    edit = false;
-
-    private startEdit(): void { this.edit = true; }
-    private abortEdit(): void { this.edit = false; }
-    
-    private async selectType(e: Event): Promise<void> {
+    private selectType(e: Event): void {
         const radio = e.target as HTMLInputElement;
         if (!radio.checked) { return; }
-        const destination = radio.value as TagType;
+        this.done(radio.value as TagType);
+    }
+
+    render() {
+        return html`${TAG_TYPES.map(type => html`<label><input type="radio" name="tag-type" value="${type}" @click="${this.selectType}" ?checked="${type == this.params}" />${type}</label>`)}`;
+    }   
+}
+
+class AvctTagType extends TagCellElementBase {
+    private edit = false;
+
+    private startEdit(e: MouseEvent): void { 
+        if (this.edit) { return; }
+        this.edit = true;
+        globalPopupMenu({
+            title: `Edit tag type`,
+            type: AvctTagTypeSelector,
+            params: this.row.type
+        }, e)
+        .then(this.selectType, noOp)
+        .finally(() => { this.edit = false; });
+    }
+    
+    private readonly selectType = async (destination: TagType): Promise<void> => {
         this.loading = true;
-        this.edit = false;
         try {
             await sendTypedApi('!tag/$/edit', { id: this.row.id, key: 'type', value: destination });
             tags.update(MultiStore.mapUpdater(this.row.id, { ...this.row, type: destination }, this.row));
         } finally {
             this.loading = false;
         }
-    }
+    };
 
     renderContent(): ReturnType<LitElement['render']> {
         return html`
             <span class="tag-chip tag-type-${this.row.type.toLowerCase()}">${this.row.type}</span>
             <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
-            ${this.edit ? html`
-                <${AvctCtxMenu} shown shadow title="Edit tag type" @avct-close="${this.abortEdit}">                    
-                    <div class="types">
-                        ${TAG_TYPES.map(type => html`<label><input type="radio" name="tag-type" value="${type}" @click="${this.selectType}" />${type}</label>`)}
-                    </div>
-                </${AvctCtxMenu}>`
-            : null}
         `;
     }
 }
@@ -190,7 +198,7 @@ const autoUpdate = async (tagId?: number): Promise<void> => {
         return;
     }
     try {
-        await globalDialog({ title: 'Clip tag matching', cancellable: false, type: AvctClipTagAutoUpdateDialog, params: updates }, true);
+        await globalDialog({ title: 'Clip tag matching', cancellable: false, type: AvctClipTagAutoUpdateDialog, params: updates });
     } catch (e) {
         globalToast('Clip with wrong tags are NOT corrected.');
     }

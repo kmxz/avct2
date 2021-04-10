@@ -1,5 +1,5 @@
 import { sendTypedApi } from './api';
-import { globalDialog } from './components/dialog';
+import { globalDialog, noOp } from './components/dialog';
 import { AvctClipsUpdates } from './dialogs/clips-updates';
 import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb, ClipCellElementBase } from './clips';
 import { TagJson, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
@@ -34,7 +34,7 @@ Promise.all([tagListReq, clipListReq]).then(() => sendTypedApi('!clip/autocrawl'
         })));
     }
     if (response.disappeared.length || response.added.length) {
-        globalDialog({ title: 'Clip files changed', type: AvctClipsUpdates, params: response }, false);
+        globalDialog({ title: 'Clip files changed', type: AvctClipsUpdates, params: response }).catch(noOp);
     }
 });
 

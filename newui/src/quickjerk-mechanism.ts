@@ -240,6 +240,6 @@ export class SortModel {
 
     edit(): Promise<SortModel> {
         const builders = this.scorers.map(item => ({ ...item }));
-        return globalDialog({ type: QuickjerkModal, params: builders, title: 'Quickjerm sorting config' }, true);
+        return globalDialog({ type: QuickjerkModal, params: builders, title: 'Quickjerm sorting config' });
     }
 }

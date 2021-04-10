@@ -2,8 +2,9 @@ import { LitElement, css } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
 import { property } from 'lit-element/decorators/property.js';
 import { RACES, Race } from '../model';
+import { PopupBase } from '../components/dialog';
 
-export class AvctRaceSelection extends LitElement {
+export class AvctRaceSelection extends PopupBase<Race, Race> {
     static styles = css`
         label {
             display: block;
@@ -14,7 +15,7 @@ export class AvctRaceSelection extends LitElement {
     selected!: Race;
 
     private emit(e: Event): void {
-        this.dispatchEvent(new CustomEvent<Race>('avct-select', { detail: ((e.target as HTMLInputElement).value as Race) }));
+        this.done((e.target as HTMLInputElement).value as Race);
     }
 
     render(): ReturnType<LitElement['render']> {

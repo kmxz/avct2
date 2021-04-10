@@ -1,9 +1,9 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
-import { property } from 'lit-element/decorators/property.js';
 import { query } from 'lit-element/decorators/query.js';
+import { PopupBase } from '../components/dialog';
 
-export class AvctTextEdit extends LitElement {
+export class AvctTextEdit extends PopupBase<string, string> {
     static styles = css`
         input, button {
             display: block;
@@ -15,18 +15,10 @@ export class AvctTextEdit extends LitElement {
         }
     `;
 
-    @property({ attribute: false })
-    value!: string;
-
     @query('input')
     input!: HTMLInputElement;
 
-    private change() { this.dispatchEvent(new CustomEvent<void>('avct-touch')); }
-
-    private emit(): void {
-        const detail = this.input.value.trim();
-        this.dispatchEvent(new CustomEvent<string>('avct-select', { detail }));
-    }
+    private emit(): void { this.done(this.input.value.trim()); }
 
     private handleKeyDown(e: KeyboardEvent): void {
         if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) { return; }
@@ -38,7 +30,7 @@ export class AvctTextEdit extends LitElement {
     render(): ReturnType<LitElement['render']> {
         return html`
             <link rel="stylesheet" href="./shared.css" />
-            <input type="text" value="${this.value}" @input="${this.change}" @keydown="${this.handleKeyDown}" />
+            <input type="text" value="${this.params}" @input="${this.markDirty}" @keydown="${this.handleKeyDown}" />
             <button @click="${this.emit}">Save</button>
         `;
     }

@@ -6,7 +6,25 @@ import { AvctCtxMenuHook, PopupBase } from '../components/dialog';
 import { until } from 'lit-html/directives/until.js';
 import { clips } from '../data';
 import { AvctClipPlay } from '../menus/clip-play';
-import { AvctCtxMenu } from '../components/menu';
+
+class AvctScoreDetailsMenu extends PopupBase<Record<string, number>, void> {
+    static styles = css`
+        :host { display: block; text-align: center; }
+        table {
+            border-collapse: collapse;
+        }
+    `;
+
+    render(): ReturnType<LitElement['render']> {
+        return html`
+            <table>
+                <tbody>
+                    ${Object.entries(this.params).map(([k, v]) => html`<tr><td>${k}:</td><td align="right">${v.toFixed(3)}</td></tr>`)}
+                </tbody>
+            </table>
+        `;
+    }
+}
 
 export class AvctSimilarClipsDialog extends PopupBase<number, void> {
     static styles = css`
@@ -14,14 +32,14 @@ export class AvctSimilarClipsDialog extends PopupBase<number, void> {
         table {
             border-collapse: collapse;
         }
-        table.main {
+        table {
             margin: 0 -16px;
         }
-        tr.main > th, tr.main > td { position: relative; border-bottom: 1px solid #e0e0e0; padding: 2px; }
-        tr.main > td:first-of-type { padding-left: 12px; }
-        tr.main > td:last-of-type { padding-right: 12px; }
+        tr > th, tr > td { position: relative; border-bottom: 1px solid #e0e0e0; padding: 2px; }
+        tr > td:first-of-type { padding-left: 12px; }
+        tr > td:last-of-type { padding-right: 12px; }
         img { max-width: 360px; }
-        tr.main:first-of-type {
+        tr:first-of-type {
             background: #f6f9fd;
         }
     `;
@@ -46,23 +64,17 @@ export class AvctSimilarClipsDialog extends PopupBase<number, void> {
                 ...similarClips.map(tuple => [tuple, localClipsData.get(tuple.clipId)!] as const)
             ];
         }).then(list => html`
-                <table class="main">
+                <table>
                     <thead><tr><th>Clip</th><th>Thumb</th><th>Note</th><th>Similarity</th></tr></thead>
                     <tbody>
                         ${list.map(([tuple, clipObj]) => html`
-                            <tr class="main">
+                            <tr>
                                 <td class="ctx-menu-host">${clipObj.getFile()}<${AvctCtxMenuHook} .title="Play ${clipObj.getFile()}" .factory="${AvctClipPlay}" .params="${{ clipId: clipObj.id, path: clipObj.path, insideSpecial: true }}"></${AvctCtxMenuHook}></td>
                                 <td>${clipObj.hasThumb ? until(clipObj.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : '(none)'}</td>
                                 <td>${clipObj.note}</td>
                                 <td class="ctx-menu-host">
                                     ${tuple.total}
-                                    <${AvctCtxMenu} title="Score details">
-                                        <table>
-                                            <tbody>
-                                                ${Object.entries(tuple.scores).map(([k, v]) => html`<tr><td>${k}</td><td align="right">${v.toFixed(3)}</td></tr>`)}
-                                            </tbody>
-                                        </table>
-                                    </${AvctCtxMenu}>
+                                    <${AvctCtxMenuHook} .title="Score details" .factory="${AvctScoreDetailsMenu}" .params="${tuple.scores}"></${AvctCtxMenuHook}>
                                 </td>
                             </tr>
                         `)}

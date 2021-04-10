@@ -6,9 +6,9 @@ import { ElementType, html } from './registry';
 import { arrayNonEq, recordNonEq, RowData } from '../model';
 import { query } from 'lit-element/decorators/query.js';
 import { MAX_GOOD_INTEGER, seq, throttle } from './utils';
-import { AvctCtxMenu } from './menu';
 import { styleMap } from 'lit-html/directives/style-map.js';
 import { classMap } from 'lit-html/directives/class-map.js';
+import { globalPopupMenu, noOp, PopupBase } from './dialog';
 
 const INSERT_AT_END = 'INSERT_AT_END';
 
@@ -31,12 +31,13 @@ interface Moving {
     currentX: number; currentY: number;
 }
 
-export class AvctTableColumnEdit extends LitElement {
+export class AvctTableColumnEdit extends PopupBase<Column[], Column[]> {
     static styles = css`
         :host {
-            display: flex;
+            display: flex !important;
             position: relative;
             font-weight: normal;
+            text-align: center;
         }
         ul {
             margin: 0;
@@ -47,11 +48,11 @@ export class AvctTableColumnEdit extends LitElement {
         li.shadow { border: 1px dashed #c5c5cc; opacity: 0.5; }
         li:first-child { margin-top: 0; }
         li:last-child { margin-bottom: 0; }
-        ul:first-child {
+        ul:first-of-type {
             padding-right: 8px;
             border-right: 1px solid #c5c5cc;
         }
-        ul:last-child {
+        ul.inactive {
             padding-left: 8px;
         }
         .inactive li { opacity: 0.75; }
@@ -65,9 +66,6 @@ export class AvctTableColumnEdit extends LitElement {
             margin: 0;
         }
     `;
-
-    @property({ attribute: false, hasChanged: arrayNonEq<Column>(recordNonEq<any>()) })
-    columns: Column[] = [];
 
     @query('ul.active')
     activeUl!: HTMLUListElement;
@@ -136,7 +134,7 @@ export class AvctTableColumnEdit extends LitElement {
                 }
             }
             if (insertBefore !== oldCid) {
-                const columnsCopy = Array.from(this.columns);
+                const columnsCopy = Array.from(this.params);
                 let columnToMove = columnsCopy.splice(columnsCopy.findIndex(column => column.id === oldCid), 1)[0];
                 if (toBeActive && !columnToMove.width) {
                     columnToMove = { ...columnToMove, width: 100 };
@@ -144,7 +142,7 @@ export class AvctTableColumnEdit extends LitElement {
                     columnToMove = { ...columnToMove, width: 0 };
                 }
                 columnsCopy.splice((insertBefore === INSERT_AT_END) ? MAX_GOOD_INTEGER : columnsCopy.findIndex(column => column.id === insertBefore), 0, columnToMove);
-                this.columns = columnsCopy;
+                this.params = columnsCopy;
             }
         });
     }
@@ -153,7 +151,7 @@ export class AvctTableColumnEdit extends LitElement {
         e.preventDefault();
         requestAnimationFrame(() => {
             this.moving = void 0;
-            this.dispatchEvent(new CustomEvent<Column[]>('avct-select', { detail: this.columns }));
+            this.done(this.params);
         });
     }
 
@@ -166,10 +164,10 @@ export class AvctTableColumnEdit extends LitElement {
         const moving = this.moving;
         return html`
             <ul class="active">
-                ${this.renderGroup(this.columns.filter(column => column.width))}
+                ${this.renderGroup(this.params.filter(column => column.width))}
             </ul>
             <ul class="inactive">
-                ${this.renderGroup(this.columns.filter(column => !column.width))}
+                ${this.renderGroup(this.params.filter(column => !column.width))}
             </ul>
             <ul class="moving">${moving ? html`<li data-column-id="${String(moving.id)}" @mousemove="${this.handleMouseMove}" @mouseout="${this.handleMouseEnd}" @mouseup="${this.handleMouseEnd}" style="${styleMap({ left: moving.currentX + 'px', top: moving.currentY + 'px', width: moving.elWidth + 'px', height: moving.elHeight + 'px' })}">${moving.title}</li>` : null}</ul>
         `;
@@ -328,8 +326,20 @@ export class AvctTable<T extends RowData> extends LitElement {
         e.preventDefault();
     }
 
-    @property({ attribute: false })
     editingColumns = false;
+
+    private editColumns(e: MouseEvent): void { 
+        if (this.editingColumns) { return; }
+        this.editingColumns = true;
+        globalPopupMenu({
+            title: `Change columns`,
+            type: AvctTableColumnEdit,
+            params: this.columns,
+            cancellable: false
+        }, e)
+        .then(columns => { this.columns = columns; }, noOp)
+        .finally(() => { this.editingColumns = false; });
+    }
 
     private static readonly INITIAL_ROW_LIMIT = 10;
 
@@ -337,10 +347,6 @@ export class AvctTable<T extends RowData> extends LitElement {
     visibleRows = AvctTable.INITIAL_ROW_LIMIT;
 
     resetRowLimit(): void { this.visibleRows = AvctTable.INITIAL_ROW_LIMIT; }
-
-    private columnsChanged(event: CustomEvent<Column[]>): void { this.columns = event.detail; }
-    private editColumns(): void { this.editingColumns = true; }
-    private abortEdit(): void { this.editingColumns = false; }
 
     private scrollTopToRecover = -1;
 
@@ -394,20 +400,18 @@ export class AvctTable<T extends RowData> extends LitElement {
     render(): ReturnType<LitElement['render']> {
         const visibleColumns = this.columns.filter(column => column.width);
         const visibleRows = this.rows.slice(0, this.visibleRows);
-        const config = html`
-            <button class="table-settings round-button" @click="${this.editColumns}">⚙</button>
-            ${this.editingColumns ? html`
-                <${AvctCtxMenu} shown shadow title="Change columns" @avct-close="${this.abortEdit}">
-                    <${AvctTableColumnEdit} .columns="${this.columns}" @avct-select="${this.columnsChanged}"></${AvctTableColumnEdit}>
-                </${AvctCtxMenu}>` 
-            : null}
-        `;
         return html`    
             <link rel="stylesheet" href="./shared.css" />
             <table>
                 <thead>
                     <tr>
-                        ${visibleColumns.map((column, index, list) => html`<th width="${column.width}" data-index="${index}" class="ctx-menu-host">${column.title}${(index === list.length - 1) ? config : null}<span @mousedown="${this.handleResizeMouseDown}"></span></th>`)}
+                        ${visibleColumns.map((column, index, list) => html`
+                            <th width="${column.width}" data-index="${index}" class="ctx-menu-host">
+                                ${column.title}
+                                ${(index === list.length - 1) ? html`<button class="table-settings round-button" @click="${this.editColumns}">⚙</button>` : null}
+                                <span @mousedown="${this.handleResizeMouseDown}"></span>
+                            </th>
+                        `)}
                     </tr>
                 </thead>
                 <tbody>

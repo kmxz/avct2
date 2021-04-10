@@ -6,10 +6,9 @@ import { globalToast } from './components/toast';
 import { query } from 'lit-element/decorators/query.js';
 import { tags } from './data';
 import { sendTypedApi } from './api';
-import { AvctCtxMenu } from './components/menu';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { MAX_GOOD_INTEGER } from './components/utils';
-import { globalDialog } from './components/dialog';
+import { AvctCtxMenuHook, globalDialog, globalPopupMenu, PopupBase, popupClosed } from './components/dialog';
 import { AvctBestOfTagDialog } from './dialogs/best-of-tag';
 
 const sortOrder: Record<TagType, number> = {
@@ -39,7 +38,7 @@ export const searchTags = (allTags: Map<number, TagJson>, inputValue: string): T
         .map(entry => entry[0]);
 };
 
-export class AvctTagSelect extends LitElement {
+export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreation: boolean }, number> {
     static styles = css`
         .anchor {
             position: relative;
@@ -89,8 +88,8 @@ export class AvctTagSelect extends LitElement {
         }
     `;
 
-    @property({ attribute: false })
-    existing!: Set<number>;
+    get existing(): Set<number> { return this.params.existing; }
+    get allowCreation(): boolean { return this.params.allowCreation; }
 
     @property({ attribute: false, hasChanged: arrayNonEq() })
     hintTags?: TagJson[];
@@ -100,9 +99,6 @@ export class AvctTagSelect extends LitElement {
 
     @property({ attribute: false })
     tagCreationInProgress = false;
-
-    @property({ attribute: false })
-    allowCreation = true;
 
     @property({ attribute: false })
     selectedTag?: Pick<TagJson, 'id' | 'type' | 'name'>;
@@ -182,7 +178,7 @@ export class AvctTagSelect extends LitElement {
             tags.update(MultiStore.mapUpdater<number, TagJson>(id, { id, name, type, best: 0, parent: [], description: '' }, void 0));
             this.tagCreationInProgress = false;
         }
-        this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: id }));
+        this.done(id);
     }
 
     private liClick(e: Event): void {
@@ -245,14 +241,26 @@ export class AvctTagSelect extends LitElement {
     }
 }
 
+type TagAction = 'remove' | 'best';
+
+class AvctSingleTagPopup extends PopupBase<{ name: string; description: string; clipContext: boolean; }, TagAction> {
+    private clickHandler(e: Event): void { this.done((e.currentTarget as HTMLButtonElement).value as TagAction); }
+
+    render(): ReturnType<LitElement['render']> {
+        return html`
+            <link rel="stylesheet" href="./shared.css" />
+            <button @click="${this.clickHandler}" value="remove">Remove</button>
+            <hr /><b>${this.params.name}</b>: ${this.params.description}
+            ${this.params.clipContext ? html`<hr /><button @click="${this.clickHandler}" value="best">Set as best</button>` : null}
+        `;
+    }
+}
+
 export class AvctTagList extends LitElement {
     @property({ attribute: false })
     tags: TagJson[] = [];
 
     createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
-
-    @property({ attribute: false })
-    add = false;
 
     @property({ type: Boolean })
     allowCreation!: boolean;
@@ -269,35 +277,49 @@ export class AvctTagList extends LitElement {
         super.update(changedParams);
     }
 
-    private onAddTag(): void { this.add = true; }
-    private abortAdd(): void { globalToast('Tag selection discarded.'); this.add = false; }
-
-    private removeTag(e: MouseEvent): void { 
-        const button = e.target as HTMLButtonElement;
-        const id = parseInt(button.dataset['tagId']!);
-        if (isNaN(id)) { globalToast('Not a valid tag.'); }
+    private removeTag(id: number): void { 
         const tagElement = this.tags.find(tag => tag.id === id);
         if (window.confirm(`Remove tag ${tagElement?.name ?? '[unknown]'}?`)) {
             this.dispatchEvent(new CustomEvent<number>('avct-remove', { detail: id }));
         }
     }
 
-    private async setBest(e: MouseEvent): Promise<void> { 
-        const button = e.target as HTMLButtonElement;
-        const id = parseInt(button.dataset['tagId']!);
-        if (isNaN(id)) { globalToast('Not a valid tag.'); }
+    private async setBest(id: number): Promise<void> {
         const tag = this.tags.find(tag => tag.id === id)!;
         const clip = this.clipContext!;
-        const updated = await globalDialog({ title: `Best of tag ${tag.name}`, type: AvctBestOfTagDialog, params: { tag: id, clip } }, false);
+        const updated = await globalDialog({ title: `Best of tag ${tag.name}`, type: AvctBestOfTagDialog, params: { tag: id, clip } }).catch(popupClosed(() => false));
         if (updated) {
             await sendTypedApi('!tag/$/setbest', { id, clip });
             tags.update(MultiStore.mapUpdater(id, { ...tag, best: clip }, tag));
         }
     }
 
-    private selectTag(e: CustomEvent<number>): void {
-        this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: e.detail }));
-        this.add = false;
+    private add = false;
+
+    private onAddTag(e: MouseEvent): void { 
+        if (this.add) { return; }
+        this.add = true;
+        globalPopupMenu({
+            title: 'Add a tag',
+            type: AvctTagSelect,
+            params: { existing: this.tagIds, allowCreation: this.allowCreation }
+        }, e)
+        .then(
+            detail => this.dispatchEvent(new CustomEvent<number>('avct-select', { detail })), 
+            popupClosed(() => globalToast('Tag selection discarded.'))
+        )
+        .finally(() => { this.add = false; });
+    }
+
+    private clickedButtonInMenu(e: CustomEvent<TagAction>): void {
+        const button = e.target as HTMLElement;
+        const id = parseInt(button.dataset['tagId']!);
+        if (isNaN(id)) { globalToast('Not a valid tag.'); }
+        if (e.detail === 'best') { 
+            this.setBest(id);
+        } else if (e.detail === 'remove') {
+            this.removeTag(id);
+        }
     }
 
     render(): ReturnType<LitElement['render']> {
@@ -311,19 +333,14 @@ export class AvctTagList extends LitElement {
                     'tag-chip': true, 'ctx-menu-host': true, ['tag-type-' + tag.type.toLowerCase()]: true, 'tag-best': tag.best === this.clipContext 
                 })}">
                     ${tag.name}
-                    <${AvctCtxMenu} title="${tag.type} tag">
-                        <button @click="${this.removeTag}" data-tag-id="${String(tag.id)}">Remove</button>
-                        <hr /><b>${tag.name}</b>: ${tag.description}
-                        ${this.clipContext ? html`<hr /><button @click="${this.setBest}" data-tag-id="${String(tag.id)}">Set as best</button>` : null}    
-                    </${AvctCtxMenu}>
+                    <${AvctCtxMenuHook} .title="${tag.type} tag" .factory="${AvctSingleTagPopup}" .params="${{
+                        name: tag.name, description: tag.description, clipContext: this.clipContext
+                    }}" data-tag-id="${String(tag.id)}" @avct-select="${this.clickedButtonInMenu}">
+                    </${AvctCtxMenuHook}>
                 </span>
             `)}
             <button part="td-hover" class="round-button" @click="${this.onAddTag}">+</button>
-            ${this.add ? html`
-                <${AvctCtxMenu} shown shadow title="Add a tag" @avct-close="${this.abortAdd}">
-                    <${AvctTagSelect} @avct-select="${this.selectTag}" .existing="${this.tagIds}" .allowCreation="${this.allowCreation}"></${AvctTagSelect}>
-                </${AvctCtxMenu}>`
-            : null}`;
+        `;
     }
 }
 

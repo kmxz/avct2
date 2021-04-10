@@ -3,7 +3,7 @@ import { html } from '../components/registry';
 import { until } from 'lit-html/directives/until.js';
 import { players } from '../data';
 import { sendTypedApi } from '../api';
-import { globalDialog, PopupBase } from '../components/dialog';
+import { globalDialog, noOp, PopupBase } from '../components/dialog';
 import { AvctSimilarClipsDialog } from '../dialogs/similar-clips';
 import { globalToast } from '../components/toast';
 
@@ -72,7 +72,7 @@ export class AvctClipPlay extends PopupBase<{ clipId: number; path: string; insi
     }
 
     private openSimilar(): void {
-        globalDialog({ type: AvctSimilarClipsDialog, title: 'Similar clips', params: this.clipId }, false);
+        globalDialog({ type: AvctSimilarClipsDialog, title: 'Similar clips', params: this.clipId }).catch(noOp);
     }
 
     render(): ReturnType<LitElement['render']> {

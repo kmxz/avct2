@@ -2,14 +2,13 @@ import { AvctTable, column } from './components/table';
 import { LitElement, TemplateResult, css } from 'lit-element/lit-element.js';
 import { html } from './components/registry';
 import { property } from 'lit-element/decorators/property.js';
-import { TagJson, EditingCallback, Race, Role, RowData, recordNonEq, DedupeMapObjectStore } from './model';
+import { TagJson, EditingCallback, RowData, recordNonEq } from './model';
 import { tags, Clip, clips } from './data';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { until } from 'lit-html/directives/until.js';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { globalToast } from './components/toast';
-import { AvctCtxMenuHook, globalDialog } from './components/dialog';
-import { AvctCtxMenu } from './components/menu';
+import { AvctCtxMenuHook, globalDialog, globalPopupMenu, noOp, popupClosed } from './components/dialog';
 import { AvctClipPlay } from './menus/clip-play';
 import { QuickjerkScore } from './menus/quickjerk-score';
 import { AvctRaceSelection } from './menus/race-selection';
@@ -99,7 +98,7 @@ export class AvctClipThumb extends ClipCellElementBase {
                         id: this.item.id,
                         thumb: this.item.hasThumb ? this.item.getThumb() : null
                     }
-                }, true);
+                });
             } catch (e) {
                 globalToast('Thumb not changed.');
                 return;
@@ -166,77 +165,76 @@ export class AvctClipRace extends ClipCellElementBase {
         ];
     };
 
-    @property({ attribute: false })
-    edit = false;
+    private edit = false;
 
-    private startEdit(): void { this.edit = true; }
-    private abortEdit(): void { this.edit = false; }
-    private selects(e: CustomEvent<Race>): Promise<void> { this.edit = false; return this.item.update('race', e.detail, this); }
-    
+    private startEdit(e: MouseEvent): void { 
+        if (this.edit) { return; }
+        this.edit = true;
+        globalPopupMenu({
+            title: 'Edit race',
+            type: AvctRaceSelection,
+            params: this.item.race
+        }, e)
+        .then(result => this.item.update('race', result, this), noOp)
+        .finally(() => { this.edit = false; });
+    }
+
     renderContent(): TemplateResult {
         return html`
             ${this.item.race}
-            <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
-            ${this.edit ? html`
-                <${AvctCtxMenu} shown shadow title="Edit race" @avct-close="${this.abortEdit}">
-                    <${AvctRaceSelection} .selected="${this.item.race}" @avct-select="${this.selects}"></${AvctRaceSelection}>
-                </${AvctCtxMenu}>`
-            : null}`;
+            <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>`;
     }
 }
 
 export class AvctClipRole extends ClipCellElementBase {
-    @property({ attribute: false })
-    edit = false;
+    private edit = false;
 
-    private dirty = false;
-
-    private markDirty(): void { this.dirty = true; }
-    private startEdit(): void { this.edit = true; this.dirty = false; }
-    private abortEdit(): void { 
-        if (!this.edit) { return; }
-        if (this.dirty) { globalToast('Role editor discarded.'); }
-        this.edit = false;
+    private startEdit(e: MouseEvent): void { 
+        if (this.edit) { return; }
+        this.edit = true;
+        globalPopupMenu({
+            title: 'Edit roles',
+            type: AvctRoleSelection,
+            params: this.item.roles,
+        }, e)
+        .then(
+            result => this.item.update('role', result, this), 
+            popupClosed(dirty => { if (dirty) { globalToast('Role editor discarded.'); }})
+        )
+        .finally(() => { this.edit = false; });
     }
-    private selects(e: CustomEvent<Role[]>): Promise<void> { this.edit = false; return this.item.update('role', e.detail, this); }
-    
+
     renderContent(): TemplateResult {
         return html`
             ${this.item.roles.map(role => html`<span class="tag-chip">${role}</span>`)}
             <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
-            ${this.edit ? html`
-                <${AvctCtxMenu} shown shadow title="Edit roles" @avct-close="${this.abortEdit}">
-                    <${AvctRoleSelection} .selected="${this.item.roles}" @avct-touch="${this.markDirty}" @avct-select="${this.selects}"></${AvctRoleSelection}>
-                </${AvctCtxMenu}>` 
-            : null}
         `;
     }
 }
 
 export class AvctClipNote extends ClipCellElementBase {
-    @property({ attribute: false })
-    edit = false;
+    private edit = false;
 
-    private dirty = false;
-
-    private markDirty(): void { this.dirty = true; }
-    private startEdit(): void { this.edit = true; this.dirty = false; }
-    private abortEdit(): void { 
-        if (!this.edit) { return; }
-        if (this.dirty) { globalToast('Source note editor discarded.'); }
-        this.edit = false;
+    private startEdit(e: MouseEvent): void { 
+        if (this.edit) { return; }
+        this.edit = true;
+        globalPopupMenu({
+            title: 'Edit Source note',
+            type: AvctTextEdit,
+            params: this.item.note,
+            cancellable: false
+        }, e)
+        .then(
+            result => this.item.update('sourceNote', result, this), 
+            popupClosed(dirty => { if (dirty) { globalToast('Source note editor discarded.'); }})
+        )
+        .finally(() => { this.edit = false; });
     }
-    private done(e: CustomEvent<string>): Promise<void> { this.edit = false; return this.item.update('sourceNote', e.detail, this); }
 
     renderContent(): TemplateResult {
         return html`
             ${this.item.note}
             <button part="td-hover" class="round-button" @click="${this.startEdit}">✎</button>
-            ${this.edit ? html`
-                <${AvctCtxMenu} shown shadow title="Edit Source note" @avct-close="${this.abortEdit}">
-                    <${AvctTextEdit} .value="${this.item.note}" @avct-touch="${this.markDirty}" @avct-select="${this.done}"></${AvctTextEdit}>
-                </${AvctCtxMenu}>`
-            : null}
         `;
     }
 }
@@ -321,7 +319,7 @@ export class AvctClipScore extends ClipCellElementBase {
 
 class AvctClipHistory extends ClipCellElementBase {
     private popupView(): void {
-        globalDialog({ type: AvctClipHistoryDialog, params: this.item.id, title: 'History' }, false);
+        globalDialog({ type: AvctClipHistoryDialog, params: this.item.id, title: 'History' }).catch(noOp);
     }
 
     renderContent(): TemplateResult {
