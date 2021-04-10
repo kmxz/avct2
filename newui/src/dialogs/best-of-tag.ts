@@ -2,13 +2,11 @@ import { LitElement, css, TemplateResult } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
 import { Clip, clips, tags } from '../data';
-import { DialogBase } from '../components/dialog';
+import { AvctCtxMenuHook, PopupBase } from '../components/dialog';
 import { until } from 'lit-html/directives/until.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
-import { MultiStore, TagJson } from '../model';
-import { AvctCtxMenu } from '../components/menu';
+import { TagJson } from '../model';
 import { AvctClipPlay } from '../menus/clip-play';
-import { sendTypedApi } from '../api';
 
 class AvctBestOfTagDialogInner extends LitElement {
     createRenderRoot(): ReturnType<LitElement['createRenderRoot']> { return this; }
@@ -27,7 +25,7 @@ class AvctBestOfTagDialogInner extends LitElement {
         const renderRow = (title: string, clipObj: Clip | undefined): TemplateResult => html`
             <tr>
                 <td>${title}</td>
-                <td class="ctx-menu-host">${clipObj ? html`${clipObj.getFile()}<${AvctCtxMenu} title="Play ${clipObj.getFile()}"><${AvctClipPlay} .clipId="${clipObj.id}" .path="${clipObj.path}" insideSpecial></${AvctClipPlay}></${AvctCtxMenu}>` : '(not set)'}</td>
+                <td class="ctx-menu-host">${clipObj ? html`${clipObj.getFile()}<${AvctCtxMenuHook} .title="Play ${clipObj.getFile()}" .factory="${AvctClipPlay}" .params="${{ clipId: clipObj.id, path: clipObj.path, insideSpecial: true }}"></${AvctCtxMenuHook}>` : '(not set)'}</td>
                 <td>${clipObj?.hasThumb ? until(clipObj.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : '(none)'}</td>   
             </tr>
         `;
@@ -42,7 +40,7 @@ class AvctBestOfTagDialogInner extends LitElement {
 }
 
 
-export class AvctBestOfTagDialog extends DialogBase<{ tag: number; clip: number }, boolean> {
+export class AvctBestOfTagDialog extends PopupBase<{ tag: number; clip: number }, boolean> {
     static styles = css`
         table {
             border-collapse: collapse;

@@ -1,14 +1,13 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
-import { property } from 'lit-element/decorators/property.js';
 import { until } from 'lit-html/directives/until.js';
 import { players } from '../data';
 import { sendTypedApi } from '../api';
-import { globalDialog } from '../components/dialog';
+import { globalDialog, PopupBase } from '../components/dialog';
 import { AvctSimilarClipsDialog } from '../dialogs/similar-clips';
 import { globalToast } from '../components/toast';
 
-export class AvctClipPlay extends LitElement {
+export class AvctClipPlay extends PopupBase<{ clipId: number; path: string; insideSpecial: boolean; }, void> {
     static styles = css`
         :host { display: block; position: relative; }
         button[name="record"]:not(:last-of-type) {
@@ -56,15 +55,10 @@ export class AvctClipPlay extends LitElement {
             sendTypedApi('!clip/$/open', { record, player, id: this.clipId });
         });
     }
-
-    @property({ attribute: false })
-    clipId!: number;
-
-    @property({ attribute: false })
-    path!: string;
-
-    @property({ type: Boolean })
-    insideSpecial!: boolean;
+    
+    get clipId(): number { return this.params.clipId; }
+    get path(): string { return this.params.path; }
+    get insideSpecial(): boolean { return this.params.insideSpecial; }
 
     private async copyText(): Promise<void> {
         const encoded = `'${this.path.replace(/'/g, `'"'"'`)}'`;

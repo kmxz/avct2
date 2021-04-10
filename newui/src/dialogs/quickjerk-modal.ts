@@ -1,11 +1,11 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
-import { DialogBase } from '../components/dialog';
+import { PopupBase } from '../components/dialog';
 import { SortModel, ScorerBuilder, MINIMUM_WEIGHT, MAXIMUM_WEIGHT, POSSIBLE_SCORERS, scorerBuilder } from '../quickjerk-mechanism';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { AvctTagListSimple } from '../tags';
 
-export class QuickjerkModal extends DialogBase<ScorerBuilder<any>[], SortModel> {
+export class QuickjerkModal extends PopupBase<ScorerBuilder<any>[], SortModel> {
 
     static styles = css`
         :host { display: block; max-width: 560px; }

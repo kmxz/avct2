@@ -48,22 +48,18 @@ export const arrayNonEq = <T>(elementNonEq?: (a: T, b: T) => boolean): ((aArr: T
     return aArr.some((el, index) => (elementNonEq ? elementNonEq(el, bArr[index]) : (el !== bArr[index])));
 };
 
-export const mapNonEq = <K, V>(elementNonEq?: (a: V, b: V) => boolean): ((aMap: Map<K, V> | null | undefined, bMap: Map<K, V> | null | undefined) => boolean) => (aMap, bMap) => {
-    if (!aMap || !bMap) { return (!aMap) !== (!bMap); }
-    if (aMap.size !== bMap.size) { return true; }
-    for (const [key, el] of aMap) {
-        if (!bMap.has(key)) { return true; }
-        if (elementNonEq ? elementNonEq(el, bMap.get(key)!) : (el !== bMap.get(key))) { return true; }
-    }
-    return false;
-};
-
 export const recordNonEq = <V>(elementNonEq?: (a: V, b: V) => boolean): ((aObj: Record<string, V> | null | undefined, bObj: Record<string, V> | null | undefined) => boolean) => (aObj, bObj) => {
     if (!aObj || !bObj) { return (!aObj) !== (!bObj); }
     const aKeys = Object.keys(aObj).filter(key => aObj.hasOwnProperty(key));
     const bKeys = Object.keys(bObj).filter(key => bObj.hasOwnProperty(key));
     if (aKeys.length !== bKeys.length) { return true; }
     return aKeys.some(key => (!bObj.hasOwnProperty(key)) || (elementNonEq ? elementNonEq(aObj[key], bObj[key]) : (aObj[key] !== bObj[key])));
+};
+
+export const guardedRecordNonEq = <V>(elementNonEq?: (a: V, b: V) => boolean): ((aObj: any, bObj: any) => boolean) => (aObj, bObj) => {
+    if (!aObj || !bObj) { return aObj !== bObj; }
+    if ((aObj.constructor !== Object) || (bObj.constructor !== Object)) { return aObj !== bObj; }
+    return recordNonEq(elementNonEq)(aObj, bObj);
 };
 
 // Return the same instance if actual value not changed (using the given comparision function).

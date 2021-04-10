@@ -2,13 +2,13 @@ import { css, LitElement } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
 import { sendTypedApi } from '../api';
-import { DialogBase } from '../components/dialog';
+import { AvctCtxMenuHook, PopupBase } from '../components/dialog';
 import { until } from 'lit-html/directives/until.js';
 import { clips } from '../data';
 import { AvctClipPlay } from '../menus/clip-play';
 import { AvctCtxMenu } from '../components/menu';
 
-export class AvctSimilarClipsDialog extends DialogBase<number, void> {
+export class AvctSimilarClipsDialog extends PopupBase<number, void> {
     static styles = css`
         :host { display: block; text-align: center; }
         table {
@@ -51,7 +51,7 @@ export class AvctSimilarClipsDialog extends DialogBase<number, void> {
                     <tbody>
                         ${list.map(([tuple, clipObj]) => html`
                             <tr class="main">
-                                <td class="ctx-menu-host">${clipObj.getFile()}<${AvctCtxMenu} title="Play ${clipObj.getFile()}"><${AvctClipPlay} .clipId="${clipObj.id}" .path="${clipObj.path}" insideSpecial></${AvctClipPlay}></${AvctCtxMenu}></td>
+                                <td class="ctx-menu-host">${clipObj.getFile()}<${AvctCtxMenuHook} .title="Play ${clipObj.getFile()}" .factory="${AvctClipPlay}" .params="${{ clipId: clipObj.id, path: clipObj.path, insideSpecial: true }}"></${AvctCtxMenuHook}></td>
                                 <td>${clipObj.hasThumb ? until(clipObj.getThumb().then(str => html`<img src="${str}" />`), html`<span loading></span>`) : '(none)'}</td>
                                 <td>${clipObj.note}</td>
                                 <td class="ctx-menu-host">

@@ -137,7 +137,7 @@ export const handle = (api: string, params?: { [key: string]: any }): Promise<an
     return new Promise((res, rej) => {
         const mapper = FAKE_RESULTS[api];
         console.log(`API ${api} called with ${JSON.stringify(params ?? null)}.`);
-        if (!mapper) { rej(`API ${api} not mocked!`); } else { setTimeout(() => res(mapper(params!)), 1000); }
+        if (!mapper) { rej(`API ${api} not mocked!`); } else { setTimeout(() => res(mapper(params!)), 150); }
     }).catch(e => {
         globalToast(`Mock API error: ${e}`);
         throw e;

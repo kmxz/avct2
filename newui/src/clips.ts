@@ -8,7 +8,7 @@ import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { until } from 'lit-html/directives/until.js';
 import { classMap } from 'lit-html/directives/class-map.js';
 import { globalToast } from './components/toast';
-import { globalDialog } from './components/dialog';
+import { AvctCtxMenuHook, globalDialog } from './components/dialog';
 import { AvctCtxMenu } from './components/menu';
 import { AvctClipPlay } from './menus/clip-play';
 import { QuickjerkScore } from './menus/quickjerk-score';
@@ -25,7 +25,7 @@ import { live } from 'lit-html/directives/live.js';
 import { bisect, bsearchDesc } from './components/utils';
 import { query } from '@lit/reactive-element/decorators/query.js';
 
-interface SortedClip extends RowData {
+export interface SortedClip extends RowData {
     clip: Clip;
     rating: number;
     sortedBy: QuickjerkProxy;
@@ -153,7 +153,7 @@ export class AvctClipName extends ClipCellElementBase {
         return html`
             <span class="resolution-indicator" title="${this.item.resolution + 'p'}" style="${styleMap({ 'background': AvctClipName.resolutionToColor(this.item.resolution) })}"></span>
             ${this.item.getFile()}
-            ${this.item.exists ? html`<${AvctCtxMenu} title="Play ${this.item.getFile()}"><${AvctClipPlay} .clipId="${this.item.id}" .path="${this.item.path}"></${AvctClipPlay}></${AvctCtxMenu}>` : html`<button class="round-button" @click="${this.onDeleteClip}">🗑</button>`}
+            ${this.item.exists ? html`<${AvctCtxMenuHook} .title="Play ${this.item.getFile()}" .factory="${AvctClipPlay}" .params="${{ clipId: this.item.id, path: this.item.path, insideSpecial: false }}"></${AvctCtxMenuHook}>` : html`<button class="round-button" @click="${this.onDeleteClip}">🗑</button>`}
         `;
     }
 }
@@ -344,7 +344,7 @@ class AvctClipSorting extends ClipCellElementBase {
     renderContent(): TemplateResult {
         return html`
             ${this.row.rating.toFixed(2)}
-            <${AvctCtxMenu}><${QuickjerkScore} .clip="${this.row.clip}" .sortedBy="${this.row.sortedBy}"></${QuickjerkScore}></${AvctCtxMenu}>
+            <${AvctCtxMenuHook} .factory="${QuickjerkScore}" .params="${this.row}"></${AvctCtxMenuHook}>
         `;
     }
 }

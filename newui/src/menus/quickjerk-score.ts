@@ -1,10 +1,11 @@
 import { LitElement, css } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
-import { property } from 'lit-element/decorators/property.js';
 import { Clip } from '../data';
 import { ScoreItem, SortModel } from '../quickjerk-mechanism';
+import { PopupBase } from '../components/dialog';
+import { SortedClip } from '../clips';
 
-export class QuickjerkScore extends LitElement {
+export class QuickjerkScore extends PopupBase<SortedClip, void> {
     static styles = css`
         table {
             border-collapse: collapse;
@@ -20,17 +21,14 @@ export class QuickjerkScore extends LitElement {
         }
     `;
 
-    @property({ attribute: false })
-    clip!: Clip;
-    
-    @property({ attribute: false })
-    sortedBy!: SortModel;
+    get clip(): Clip { return this.params.clip; }
+    get sortedBy(): Pick<SortModel, 'scoreForDetail'> { return this.params.sortedBy; }
 
     // Purely-derived property. No need to check.
     scores: ScoreItem[] | undefined;
 
     update(changedProps: Map<keyof QuickjerkScore, any>): ReturnType<LitElement['update']> {
-        if (changedProps.has('clip') || changedProps.has('sortedBy')) {
+        if (changedProps.has('params')) {
             this.scores = this.sortedBy?.scoreForDetail(this.clip);
         }
         return super.update(changedProps);

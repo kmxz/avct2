@@ -2,9 +2,9 @@ import { css, LitElement } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
 import { sendTypedApi } from '../api';
-import { DialogBase } from '../components/dialog';
+import { PopupBase } from '../components/dialog';
 
-export class AvctClipHistoryDialog extends DialogBase<number, void> {
+export class AvctClipHistoryDialog extends PopupBase<number, void> {
     static styles = css`
         :host { display: block; position: relative; min-height: 20px; }
         ul { margin: 0; }

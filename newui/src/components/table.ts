@@ -407,14 +407,14 @@ export class AvctTable<T extends RowData> extends LitElement {
             <table>
                 <thead>
                     <tr>
-                        ${visibleColumns.map((column, index, list) => html`<th width="${column.width}" data-index="${index}" class="${classMap({ 'ctx-menu-host': index === list.length - 1 })}">${column.title}${(index === list.length - 1) ? config : null}<span @mousedown="${this.handleResizeMouseDown}"></span></th>`)}
+                        ${visibleColumns.map((column, index, list) => html`<th width="${column.width}" data-index="${index}" class="ctx-menu-host">${column.title}${(index === list.length - 1) ? config : null}<span @mousedown="${this.handleResizeMouseDown}"></span></th>`)}
                     </tr>
                 </thead>
                 <tbody>
                     ${repeat(visibleRows, row => row.id, 
                         row => guard([row, this.columns], () => 
                             html`<tr id="${this.tableId}-${row.id}">${visibleColumns.map(column => 
-                                html`<td>
+                                html`<td class="ctx-menu-host">
                                     <${column.cellType} .row="${row}"></${column.cellType}>
                                 </td>`
                             )}</tr>`

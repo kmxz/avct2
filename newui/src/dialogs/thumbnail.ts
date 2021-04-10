@@ -1,12 +1,12 @@
 import { css, LitElement } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
 import { sendTypedApi } from '../api';
-import { DialogBase } from '../components/dialog';
+import { PopupBase } from '../components/dialog';
 import { loadImgToCover, loadImgUrlToCover } from '../components/canvas-util';
 import { query } from '@lit/reactive-element/decorators/query.js';
 import { property } from '@lit/reactive-element/decorators/property.js';
 
-export class AvctThumbnailDialog extends DialogBase<{ id: number; thumb: Promise<string> | null }, Blob> {
+export class AvctThumbnailDialog extends PopupBase<{ id: number; thumb: Promise<string> | null }, Blob> {
     static styles = css`
         :host { display: block; text-align: center; }
         hr { border: 0; border-bottom: 1px solid #e0e0e0; }

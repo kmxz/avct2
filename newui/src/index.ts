@@ -5,7 +5,7 @@ import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { property } from 'lit-element/decorators/property.js';
 
 // Imports for custom element definitions.
-import { AvctDialogContainer, globalDialog } from './components/dialog';
+import { AvctDialogContainer, AvctPopupMenuContainer, globalDialog } from './components/dialog';
 import { AvctClips, QuickjerkScoreControl, ScoreThresholdData } from './clips';
 import { AvctToastContainer, globalToast } from './components/toast';
 import { SortModel } from './quickjerk-mechanism';
@@ -54,6 +54,7 @@ export class AvctRootElement extends LitElement {
                 <${AvctClips} .clips="${asyncReplace(clips.value())}" .tags="${asyncReplace(tags.value())}" .quickjerk="${this.qj}" @avct-score-control="${this.scoreControlDataChanged}" .scoreThreshold="${this.scoreThreshold}"></${AvctClips}>
             </main>
             <${AvctDialogContainer}></${AvctDialogContainer}>
+            <${AvctPopupMenuContainer}></${AvctPopupMenuContainer}>
             <${AvctToastContainer}></${AvctToastContainer}>
         `;
     }

@@ -35,10 +35,11 @@ const getClassUniqueTag = (klass: Constructor<LitElement>): WrappedStatic => {
 }
 
 export const html = (strings: TemplateStringsArray, ...values: unknown[]): TemplateResult => {
-    const newValues = values.map((entry: any) => {
+    const newValues = values.map((entry: any, index: number) => {
         if (!entry || !(entry.prototype instanceof LitElement)) {
             return entry;
         }
+        if (!(strings[index].endsWith('<') || strings[index].endsWith('</'))) { return entry; }
         return getClassUniqueTag(entry);
     });    
     return staticHtml(strings, ...newValues);

@@ -1,8 +1,8 @@
 import { css, LitElement } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
-import { DialogBase } from '../components/dialog';
+import { PopupBase } from '../components/dialog';
 
-export class AvctClipsUpdates extends DialogBase<{ added: string[]; disappeared: string[] }, void> {
+export class AvctClipsUpdates extends PopupBase<{ added: string[]; disappeared: string[] }, void> {
     static styles = css`
         h3 {
             font-size: 15px;

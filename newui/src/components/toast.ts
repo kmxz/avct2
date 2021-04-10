@@ -24,7 +24,7 @@ export class AvctToastContainer extends LitElement {
             position: fixed;
             bottom: 0;
             width: 100%;
-            z-index: 3;
+            z-index: 4;
         }
         div {
             width: 280px;

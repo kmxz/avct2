@@ -1,6 +1,6 @@
 import { css, LitElement } from 'lit-element/lit-element.js';
 import { html } from '../components/registry';
-import { DialogBase } from '../components/dialog';
+import { PopupBase } from '../components/dialog';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { Clip, clips } from '../data';
 import { MultiStore, TagJson } from '../model';
@@ -9,7 +9,7 @@ import { globalToast } from '../components/toast';
 
 export type ClipAutoUpdateTask = { clip: Clip; newTags: number[]; changedTags: TagJson[]; status?: any; };
 
-export class AvctClipTagAutoUpdateDialog extends DialogBase<ClipAutoUpdateTask[], void> {
+export class AvctClipTagAutoUpdateDialog extends PopupBase<ClipAutoUpdateTask[], void> {
     static styles = css`
         table {
             border-collapse: collapse;

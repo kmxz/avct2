@@ -2,7 +2,7 @@ import { LitElement, css } from 'lit-element/lit-element.js';
 import { property } from 'lit-element/decorators/property.js';
 import { html } from '../components/registry';
 import { Clip, clips, tags } from '../data';
-import { DialogBase, globalDialog } from '../components/dialog';
+import { PopupBase, globalDialog, AvctCtxMenuHook } from '../components/dialog';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { ClipId, MultiStore, TagJson, TagType, TAG_TYPES } from '../model';
 import { AvctTable, column } from '../components/table';
@@ -138,7 +138,7 @@ class AvctTagBest extends TagCellElementBase {
         return this.row.best ? asyncReplace(clips.value(), clipsMap => {
             const clipObj = (clipsMap as Map<ClipId, Clip>).get(this.row.best);
             if (!clipObj) { return `(error: clip ${this.row.best} not found)`; }
-            return html`${clipObj.getFile()}<${AvctCtxMenu} title="Play ${clipObj.getFile()}"><${AvctClipPlay} .clipId="${clipObj.id}" .path="${clipObj.path}" insideSpecial></${AvctClipPlay}></${AvctCtxMenu}>`;
+            return html`${clipObj.getFile()}<${AvctCtxMenuHook} .title="Play ${clipObj.getFile()}" .factory="${AvctClipPlay}" .params="${{ clipId: clipObj.id, path: clipObj.path, insideSpecial: true }}"></${AvctCtxMenuHook}>`;
         }) : '(not set)';
     }
 }
@@ -304,7 +304,7 @@ export class AvctClipHistoryDialogInner extends LitElement {
     }
 }
 
-export class AvctTagManagerDialog extends DialogBase<void, void> {
+export class AvctTagManagerDialog extends PopupBase<void, void> {
     static styles = css`
         :host { display: flex; }
     `;
