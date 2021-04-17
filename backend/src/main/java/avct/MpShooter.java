@@ -44,14 +44,20 @@ public class MpShooter {
         if (instance != null) {
             return;
         }
+        boolean rejected = false;
         try {
             instance = new MpShooter(fp, op);
             instance.startMplayer();
             instance.waitFor();
         } catch (IOException e) {
             e.printStackTrace(); // by default
+            op.reject(e);
+            rejected = true;
         } finally {
             instance = null;
+            if (!rejected) {
+                op.reject(null);
+            }
         }
     }
 

@@ -22,7 +22,11 @@ export class AvctTextEdit extends PopupBase<string, string> {
 
     private handleKeyDown(e: KeyboardEvent): void {
         if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) { return; }
-        if (e.code === 'Enter') { this.emit(); e.preventDefault(); }
+        if (e.code === 'Enter' || e.code === 'NumpadEnter') { 
+            this.emit(); e.preventDefault();
+        } else if (e.code === 'Escape') {
+            this.abort(); e.preventDefault();
+        }
     }
 
     firstUpdated(): ReturnType<LitElement['firstUpdated']> { this.input.focus(); }

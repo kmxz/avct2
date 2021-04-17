@@ -36,10 +36,10 @@ export type ClipJson = [
 export interface TagJson {
     readonly id: TagId;
     readonly name: string;
-    readonly best: ClipId;
+    readonly best?: ClipId;
     readonly parent: TagId[];
     readonly type: TagType;
-    readonly description: string;
+    readonly description?: string;
 }
 
 export const arrayNonEq = <T>(elementNonEq?: (a: T, b: T) => boolean): ((aArr: T[] | null | undefined, bArr: T[] | null | undefined) => boolean) => (aArr, bArr) => {

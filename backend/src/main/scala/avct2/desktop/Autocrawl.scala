@@ -57,7 +57,7 @@ object Autocrawl {
   private def addTo(f: (File, String)) = f match {
     case (file, path) =>
       val identifiedInfo = IdentifyVideo.identify(file, Avct2Conf.getMPlayer)
-      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote, row.dimensions)) += (path, file.length, identifiedInfo.getDuration, Race.unknown, 0, Role.ValueSet.empty, "", Dimensions(identifiedInfo.getWidth, identifiedInfo.getHeight))
+      Tables.clip.map(row => (row.file, row.size, row.length, row.race, row.grade, row.role, row.sourceNote, row.dimensions, row.lastEdit)) += (path, file.length, identifiedInfo.getDuration, Race.unknown, 0, Role.ValueSet.empty, "", Dimensions(identifiedInfo.getWidth, identifiedInfo.getHeight), 0)
   }
 
   def apply(db: Database): Future[Changes] = this.synchronized (async {

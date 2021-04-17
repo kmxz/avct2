@@ -10,16 +10,25 @@ import avct2.schema.Utilities._
 import avct2.schema._
 import org.json4s.JsonAST.JNull
 import org.scalatra.servlet.{FileUploadSupport, MultipartConfig}
-import org.scalatra.{CorsSupport, FutureSupport}
+import org.scalatra.{AsyncResult, CorsSupport, FutureSupport, HaltException}
 import slick.jdbc.HsqldbProfile.api._
 
 import java.io.{File, InputStream}
 import javax.sql.rowset.serial.SerialBlob
 import scala.async.Async.{async, await}
 import scala.compat.Platform
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Future, Promise}
 
 class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSupport with FutureSupport with RenderHelper with CorsSupport {
+
+  implicit class FutureWithTimeout[T](future: Future[T]) {
+    // Override the default timeout of 30000 milliseconds.
+    def withTimeout(duration: Duration) : AsyncResult = new AsyncResult {
+      override val is = future
+      override implicit def timeout = duration
+    }
+  }
 
   protected implicit def executor = scala.concurrent.ExecutionContext.Implicits.global
 
@@ -100,7 +109,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       }
       openWith(_, playerFile)
     }
-    openFileHelper(opener, record).map(_ => JNull)
+    openFileHelper(opener, record).map(_ => JNull).withTimeout(10.minutes)
   }
 
   post("/clip/:id/folder") {
@@ -120,7 +129,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
   post("/clip/:id/shot") {
     contentType = "image/png" // override
     val id = params("id").toInt
-    for {
+    (for {
       fileName <- withDb(_.run(Tables.clip.filter(_.clipId === id).map(_.file).result.head))
     } yield {
       val file = new File(new File(Avct2Conf.getVideoDir), fileName)
@@ -130,9 +139,10 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
       val promise = Promise[InputStream]
       MpShooter.run(file, new Output {
         override def resolve(s: InputStream) = promise.success(s)
+        override def reject(e: Throwable) = promise.tryFailure(if (e == null) HaltException(Option(503), Map.empty, ()) else e)
       })
       promise.future
-    }
+    }).withTimeout(10.minutes)
   }
 
   post("/clip/:id/saveshot") {
@@ -197,7 +207,7 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
               val length = value.toInt
               db.run(clipRowQuery.map(item => (item.length, item.lastEdit)).update((length, now)))
             case "tags" =>
-              val tags = json[Seq[Int]](value)
+              val tags = json[Seq[Int]](value).toSet
               db.run(Tables.tag.filter(_.tagId inSet tags).map(tag => (tag.tagId, tag.tagType)).result).map(tagRows => {
                 if (tagRows.length < tags.size) {
                   terminate(404, "Tag does not exist.")
@@ -231,11 +241,11 @@ class Avct2Servlet extends NoCacheServlet with FileUploadSupport with JsonSuppor
         }
         Difference.scanAll(id)
       })
-    }
+    }.withTimeout(90.seconds)
   }
 
   post("/clip/autocrawl") {
-    withDb(Autocrawl.apply)
+    withDb(Autocrawl.apply).withTimeout(90.seconds)
   }
 
   get("/tag") {

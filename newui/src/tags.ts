@@ -17,14 +17,19 @@ const sortOrder: Record<TagType, number> = {
 
 const normalize = (input: string): string => input.toLowerCase().replace(/\s+/g, ' ').trim();
 
-const matchTagValue = (tagName: string, normalizedInput: string): number => {
+const matchTagValue = (tagName: string, description: string | undefined, normalizedInput: string): number => {
     const normalizedTagName = normalize(tagName);
     if (normalizedTagName === normalizedInput) {
         return MAX_GOOD_INTEGER;
     } else if (normalizedTagName.startsWith(normalizedInput)) {
         return MAX_GOOD_INTEGER - normalizedTagName.length;
     } else if (normalizedTagName.indexOf(normalizedInput) >= 0) {
-        return 0 - normalizedTagName.length;
+        return (MAX_GOOD_INTEGER >> 1) - normalizedTagName.length;
+    } else if (description) {
+        const normalizedDescription = normalize(description);
+        if (normalizedDescription.indexOf(normalizedTagName) >= 0) {
+            return 0 - normalizedDescription.length;
+        }
     }
     return -MAX_GOOD_INTEGER;
 };
@@ -32,7 +37,7 @@ const matchTagValue = (tagName: string, normalizedInput: string): number => {
 export const searchTags = (allTags: Map<number, TagJson>, inputValue: string): TagJson[] => {
     const normalizedInput = normalize(inputValue);
     return Array.from(allTags.values())
-        .map(tag => [tag, matchTagValue(tag.name, normalizedInput)] as const)
+        .map(tag => [tag, matchTagValue(tag.name, tag.description, normalizedInput)] as const)
         .filter(entry => entry[1] > -MAX_GOOD_INTEGER)
         .sort((a, b) => (b[1] - a[1]) || (a[0].name.localeCompare(b[0].name)))
         .map(entry => entry[0]);
@@ -57,26 +62,42 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
             padding: 0;
             background: #fff;
             z-index: 1;
-            border: 1px solid #F5F5F5;
+            border: 1px solid #e0e0e9;
         }
         li {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
             padding: 4px 6px;
+            user-select: none;
         }
         li.selected {
             background: #E8EAF6;
         }
-        li > span {
-            color: #757575;
+        li > .primary {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
         }
-        li > span > span {
+        li > .primary > span { 
+            min-width: 0;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+        li > .primary > small {
+            font-size: 12px;
             display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 4px;
+            line-height: 18px;
+            border-radius: 9px;
+            padding: 0 4px;
+            margin-left: 2px;
+            opacity: 0.75;
+        }
+        li > .secondary {
+            font-size: 12px;
+            opacity: 0.75;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+        li.selected > .primary > small {
+            opacity: 1;
         }
         .types {
             display: grid;
@@ -123,10 +144,13 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
     private handleKeyDown(e: KeyboardEvent): void {
         if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) { return; }
         if (!this.hintTags) {
-            if (e.code === 'Enter') { 
+            if (e.code === 'Enter' || e.code === 'NumpadEnter') { 
                 this.emit();
                 e.preventDefault();
-            } 
+            } else if (e.code === 'Escape') {
+                this.abort();
+                e.preventDefault();
+            }
             return;
         }
         switch (e.code) {
@@ -140,6 +164,7 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
                 this.highlightedHintTag = (this.highlightedHintTag + 1) % this.hintTags.length;
                 break;
             case 'Enter':
+            case 'NumpadEnter':
                 this.selectHint(this.highlightedHintTag);
                 break;
             default:
@@ -181,11 +206,14 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
         this.done(id);
     }
 
-    private liClick(e: Event): void {
+    private getSelectedLiIdex(e: MouseEvent): number {
         const li = e.currentTarget as HTMLLIElement;
         const children = Array.from(li.parentNode!.children);
-        const index = children.indexOf(li);
-        this.selectHint(index);
+        return children.indexOf(li);
+    }
+
+    private liClick(e: MouseEvent): void {
+        this.selectHint(this.getSelectedLiIdex(e));
     }
 
     private selectHint(index: number): void {
@@ -198,6 +226,10 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
 
     private noMouseSteal(e: MouseEvent): void {
         e.preventDefault(); // https://stackoverflow.com/a/57630197
+    }
+
+    private mouseHover(e: MouseEvent): void {
+        this.highlightedHintTag = this.getSelectedLiIdex(e);
     }
 
     updated(): ReturnType<LitElement['updated']> {
@@ -220,7 +252,13 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
                 <input type="text" @input="${this.updateCandidates}" @focus="${this.updateCandidates}" @blur="${this.hideCandidates}" @keydown="${this.handleKeyDown}" ?disabled="${this.tagCreationInProgress}" />
                 <ul>
                     ${this.hintTags?.map((tag, index) =>
-                        html`<li class="${classMap({ 'selected': index === this.highlightedHintTag })}" @click="${this.liClick}" @mousedown="${this.noMouseSteal}">${tag.name}<span><span class="tag-type-${tag.type.toLowerCase()}"></span>${tag.type}</span></li>`
+                        html`<li class="${classMap({ 'selected': index === this.highlightedHintTag })}" @click="${this.liClick}" @mousedown="${this.noMouseSteal}" title="${tag.name}" @mouseenter="${this.mouseHover}">
+                            <div class="primary">
+                                <span title="${tag.name}">${tag.name}</span>
+                                <small class="tag-type-${tag.type.toLowerCase()}">${tag.type}</small>
+                            </div>
+                            ${tag.description ? html`<div class="secondary" title="${tag.description}">${tag.description}</div>` : null}
+                        </li>`
                     )}
                 </ul>
             </div>
@@ -244,6 +282,8 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
 type TagAction = 'remove' | 'best';
 
 class AvctSingleTagPopup extends PopupBase<{ name: string; description: string; clipContext: boolean; }, TagAction> {
+    static styles = css`:host { white-space: normal; }`;
+
     private clickHandler(e: Event): void { this.done((e.currentTarget as HTMLButtonElement).value as TagAction); }
 
     render(): ReturnType<LitElement['render']> {

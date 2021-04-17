@@ -135,14 +135,17 @@ export class Clip implements RowData {
             errors.set(AvctClipScore, ['No rating']);
         }
 
-        const tagEntities = Array.from(this.tags, id => tags.get(id));
+        const tagEntities = Array.from(this.tags, id => tags.get(id)).filter(_ => _) as TagJson[];
         const tagErrors = [];
-        if (!tagEntities.find(tag => tag?.type === 'Studio')) {
+        if (!tagEntities.some(tag => tag.type === 'Studio')) {
             tagErrors.push('No studio');
         }
-        if (!tagEntities.find(tag => tag?.type === 'Content')) {
+        if (!tagEntities.some(tag => tag.type === 'Content')) {
             tagErrors.push('No content tag');
         }
+        if (tagEntities.some(tag => tag.name.toLocaleLowerCase().includes('deprecated'))) {
+            tagErrors.push('Tag deprecated');
+        };
         if (tagErrors.length) { errors.set(AvctClipTags, tagErrors); }
 
         if (RACES.indexOf(this.race) <= 0) {

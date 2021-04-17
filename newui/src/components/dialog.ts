@@ -5,6 +5,7 @@ import { property } from 'lit-element/decorators/property.js';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
 import { repeat } from 'lit-html/directives/repeat.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
+import { classMap } from 'lit-html/directives/class-map.js';
 import { seq } from './utils';
 
 class AvctPopupClosure {
@@ -191,11 +192,14 @@ export class AvctMenuRendering<I, O> extends LitElement {
         }
         .menu-proper {
             width: auto;
+            max-width: 80%;
             white-space: nowrap;
             border: 1px solid #999;
             border-radius: 4px;
-            overflow: hidden;
-            box-shadow: 0 0 32px 8px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 32px 32px rgba(0, 0, 0, 0.5);
+        }
+        .menu-proper.auto-close {
+            box-shadow: 0 0 32px 8px rgba(0, 0, 0, 0.25);
         }
         h3 {
             overflow-wrap: break-word;
@@ -206,12 +210,16 @@ export class AvctMenuRendering<I, O> extends LitElement {
             border-bottom: 1px solid #c7c7c7;
             font-size: 15px;
             padding: 6px 16px;
-            margin: 0 0 0 -4px;
+            margin: 0;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
         }
         .menu-content {
             background-color: #f6f9fd;
             padding: 12px;
             display: block;
+            border-bottom-right-radius: 3px;
+            border-bottom-left-radius: 3px;
         }
         .arrow {
             position: absolute;
@@ -290,11 +298,11 @@ export class AvctMenuRendering<I, O> extends LitElement {
         })
 
         return html`
-            <div class="menu-proper" data-popup-id="${String(menu.id)}">
+            <div class="${classMap({ 'menu-proper': true, 'auto-close': menu.cancellable })}" data-popup-id="${String(menu.id)}" @mouseenter="${this.handleMouseEnter}" @mouseleave="${this.handleMouseLeave}">
                 <h3>${menu.title}</h3>
                 <${menu.type} .params=${menu.params} @avct-select="${this.finishCurrentMenu}" @avct-close="${this.abortCurrentMenu}" @avct-touch="${this.touchCurrentMenu}" class="menu-content"></${menu.type}>
             </div>
-            <div class="arrow ${arrowClass}" style="${styleMap(arrowStyle as any)}"></div>
+            <div class="arrow ${arrowClass}" style="${styleMap(arrowStyle as any)}" @mouseenter="${this.handleMouseEnter}" @mouseleave="${this.handleMouseLeave}"></div>
         `;
     }
 
@@ -305,9 +313,6 @@ export class AvctMenuRendering<I, O> extends LitElement {
     constructor() {
         super();
         this.addEventListener('click', e => e.stopPropagation());
-        // Have to install those as we don't know the value of menu.cancellable yet.
-        this.addEventListener('mouseenter', this.handleMouseEnter);
-        this.addEventListener('mouseleave', this.handleMouseLeave);
     }
 
     updated(changedProps: Map<keyof AvctMenuRendering<I, O>, any>): ReturnType<LitElement['updated']> {
@@ -340,7 +345,7 @@ export class AvctMenuRendering<I, O> extends LitElement {
         const parent = this.menu.reference.element.getBoundingClientRect();
         if (!this.renderedParentState) { return; }
         // Killing.
-        if ((this.lastMouseLeave > this.lastMouseEnter) && this.menu.cancellable) {
+        if (this.menu.cancellable && (this.lastMouseLeave > this.lastMouseEnter) && (Date.now() - this.lastMouseLeave > 50)) {
             this.abortCurrentMenu();
             return;
         }

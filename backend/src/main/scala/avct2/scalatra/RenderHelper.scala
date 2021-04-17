@@ -102,7 +102,7 @@ trait RenderHelper {
         val length = otherClips.length
         map.maxBy(_._2) match {
           case (race, count) =>
-            if (count * 2 > length) {
+            if (count * 4 > length * 3) {
               await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.race).update(race)))
             }
         }
@@ -121,7 +121,7 @@ trait RenderHelper {
           })
         }
         val length = otherClips.length
-        val newRoles = Role.ValueSet(map.filter(_._2 * 2 > length).keys.toSeq: _*)
+        val newRoles = Role.ValueSet(map.filter(_._2 * 4 > length * 3).keys.toSeq: _*)
         await(db.run(Tables.clip.filter(_.clipId === clipId).map(_.role).update(newRoles)))
       }
     }

@@ -144,7 +144,7 @@ class AvctTagDescription extends AvctTagNameOrDescription {
 class AvctTagBest extends TagCellElementBase {
     renderContent(): ReturnType<LitElement['render']> {
         return this.row.best ? asyncReplace(clips.value(), clipsMap => {
-            const clipObj = (clipsMap as Map<ClipId, Clip>).get(this.row.best);
+            const clipObj = this.row.best ? (clipsMap as Map<ClipId, Clip>).get(this.row.best) : void 0;
             if (!clipObj) { return `(error: clip ${this.row.best} not found)`; }
             return html`${clipObj.getFile()}<${AvctCtxMenuHook} .title="Play ${clipObj.getFile()}" .factory="${AvctClipPlay}" .params="${{ clipId: clipObj.id, path: clipObj.path, insideSpecial: true }}"></${AvctCtxMenuHook}>`;
         }) : '(not set)';

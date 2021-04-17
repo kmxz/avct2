@@ -3,7 +3,7 @@ import { Race, RACES, Role, ROLES, TagJson } from './model';
 import { crc32Str as crc32 } from './components/crc32';
 import { TemplateResult } from 'lit-html';
 import { html } from './components/registry';
-import { AvctTagList, AvctTagListSimple } from './tags';
+import { AvctTagListSimple } from './tags';
 import { seq } from './components/utils';
 import { globalDialog } from './components/dialog';
 import { QuickjerkModal } from './dialogs/quickjerk-modal'; 
@@ -61,16 +61,16 @@ const VOID_FIRST: ScorerDefinition<void> = {
     configUi: () => null
 }
 
-const TEXT_SEARCH: ScorerDefinition<{ keywords: string; includeNotes: boolean; }> = {
+const TEXT_SEARCH: ScorerDefinition<{ keywords: string; includeNotes: boolean; fullPath: boolean; }> = {
     name: 'Text search',
-    factory: ({ keywords, includeNotes }) => clip => {
+    factory: ({ keywords, includeNotes, fullPath }) => clip => {
         const message: string[] = [];
         const keywordsArray = keywords.split(/\s+/).filter(word => word);
         let matched = 0;
         for (const keyword of keywordsArray) {
             const lcn = keyword.toLowerCase();
             let matchedThis = false;
-            if (clip.getFile().toLowerCase().indexOf(lcn) > -1) {
+            if ((fullPath ? clip.path : clip.getFile()).toLowerCase().indexOf(lcn) > -1) {
                 message.push(`found ${keyword} in file name`);
                 matchedThis = true;
             }
@@ -80,14 +80,15 @@ const TEXT_SEARCH: ScorerDefinition<{ keywords: string; includeNotes: boolean; }
             }
             if (matchedThis) { matched++; }
         }
-        return message.length ? { score: matched / keywords.length, message: message.join('; ') } : { score: 0, message: 'not found: ' + keywordsArray.join(', ') };
+        return message.length ? { score: matched / keywordsArray.length, message: message.join('; ') } : { score: 0, message: 'not found: ' + keywordsArray.join(', ') };
     },
-    default: { keywords: '', includeNotes: true },
+    default: { keywords: '', includeNotes: true, fullPath: false },
     configUi: current => html`
         <input type="text" name="keywords" value="${current.keywords}" />
-        <input type="checkbox" name="includeNotes" ?checked="${current.includeNotes}" />
+        <input type="checkbox" name="includeNotes" ?checked="${current.includeNotes}" /> Note
+        <input type="checkbox" name="fullPath" ?checked="${current.fullPath}" /> Full-path
     `,
-    describe: ({ keywords, includeNotes }) => `${keywords.split(/\s+/).filter(word => word).length} keyword(s), notes ${includeNotes ? 'included' : 'excluded'}`
+    describe: ({ keywords, includeNotes, fullPath }) => `${keywords.split(/\s+/).filter(word => word).length} keyword(s), notes ${includeNotes ? 'included' : 'excluded'}${fullPath ? ', full-path match': ''}`
 };
 
 const TAGS: ScorerDefinition<{ value: TagJson[] }> = {
@@ -181,13 +182,10 @@ const RATING: ScorerDefinition<{ treatVoid: number }> = {
 const RANDOM: ScorerDefinition<void> = {
     name: 'Random',
     factory: () => {
-        let seed = BigInt(Date.now()) % BigInt(0xffffffff);
-        seed = (25214903917n * seed + 11n) % (2n ** 48n);
-        seed = seed >> 16n;
-        const seedValue = Number(seed);
+        const seedValue = (Math.random() * 0xffffffff) | 0;
         return clip => {
-            let crc = crc32(`${clip.id}`, seedValue);
-            crc = crc32(clip.path, crc);
+            let crc = crc32(clip.path, seedValue);
+            crc = crc32(`${clip.id}`, crc);
             return {
                 score: crc / 0xffffffff + 0.5,
                 message: `from id ${clip.id}`

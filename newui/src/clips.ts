@@ -472,6 +472,9 @@ export class AvctClips extends LitElement {
         if (sortModelChanged) {
             this.rowInstancesCache.clear();
             this.clipsTable?.resetRowLimit();
+            if (!frozenClipChanged) {
+                this.frozenClip = void 0; // Won't trigger another update, but that's fine.
+            }
         } else if (frozenClipChanged) {
             const old = changedProps.get('frozenClip') as AvctClips['frozenClip'];
             if (old) { this.rowInstancesCache.delete(old.clipId); }
