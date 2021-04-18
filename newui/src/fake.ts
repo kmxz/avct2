@@ -1,4 +1,4 @@
-import { ClipJson, Race, RACES, Role, ROLES, TagJson } from './model';
+import { ClipJson, Race, RACES, Role, ROLES, Score, TagJson } from './model';
 import { globalToast } from './components/toast';
 
 class Lcg {
@@ -17,7 +17,7 @@ class Lcg {
     nextFloat(): number { return this.nextI31() / Number(Lcg.i31cap); }
 }
 
-const toScore = (randFloat: number): number => (randFloat > 0.5) ? 0 : (Math.floor(randFloat / 0.1) + 1);
+const toScore = (randFloat: number): Score => (randFloat > 0.5) ? 0 : (Math.floor(randFloat / 0.1) + 1) as Score;
 const toRace = (randFloat: number): Race => RACES[Math.floor(randFloat * RACES.length)];
 const toRoles = (randI31: number): Role[] => {
     return ROLES.filter((_, index) => !((randI31 >> (index * 2)) & 3));

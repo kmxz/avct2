@@ -400,7 +400,7 @@ class QuickjerkProxy {
     scoreForDetail(clip: Clip): ReturnType<SortModel['scoreForDetail']> {
         const raw = this.qj.scoreForDetail(clip);
         if (this.frozenClip?.clipId === clip.id) {
-            return raw.concat({
+            return raw.map(item => ({ ...item, weight: 0 })).concat({
                 weight: 1, message: 'Temporary frozen since just edited', name: 'Frozen', score: this.frozenClip.score 
             });
         } else {

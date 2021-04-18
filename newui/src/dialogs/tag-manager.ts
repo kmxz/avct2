@@ -4,6 +4,7 @@ import { html } from '../components/registry';
 import { Clip, clips, tags } from '../data';
 import { PopupBase, globalDialog, AvctCtxMenuHook, globalPopupMenu, popupClosed, noOp } from '../components/dialog';
 import { asyncReplace } from 'lit-html/directives/async-replace.js';
+import { styleMap } from 'lit-html/directives/style-map.js';
 import { ClipId, MultiStore, TagJson, TagType, TAG_TYPES } from '../model';
 import { AvctTable, column } from '../components/table';
 import { AvctClipPlay } from '../menus/clip-play';
@@ -151,17 +152,55 @@ class AvctTagBest extends TagCellElementBase {
     }
 }
 
+class AvctTagStatPlot extends PopupBase<ReturnType<typeof simpleStat>, void> {
+    static styles = css`
+        .container {
+            display: flex;
+            align-items: flex-end;
+        }
+        .container div {
+            width: 28px;
+            margin: 0 4px;
+            line-height: 18px;
+            border-top: 0 solid #9a23a1;
+            text-align: center;
+        }
+    `;
+
+    render(): ReturnType<LitElement['render']> {
+        const scores = [this.params.r1, this.params.r2, this.params.r3, this.params.r4, this.params.r5];
+        const max = Math.max(...scores);
+        return html`
+            <div class="container">
+                ${scores.map((number, index) => 
+                    html`<div title="${number} clips" style="${styleMap({ borderTopWidth: `${number / max * 120}px` })}">${index + 1}★</div>`
+                )}
+            </div>
+        `;
+    }
+}
+
 class AvctTagStat extends TagCellElementBase {
+    private static renderStat(stats: ReturnType<typeof simpleStat>): string {
+        const scoreText = stats.rated ? (
+            (stats.rated === stats.num) ? '' : ` (${(stats.rated)} rated)`
+        ) : ', none has a rating';
+        let scoreDetails = '';
+        if (stats.rated) {
+            const nice = stats.r4 / 2 + stats.r5;
+            const nicePercentage = nice / stats.rated * 100;
+            scoreDetails += `; avg ${stats.avg.toFixed(1)}; nice ${nice} (${Math.round(nicePercentage)}%)`;
+        }
+        return `${stats.num} clips${scoreText}${scoreDetails}`;
+    }
+
     renderContent(): ReturnType<LitElement['render']> {
         const tagId = this.row.id;
         return asyncReplace(clips.value(), clipsMap => {
             const relevantClips = Array.from((clipsMap as Map<number, Clip>).values()).filter(clip => clip.tags.has(tagId));
             if (!relevantClips.length) { return 'not used in any clips'; }
-            const scores = relevantClips.map(item => item.score).filter(score => score);
-            const scoreText = scores.length ? (
-                ((scores.length === relevantClips.length) ? '' : `(${(scores.length)} rated) `) + simpleStat(scores)
-            ) : 'none has a rating';
-            return html`used in ${relevantClips.length} clips; ${scoreText}`;
+            const stats = simpleStat(relevantClips.map(item => item.score));
+            return html`${AvctTagStat.renderStat(stats)}<${AvctCtxMenuHook} .title="Distribution" .factory="${AvctTagStatPlot}" .params="${stats}"></${AvctCtxMenuHook}>`;
         });
     }
 }
@@ -253,11 +292,28 @@ class AvctTagChildren extends TagCellElementBase {
     }
 }
 
-export class AvctClipHistoryDialogInner extends LitElement {
+class AvctTagSortingSyntaxHelp extends PopupBase<void, void> {
+    static styles = css`
+        :host { white-space: normal; }
+        code { display: inline-block; margin: 0 2px; border-bottom: 1px dotted #999; }
+    `;
+
+    render(): ReturnType<LitElement['render']> {
+        return html`An number expression with variables: ${Object.keys(simpleStat([])).map(item => html`<code>${item}</code>`)}.`;
+    }
+}
+
+export class AvctTagManagerDialogInner extends LitElement {
     static styles = css`
         :host { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
-        header { border-bottom: 1px solid #e0e0e9; padding-bottom: 12px; display: flex; flex-direction: row; }
-        header input { flex-grow: 1; margin-right: 8px; }
+        header { border-bottom: 1px solid #e0e0e9; padding-bottom: 6px; }
+        header > * { display: flex; margin-bottom: 6px; justify-content: space-between; }
+        .search { flex-grow: 1; margin-right: 8px; }
+        form input { margin: 0; }
+        form label { margin-right: 6px; }
+        .right { text-align: right; }
+        .right input { width: 100px; }
+        .right small { display: block; color: #c00; }
     `;
 
     @property({ attribute: false })
@@ -266,14 +322,53 @@ export class AvctClipHistoryDialogInner extends LitElement {
     @property({ attribute: false })
     search = '';
 
-    // Purely-derived property. No need to check.
-    rows: TagJson[] | null = null;
+    @property({ attribute: false })
+    filterByType?: TagType;
 
-    update(changedProps: Map<keyof AvctClipHistoryDialogInner, any>): ReturnType<LitElement['update']> {
-        if ((changedProps.has('tags') || changedProps.has('search')) && this.tags) {
-            this.rows = searchTags(this.tags, this.search);
+    @property({ attribute: false })
+    sortingFormula = 'num';
+
+    // Purely-derived property. No need to check.
+    sortingFormulaFunction?: ((stats: ReturnType<typeof simpleStat>) => number);
+
+    // Purely-derived property. No need to check.
+    sortingFormulaError?: string;
+
+    @property({ attribute: false })
+    rows?: TagJson[];
+
+    constructor() {
+        super();
+        this.updateSortingFormulaImpl();
+    }
+
+    update(changedProps: Map<keyof AvctTagManagerDialogInner, any>): ReturnType<LitElement['update']> {
+        let sortNeeded = false;
+        if (changedProps.has('sortingFormula')) {
+            this.updateSortingFormulaImpl();
+            sortNeeded = true;
+        }
+        if ((changedProps.has('tags') || changedProps.has('search') || changedProps.has('filterByType')) && this.tags) {
+            const tags = Array.from(this.tags.values());
+            this.rows = searchTags(this.filterByType ? tags.filter(tag => tag.type === this.filterByType) : tags, this.search);
+            sortNeeded = true;
+        }
+        if (sortNeeded) {
+            this.scheduleDeferredSort();
         }
         return super.update(changedProps);
+    }
+
+    private async scheduleDeferredSort(): Promise<void> {
+        const scorer = this.sortingFormulaFunction;
+        if (!scorer) { return; }
+        const clipsMap = (await clips.value().next()).value;
+        this.rows = this.rows?.map(tag => {
+            const relevantClips = Array.from((clipsMap as Map<number, Clip>).values()).filter(clip => clip.tags.has(tag.id));
+            const stat = simpleStat(relevantClips.map(clip => clip.score));
+            const score = scorer(stat);
+            return [tag, isNaN(score) ? Number.NEGATIVE_INFINITY : score] as const;
+        })?.sort((a, b) => b[1] - a[1])?.map(pair => pair[0]);
     }
 
     private static readonly columns = [
@@ -281,7 +376,7 @@ export class AvctClipHistoryDialogInner extends LitElement {
         column('Type', AvctTagType),
         column('Description', AvctTagDescription),
         column('Best', AvctTagBest, false),
-        column('Stat', AvctTagStat, false),
+        column('Stat', AvctTagStat),
         column('Parent', AvctTagParent),
         column('Child', AvctTagChildren),
     ];
@@ -294,6 +389,53 @@ export class AvctClipHistoryDialogInner extends LitElement {
         return autoUpdate();
     }
 
+    private selectFilterByType(e: Event): void {
+        const input = e.currentTarget as HTMLInputElement;
+        if (!input.checked) { return; }
+        this.filterByType = (input.value as TagType) || void 0;
+    }
+
+    private updateSortingFormulaImpl(): void {
+        const sortingFormula = this.sortingFormula;
+        if (!sortingFormula) {
+            this.sortingFormulaError = void 0;
+            this.sortingFormulaFunction = void 0;
+            return;
+        }
+
+        const attempt = simpleStat([1, 2, 3, 4, 5]);
+        const keys = Object.keys(attempt) as (keyof ReturnType<typeof simpleStat>)[];
+
+        const tokens = sortingFormula.split(/\+|-|\*|\/|\(|\)|\s/).filter(str => str.length);
+        for (const token of tokens) {
+            if (/^\d+(\.\d+)?$/.test(token)) { continue; } // number literal.
+            if ((keys as string[]).includes(token)) { continue; } // parameter name.
+            this.sortingFormulaError = `Illegal symbol ${token}`;
+            return;
+        }
+
+        let wrappedOutputFunction, response;
+        try {
+            const outputFunction = new Function(...keys, `return (${sortingFormula})`);
+            wrappedOutputFunction = (stat: ReturnType<typeof simpleStat>): number => outputFunction(...keys.map(key => stat[key]));
+            response = wrappedOutputFunction(attempt);
+        } catch (e) {
+            this.sortingFormulaError = `${e}`;
+            return;
+        }
+        if (typeof response !== 'number') {
+            this.sortingFormulaError = `Sorting output ${response} is not a number.`;
+            return;
+        }
+
+        this.sortingFormulaError = void 0;
+        this.sortingFormulaFunction = wrappedOutputFunction;
+    }
+
+    private updateSortingFormula(e: Event): void {
+        this.sortingFormula = (e.currentTarget as HTMLInputElement).value;
+    }
+
     render(): ReturnType<LitElement['render']> {
         if (!this.rows) {
             return html`Loading...`;
@@ -301,12 +443,25 @@ export class AvctClipHistoryDialogInner extends LitElement {
         return html`
             <link rel="stylesheet" href="./shared.css" />
             <header>
-                <input type="text" placeholder="Search..." value="${this.search}" @input="${this.updateSearchText}" />
-                <button @click="${this.checkForAutoUpdate}">Check</button>
+                <div>
+                    <input class="search" type="text" placeholder="Search..." value="${this.search}" @input="${this.updateSearchText}" />
+                    <button @click="${this.checkForAutoUpdate}">Check</button>
+                </div>
+                <div>
+                    <form>
+                        <label><input type="radio" name="filter-by-type" @click="${this.selectFilterByType}" value="" checked /> All</label>
+                        ${TAG_TYPES.map(item => html`<label><input type="radio" name="filter-by-type" value="${item}" @click="${this.selectFilterByType}" /> ${item}</label>`)}
+                    </form>
+                    <div class="right">
+                        <span class="ctx-menu-host">Sorting (?)<${AvctCtxMenuHook} .factory="${AvctTagSortingSyntaxHelp}" .title="Help"></${AvctCtxMenuHook}></span>
+                        <input placeholder="Default to alphabetical" value="${this.sortingFormula}" @change="${this.updateSortingFormula}" />
+                        ${this.sortingFormulaError ? html`<small>${this.sortingFormulaError}</small>` : null}
+                    </div>
+                </div>
             </header>
             <${AvctTable}
                 .rows="${this.rows}"
-                .defaultColumns="${AvctClipHistoryDialogInner.columns}"
+                .defaultColumns="${AvctTagManagerDialogInner.columns}"
                 .visibleRows="${MAX_GOOD_INTEGER}">
             </${AvctTable}>`;
     }
@@ -319,7 +474,7 @@ export class AvctTagManagerDialog extends PopupBase<void, void> {
 
     render(): ReturnType<LitElement['render']> {
         return html`
-            <${AvctClipHistoryDialogInner} .tags="${asyncReplace(tags.value())}"></${AvctClipHistoryDialogInner}>
+            <${AvctTagManagerDialogInner} .tags="${asyncReplace(tags.value())}"></${AvctTagManagerDialogInner}>
         `;
     }
 }

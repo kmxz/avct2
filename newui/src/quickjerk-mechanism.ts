@@ -217,10 +217,10 @@ export class SortModel {
     }
 
     static readonly DEFAULT = new SortModel([
-        scorerBuilder(VOID_FIRST, MAXIMUM_WEIGHT * 1e2),
+        scorerBuilder(VOID_FIRST, MAXIMUM_WEIGHT),
         scorerBuilder(LAST_VIEW, 0.2),
-        scorerBuilder(RATING, 1),
-        scorerBuilder(RANDOM, 5),
+        scorerBuilder(RATING, 0.1),
+        scorerBuilder(RANDOM, 0.2),
     ]);
 
     score(clip: Clip): number {

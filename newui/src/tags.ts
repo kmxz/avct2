@@ -27,16 +27,16 @@ const matchTagValue = (tagName: string, description: string | undefined, normali
         return (MAX_GOOD_INTEGER >> 1) - normalizedTagName.length;
     } else if (description) {
         const normalizedDescription = normalize(description);
-        if (normalizedDescription.indexOf(normalizedTagName) >= 0) {
+        if (normalizedDescription.indexOf(normalizedInput) >= 0) {
             return 0 - normalizedDescription.length;
         }
     }
     return -MAX_GOOD_INTEGER;
 };
 
-export const searchTags = (allTags: Map<number, TagJson>, inputValue: string): TagJson[] => {
+export const searchTags = (allTags: TagJson[], inputValue: string): TagJson[] => {
     const normalizedInput = normalize(inputValue);
-    return Array.from(allTags.values())
+    return allTags
         .map(tag => [tag, matchTagValue(tag.name, tag.description, normalizedInput)] as const)
         .filter(entry => entry[1] > -MAX_GOOD_INTEGER)
         .sort((a, b) => (b[1] - a[1]) || (a[0].name.localeCompare(b[0].name)))
@@ -127,7 +127,7 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
     private async updateCandidates(e: Event): Promise<void> {
         const inputValue = (e.target as HTMLInputElement).value;
         const allTags = (await tags.value().next()).value;
-        const matchedTags = searchTags(allTags, inputValue);
+        const matchedTags = searchTags(Array.from(allTags.values()), inputValue);
         if (matchedTags.length && (matchedTags[0].name === inputValue)) { // Before normalization!
             this.selectedTag = matchedTags[0];
         } else {

@@ -2,7 +2,7 @@ import { sendTypedApi } from './api';
 import { globalDialog, noOp } from './components/dialog';
 import { AvctClipsUpdates } from './dialogs/clips-updates';
 import { AvctClipName, AvctClipRace, AvctClipRole, AvctClipScore, AvctClipTags, AvctClipThumb, ClipCellElementBase } from './clips';
-import { TagJson, RowData, ClipJson, MultiStore, Race, Role, RACES } from './model';
+import { TagJson, RowData, ClipJson, MultiStore, Race, Role, RACES, Score } from './model';
 import { ElementType } from './components/registry';
 
 const tagListReq = sendTypedApi('tag');
@@ -43,7 +43,7 @@ export class Clip implements RowData {
     readonly path: string;
     readonly race: Race;
     readonly roles: Role[];
-    readonly score: number;
+    readonly score: Score;
     readonly duration: number;
     readonly tags: Set<number>;
     readonly totalPlay: number;

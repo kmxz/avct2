@@ -1,5 +1,7 @@
 export const RACES = ['Unknown' /* index = 0 special */, 'Chinese', 'Other Asian', 'Other races'] as const;
 export const ROLES = ['Vanilla', 'M self', 'F self', 'M/m', 'M/f', 'F/m', 'F/f', 'MtF/m'] as const;
+export type Score = 0 | 1 | 2 | 3 | 4 | 5;
+
 export const TAG_TYPES = ['Special', 'Studio', 'Content', 'Format'] as const;
 
 export type Race = typeof RACES[number];
@@ -22,7 +24,7 @@ export type ClipJson = [
     string, // path
     Race, // race
     Role[], // role
-    number, // grade, a.k.a. rating
+    Score, // grade, a.k.a. rating
     number, // size
     number, // duration
     number[], // tags
