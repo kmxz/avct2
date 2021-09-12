@@ -126,6 +126,30 @@ const ROLE: ScorerDefinition<{ role: Role | undefined }> = {
     `
 };
 
+const LAST_EDIT: ScorerDefinition<{ valueMappingToHalf: number }> = {
+    name: 'Last edit',
+    factory: ({ valueMappingToHalf }) => {
+        const reduceRatio = getReduceRatio(valueMappingToHalf);
+        return clip => {
+            if (!clip.lastEdit) { // never edited
+                return {
+                    score: 1,
+                    message: 'never edited'
+                };
+            }
+            const diffHours = (new Date().getTime() / 1000 - clip.lastEdit) / 3600;
+            return {
+                score: mapFrom0Infto01(diffHours, reduceRatio),
+                message: 'last edited: ' + ((diffHours > 10) ? String(Math.round(diffHours)) : diffHours.toPrecision(2)) + ' hours ago'
+            };
+        };
+    },
+    default: { valueMappingToHalf: 0.5 },
+    configUi: current => html`
+        <input type="number" name="valueMappingToHalf" value="${current.valueMappingToHalf}" min="0.05" max="10000" step="0.05" /> hours ago
+    `
+};
+
 const LAST_VIEW: ScorerDefinition<{ valueMappingToHalf: number }> = {
     name: 'Last view',
     factory: ({ valueMappingToHalf }) => {
@@ -197,7 +221,7 @@ const RANDOM: ScorerDefinition<void> = {
 };
 
 export const POSSIBLE_SCORERS: ScorerDefinition<any>[] = [
-    VOID_FIRST, TEXT_SEARCH, RACE, ROLE, TAGS, LAST_VIEW, TOTAL_VIEWS, RATING, RANDOM
+    VOID_FIRST, TEXT_SEARCH, RACE, ROLE, TAGS, LAST_EDIT, LAST_VIEW, TOTAL_VIEWS, RATING, RANDOM
 ];
 
 export class SortModel {

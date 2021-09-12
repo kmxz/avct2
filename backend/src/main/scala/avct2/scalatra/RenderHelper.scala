@@ -47,7 +47,7 @@ trait RenderHelper {
   // to be used with renderClip
   def queryClip(filter: TableQuery[Clip] => Query[Clip, _, Seq])(implicit db: Database) =
     // actually I should fill the second type parameter of return type, instead of leaving _. but it's too long so I ignored that
-    db.run(filter(Tables.clip).map(row => (row.clipId, row.file, row.race, row.grade, row.role, row.size, row.length, row.thumb.isDefined, row.sourceNote, row.dimensions)).result)
+    db.run(filter(Tables.clip).map(row => (row.clipId, row.file, row.race, row.grade, row.role, row.size, row.length, row.thumb.isDefined, row.sourceNote, row.dimensions, row.lastEdit)).result)
 
   def queryRecords(baseQuery: Query[Record, _, Seq])(implicit db: Database): Future[Map[Int, (Int, Int)]] =
     db.run(baseQuery
@@ -56,8 +56,8 @@ trait RenderHelper {
       .result).map(list => list.map(row => (row._1, (row._2, row._3.getOrElse(0)))).toMap)
 
   // to be used with queryClip; latter two params for performance improvement only
-  def renderClip(tuple: (Int, String, Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions), tagTypesOptional: Option[Map[Int, TagType.Value]], clipTagsOptional: Option[Map[Int, Seq[Int]]], recordsOptional: Option[Map[Int, (Int, Int)]])(implicit db: Database) = async { tuple match {
-    case (clipId, file, race, grade, role, size, length, thumbSet, sourceNote, dimensions) =>
+  def renderClip(tuple: (Int, String, Race.Value, Int, Role.ValueSet, Long, Int, Boolean, String, Dimensions, Int), tagTypesOptional: Option[Map[Int, TagType.Value]], clipTagsOptional: Option[Map[Int, Seq[Int]]], recordsOptional: Option[Map[Int, (Int, Int)]])(implicit db: Database) = async { tuple match {
+    case (clipId, file, race, grade, role, size, length, thumbSet, sourceNote, dimensions, lastEdit) =>
       val allTags = await(clipTagsOptional.map(_.getOrElse(clipId, Seq.empty)).map(Future.successful).getOrElse(db.run(Tables.clipTag.filter(_.clipId === clipId).map(_.tagId).result)))
       val tagTypesFuture = tagTypesOptional.map(Future.successful).getOrElse(db.run(Tables.tag.filter(_.tagId.inSet(allTags)).map(tag => (tag.tagId, tag.tagType)).result).map(_.toMap))
       val record = await(recordsOptional.map(Future.successful).getOrElse(queryRecords(Tables.record.filter(_.clipId === clipId)))).getOrElse(clipId, (0, 0))
@@ -76,7 +76,8 @@ trait RenderHelper {
         /* "lastPlay" -> */ record._2,
         /* "thumbSet" -> */ thumbSet,
         /* "sourceNote" -> */ sourceNote,
-        /* "resolution" -> */ dimensions.min
+        /* "resolution" -> */ dimensions.min,
+        /* "lastEdit -> */ lastEdit
       ) // Enum-s must be toString-ed, otherwise json4s will fuck things up
   }}
 

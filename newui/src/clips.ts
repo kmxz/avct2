@@ -366,11 +366,11 @@ export class QuickjerkScoreControl extends LitElement {
 
     private thresholdInput(e: Event): void {
         const threshold = parseFloat((e.target as HTMLInputElement).value);
-        this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: threshold }));
+        this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: isNaN(threshold) ? 0 : threshold }));
     }
 
     render(): ReturnType<LitElement['render']> {
-        if (!this.scoreThresholdData || isNaN(this.scoreThresholdData.thresholdAtScore)) { return null; }
+        if (!this.scoreThresholdData) { return null; }
         return html`
             <span>
                 Showing scores > <input type="number" .value="${live(QuickjerkScoreControl.round(this.scoreThresholdData.thresholdAtScore))}" style="max-width: 60px" @input="${this.thresholdInput}" /> (${this.scoreThresholdData.clipsVisible} of ${this.scoreThresholdData.clipsTotal})

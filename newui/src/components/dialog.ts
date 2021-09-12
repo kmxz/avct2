@@ -80,15 +80,25 @@ export const globalDialog = <I, O>(dialog: PopupSpec<I, O>): Promise<O> => new P
         onCancel: rej
     })));
 
-export const globalPopupMenu = <I, O>(menu: PopupSpec<I, O>, referenceEvent: MouseEvent): Promise<O> => {
-    const element = referenceEvent.currentTarget as HTMLElement;
-    const rect = element.getBoundingClientRect();
-    const reference: PopupWithContext<I, O>['reference'] = {
-        element,
-        // clientX and clientY can be zero in case of click events triggered by enter key.
-        xOffset: referenceEvent.clientX ? referenceEvent.clientX - (rect.left + rect.width / 2) : void 0,
-        yOffset: referenceEvent.clientY ? referenceEvent.clientY - (rect.top + rect.height / 2) : void 0
-    };
+export const globalPopupMenu = <I, O>(menu: PopupSpec<I, O>, referenceEvent: MouseEvent | HTMLElement): Promise<O> => {
+    let reference: PopupWithContext<I, O>['reference'];
+    if (referenceEvent instanceof MouseEvent) {
+        const element = (referenceEvent.currentTarget ?? referenceEvent.target) as HTMLElement;
+        const rect = element.getBoundingClientRect();
+        reference = {
+            element,
+            // clientX and clientY can be zero in case of click events triggered by enter key.
+            xOffset: referenceEvent.clientX ? referenceEvent.clientX - (rect.left + rect.width / 2) : void 0,
+            yOffset: referenceEvent.clientY ? referenceEvent.clientY - (rect.top + rect.height / 2) : void 0
+        };
+    } else {
+        reference = {
+            element: referenceEvent,
+            xOffset: 0,
+            yOffset: 0
+        };    
+    }
+
     return new Promise((res, rej) => 
         globalPopupMenus.update(list => list.concat({
             cancellable: true,

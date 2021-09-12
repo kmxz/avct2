@@ -53,8 +53,9 @@ const generateFakeClip = (id: number): ClipJson => {
     const lcg = new Lcg(BigInt(id) * 214013n + 2531011n);
     const numberOfHistory = Math.max(Math.floor(Math.exp(lcg.nextFloat() * 5) - 5), 0);
     const lastOfHistory = Date.now() / 1000 - Math.exp(10 * lcg.nextFloat()) * 1000;
+    const lastEdit = Date.now() / 1000 - Math.exp(15 * lcg.nextFloat()) * 5;
     return [
-        id, toPath(lcg.nextI31()), toRace(lcg.nextFloat()), toRoles(lcg.nextI31()), toScore(lcg.nextFloat()), 5000000, 360, toTags(lcg.nextI31()), numberOfHistory, numberOfHistory ? lastOfHistory : 0, ((id % 10) < 7), `fake clip ${id}`, toResolution(lcg.nextFloat())
+        id, toPath(lcg.nextI31()), toRace(lcg.nextFloat()), toRoles(lcg.nextI31()), toScore(lcg.nextFloat()), 5000000, 360, toTags(lcg.nextI31()), numberOfHistory, numberOfHistory ? lastOfHistory : 0, ((id % 10) < 7), `fake clip ${id}`, toResolution(lcg.nextFloat()), lastEdit
     ];
 };
 

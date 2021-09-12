@@ -51,6 +51,7 @@ export class Clip implements RowData {
     readonly hasThumb: boolean;
     readonly note: string;
     readonly resolution: number;
+    readonly lastEdit: number;
 
     readonly exists: boolean;
     thumbImgPromise: Promise<string> | undefined;
@@ -71,6 +72,7 @@ export class Clip implements RowData {
         this.hasThumb = data[10];
         this.note = data[11];
         this.resolution = data[12];
+        this.lastEdit = data[13];
         this.exists = true;
         this.validate(tagsData);
     }

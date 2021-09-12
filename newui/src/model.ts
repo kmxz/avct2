@@ -32,7 +32,8 @@ export type ClipJson = [
     number, // lastPlay
     boolean, // thumbSet
     string, // sourceNote
-    number // resolution
+    number, // resolution
+    number // lastEdit
 ];
 
 export interface TagJson {

@@ -43,7 +43,9 @@ export const searchTags = (allTags: TagJson[], inputValue: string): TagJson[] =>
         .map(entry => entry[0]);
 };
 
-export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreation: boolean }, number> {
+const VIA_KEYBOARD = 'VIA_KEYBOARD';
+
+export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreation: boolean }, { tagId: number, closedViaKeyboard: boolean }> {
     static styles = css`
         .anchor {
             position: relative;
@@ -145,7 +147,7 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
         if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) { return; }
         if (!this.hintTags) {
             if (e.code === 'Enter' || e.code === 'NumpadEnter') { 
-                this.emit();
+                this.emit(VIA_KEYBOARD);
                 e.preventDefault();
             } else if (e.code === 'Escape') {
                 this.abort();
@@ -192,7 +194,7 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
         };
     }
 
-    private async emit(): Promise<void> {
+    private async emit(source: any): Promise<void> {
         if (!this.selectedTag) { return; }
         const { name, type } = this.selectedTag;
         let id = this.selectedTag.id;
@@ -203,7 +205,7 @@ export class AvctTagSelect extends PopupBase<{ existing: Set<number>, allowCreat
             tags.update(MultiStore.mapUpdater<number, TagJson>(id, { id, name, type, best: 0, parent: [], description: '' }, void 0));
             this.tagCreationInProgress = false;
         }
-        this.done(id);
+        this.done({ tagId: id, closedViaKeyboard: source === VIA_KEYBOARD });
     }
 
     private getSelectedLiIdex(e: MouseEvent): number {
@@ -308,6 +310,9 @@ export class AvctTagList extends LitElement {
     @property({ attribute: false })
     clipContext?: number;
 
+    @query('button.round-button:last-child')
+    button!: HTMLButtonElement;
+
     private tagIds: Set<number> = new Set();
 
     update(changedParams: PropertyValues): ReturnType<LitElement['updated']> {
@@ -336,16 +341,22 @@ export class AvctTagList extends LitElement {
 
     private add = false;
 
-    private onAddTag(e: MouseEvent): void { 
+    private onAddTag(e: MouseEvent | undefined): void { 
         if (this.add) { return; }
         this.add = true;
         globalPopupMenu({
             title: 'Add a tag',
             type: AvctTagSelect,
-            params: { existing: this.tagIds, allowCreation: this.allowCreation }
-        }, e)
+            params: { existing: this.tagIds, allowCreation: this.allowCreation },
+            cancellable: false
+        }, e ?? this.button)
         .then(
-            detail => this.dispatchEvent(new CustomEvent<number>('avct-select', { detail })), 
+            detail => {
+                this.dispatchEvent(new CustomEvent<number>('avct-select', { detail: detail.tagId }));
+                if (detail.closedViaKeyboard) {
+                    setTimeout(() => this.onAddTag(void 0));
+                }
+            },
             popupClosed(() => globalToast('Tag selection discarded.'))
         )
         .finally(() => { this.add = false; });
