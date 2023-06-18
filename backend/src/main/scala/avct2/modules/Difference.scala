@@ -10,6 +10,7 @@ import slick.jdbc.HsqldbProfile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.async.Async.{async, await}
+import scala.collection.mutable
 import scala.concurrent.Future
 
 case class Report(clipId: Int, scores: Map[String, Double], total: Double)
@@ -124,18 +125,17 @@ object Difference {
 
   case class ClipRow(filename: String, studioId: Set[Int], race: Race.Value, role: Role.ValueSet, size: Long, length: Int, clipId: Int, contentTags: Set[Int])
 
-  private def getClipRows(clips: Query[Clip, _, Seq], tagTypes: Map[Int, TagType.Value])(implicit db: Database): Future[Seq[ClipRow]] =
-    db.run(clips.map(row => (row.file, row.race, row.role, row.size, row.length, row.clipId)).result)
-      .flatMap(clips => Future.sequence(clips.map(row =>
-        db.run(Tables.clipTag.filter(_.clipId === row._6).map(_.tagId).result).map(allTags =>
-          ClipRow(row._1, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet, row._2, row._3, row._4, row._5, row._6, allTags.filter(tag => tagTypes(tag) == TagType.content).toSet)
-        )
-      )))
+  private def getClipRows(clips: Query[Clip, _, Seq], tagTypes: Map[Int, TagType.Value], clipTags: Map[Int, Seq[Int]])(implicit db: Database): Future[Seq[ClipRow]] =
+    db.run(clips.map(row => (row.file, row.race, row.role, row.size, row.length, row.clipId)).result).map(_.map(row => {
+      val allTags = clipTags.getOrElse(row._6, Seq())
+      ClipRow(row._1, allTags.filter(tag => tagTypes(tag) == TagType.studio).toSet, row._2, row._3, row._4, row._5, row._6, allTags.filter(tag => tagTypes(tag) == TagType.content).toSet)
+    }))
 
   def scanAll(clipId: Int)(implicit db: Database): Future[Seq[Report]] = async {
     val allTags = await(db.run(Tables.tag.map(tag => (tag.tagId, tag.tagType)).result)).toMap
-    val target = await(getClipRows(Tables.clip.filter(_.clipId === clipId), allTags)).head
-    await(getClipRows(Tables.clip.filter(_.clipId =!= clipId), allTags)).map({row =>
+    val allClipTagRows = await(db.run(Tables.clipTag.map(clipTag => (clipTag.clipId, clipTag.tagId)).result)).groupMap(_._1)(_._2)
+    val target = await(getClipRows(Tables.clip.filter(_.clipId === clipId), allTags, allClipTagRows)).head
+    await(getClipRows(Tables.clip.filter(_.clipId =!= clipId), allTags, allClipTagRows)).map({row =>
       val acquiredResults = entries.map(entry => entry.getResult(target, row))
       Report(row.clipId, acquiredResults.map(_._1).toMap, acquiredResults.map(_._2).sum)
     }).sortBy(-_.total).take(25)

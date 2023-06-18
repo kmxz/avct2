@@ -6,6 +6,8 @@ This version uses Web UI, with a backend on the same machine.
 
 Run `init.sh` to download some third-party dependencies and build scripts.
 
+Then run `npm run build` in `newui` directory.
+
 Then run `./sbt` in `backend` directory to build. For building and running, http://scalatra.org/2.6/guides/deployment/servlet-container.html will be helpful.
 
 To run the packaged `.war` file, [Jetty Runner](https://webtide.com/jetty-runner/) is recommended.
